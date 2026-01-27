@@ -1,43 +1,173 @@
-// 消息项样式
-// TODO: Phase 4 时完善样式
+// src/components/ChatWindow/MessageItem.less
+//
+/// 消息项样式 - WeChat 风格气泡
+
+@import '../../styles/variables.less';
+@import '../../styles/mixins.less';
 
 .message-item {
-  display: flex;
-  margin-bottom: 16px;
+  margin-bottom: @spacing-lg;
+  width: 100%;
 
-  &.self {
-    justify-content: flex-end;
+  // 时间分隔线
+  .message-time-divider {
+    .message-time-divider();
+  }
 
-    .message-bubble {
-      background-color: #95ec69;
-      border-radius: 8px 0 8px 8px;
+  // 消息内容容器
+  .message-content-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: @spacing-md;
+  }
+}
+
+// ============================================================
+// 对方消息（左侧显示）
+// ============================================================
+
+.message-item.other {
+  .message-content-wrapper {
+    justify-content: flex-start;
+  }
+
+  .message-avatar {
+    .avatar-base(36px);
+    flex-shrink: 0;
+
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      .flex-center();
+      background-color: @sidebar-bg;
+      color: @text-secondary;
+      font-size: @font-size-lg;
+      font-weight: 500;
     }
   }
 
-  &.other {
-    justify-content: flex-start;
-
-    .message-bubble {
-      background-color: white;
-      border-radius: 0 8px 8px 8px;
-    }
+  .message-bubble-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .message-bubble {
-    max-width: 70%;
-    padding: 8px 12px;
+    .message-bubble(@bubble-other, false);
+    border-top-left-radius: 4px;
+  }
+}
 
-    .message-content {
-      font-size: 14px;
-      line-height: 1.5;
-      word-wrap: break-word;
+// ============================================================
+// 己方消息（右侧显示）
+// ============================================================
+
+.message-item.self {
+  .message-content-wrapper {
+    justify-content: flex-end;
+  }
+
+  .message-bubble-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .message-bubble {
+    .message-bubble(@bubble-self, true);
+    border-top-right-radius: 4px;
+  }
+}
+
+// ============================================================
+// 消息气泡
+// ============================================================
+
+.message-bubble {
+  position: relative;
+  max-width: @message-max-width;
+  padding: @spacing-md @spacing-lg;
+
+  .message-text {
+    font-size: @font-size-base;
+    line-height: @line-height-base;
+    color: @text-primary;
+    word-wrap: break-word;
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+
+  .message-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: @spacing-xs;
+    margin-top: @spacing-xs;
+    font-size: @font-size-xs;
+  }
+
+  .message-time {
+    color: rgba(0, 0, 0, 0.45);
+  }
+
+  // 消息状态图标
+  .message-status {
+    display: inline-flex;
+    align-items: center;
+
+    svg {
+      width: 14px;
+      height: 14px;
     }
 
-    .message-time {
-      font-size: 12px;
-      color: #999;
-      margin-top: 4px;
-      text-align: right;
+    &.sending {
+      color: @text-tertiary;
     }
+
+    &.sent {
+      color: @text-tertiary;
+    }
+
+    &.read {
+      color: @text-tertiary;
+    }
+
+    &.failed {
+      color: #FA5151;
+      cursor: pointer;
+
+      &:hover {
+        color: #D93D3D;
+      }
+    }
+  }
+}
+
+// ============================================================
+// 头像
+// ============================================================
+
+.message-avatar {
+  flex-shrink: 0;
+
+  .avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    .flex-center();
+    background-color: @sidebar-bg;
+    color: @text-secondary;
+    font-size: @font-size-lg;
+    font-weight: 500;
+    border-radius: 4px;
+  }
+}
+
+// ============================================================
+// 响应式
+// ============================================================
+
+@media (max-width: 768px) {
+  .message-bubble {
+    max-width: calc(100vw - 180px);
   }
 }

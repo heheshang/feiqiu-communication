@@ -1,65 +1,168 @@
-// 输入框样式
-// TODO: Phase 4 时完善样式
+// src/components/ChatWindow/MessageInput.less
+//
+/// 消息输入框样式 - 仿微信风格
+
+@import '../../styles/variables.less';
+@import '../../styles/mixins.less';
 
 .message-input {
-  border-top: 1px solid #e0e0e0;
-  background-color: white;
+  display: flex;
+  flex-direction: column;
+  background-color: @bg-white;
+  border-top: 1px solid @border-color;
+  flex-shrink: 0;
+
+  // 聚焦状态
+  &.focused {
+    .input-textarea-wrapper {
+      border-color: @primary-color;
+    }
+  }
+}
+
+// ============================================================
+// 工具栏
+// ============================================================
+
+.input-toolbar {
+  display: flex;
+  align-items: center;
+  padding: @spacing-md @spacing-lg;
+  border-bottom: 1px solid @border-light;
+
+  .toolbar-btn {
+    width: 32px;
+    height: 32px;
+    margin-right: @spacing-md;
+    .flex-center();
+    color: @text-secondary;
+    background: none;
+    border: none;
+    border-radius: @border-radius-base;
+    cursor: pointer;
+    transition: @transition-fast;
+
+    &:hover {
+      background-color: @hover-bg;
+      color: @text-primary;
+    }
+
+    &:last-child {
+      margin-right: 0;
+    }
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
+// ============================================================
+// 输入框区域
+// ============================================================
+
+.input-textarea-wrapper {
+  flex: 1;
+  padding: @spacing-md @spacing-lg;
+  border: 1px solid transparent;
+  transition: @transition-fast;
 
   .input-textarea {
     width: 100%;
     min-height: 80px;
-    padding: 12px;
+    max-height: 120px;
     border: none;
-    resize: none;
-    font-size: 14px;
-    font-family: inherit;
     outline: none;
+    resize: none;
+    font-size: @font-size-base;
+    font-family: @font-family;
+    line-height: @line-height-base;
+    color: @text-primary;
+    background: transparent;
 
     &::placeholder {
-      color: #999;
+      color: @text-tertiary;
+    }
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+  }
+}
+
+// ============================================================
+// 底部操作栏
+// ============================================================
+
+.input-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: @spacing-md @spacing-lg @spacing-sm;
+  border-top: 1px solid @border-light;
+
+  .char-count {
+    margin-right: @spacing-lg;
+    font-size: @font-size-xs;
+    color: @text-tertiary;
+
+    &.warning {
+      color: #FA5151;
     }
   }
 
-  .input-toolbar {
-    display: flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-top: 1px solid #f0f0f0;
+  .send-btn {
+    padding: @spacing-sm @spacing-xl;
+    .btn-base(@sidebar-bg, @text-tertiary);
+    cursor: not-allowed;
+    font-size: @font-size-base;
 
-    .toolbar-btn {
-      width: 32px;
-      height: 32px;
-      margin-right: 8px;
-      border: none;
-      background: none;
+    &.active {
+      .btn-base(@primary-color, @text-white);
       cursor: pointer;
-      font-size: 20px;
-      border-radius: 4px;
-      transition: background-color 0.2s;
-
-      &:hover {
-        background-color: #f0f0f0;
-      }
     }
+  }
+}
 
+// ============================================================
+// Emoji 选择器遮罩
+// ============================================================
+
+.emoji-picker-overlay {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background-color: @bg-white;
+  border: 1px solid @border-color;
+  border-radius: @border-radius-base;
+  box-shadow: @shadow-base;
+  z-index: @z-dropdown;
+  margin-bottom: @spacing-sm;
+}
+
+// ============================================================
+// 文件上传对话框遮罩
+// ============================================================
+
+.file-upload-overlay {
+  .overlay-base();
+}
+
+.file-upload-dialog {
+  .modal-base();
+  padding: @spacing-xxl;
+}
+
+// ============================================================
+// 响应式
+// ============================================================
+
+@media (max-width: 768px) {
+  .input-actions {
     .send-btn {
-      margin-left: auto;
-      padding: 6px 16px;
-      border: none;
-      background-color: #07c160;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background-color 0.2s;
-
-      &:hover {
-        background-color: #06ad56;
-      }
-
-      &:active {
-        background-color: #059450;
-      }
+      padding: @spacing-sm @spacing-lg;
     }
   }
 }

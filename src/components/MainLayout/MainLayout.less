@@ -14,6 +14,31 @@
 }
 
 // ============================================================
+// 视图模式
+// ============================================================
+
+// 移动端视图切换
+.main-layout.show-chat {
+  .layout-sidebar {
+    display: none !important;
+  }
+
+  .layout-chat {
+    display: flex !important;
+  }
+}
+
+.main-layout.show-contact {
+  .layout-sidebar {
+    display: none !important;
+  }
+
+  .layout-contact {
+    display: block !important;
+  }
+}
+
+// ============================================================
 // 左侧：会话列表
 // ============================================================
 
@@ -23,11 +48,36 @@
   height: 100%;
   background-color: @sidebar-bg;
   border-right: 1px solid @border-color;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 
   // 允许调整宽度（可选）
   resize: horizontal;
   overflow: auto;
   .custom-scrollbar();
+}
+
+.sidebar-back {
+  display: none; // 默认隐藏，仅移动端显示
+  align-items: center;
+  padding: @spacing-md @spacing-lg;
+  height: 48px;
+  background-color: @bg-white;
+  border-bottom: 1px solid @border-color;
+  color: @text-primary;
+  cursor: pointer;
+  transition: @transition-fast;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    background-color: @hover-bg;
+  }
 }
 
 // ============================================================
@@ -40,8 +90,31 @@
   height: 100%;
   background-color: @bg-white;
   border-right: 1px solid @border-color;
-  overflow: auto;
-  .custom-scrollbar();
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-back {
+  display: none; // 默认隐藏，仅移动端显示
+  align-items: center;
+  padding: @spacing-md @spacing-lg;
+  height: 48px;
+  background-color: @bg-white;
+  border-bottom: 1px solid @border-color;
+  color: @text-primary;
+  cursor: pointer;
+  transition: @transition-fast;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    background-color: @hover-bg;
+  }
 }
 
 // ============================================================
@@ -64,11 +137,12 @@
 
 @media (max-width: 1200px) {
   .main-layout {
-    // 小屏幕时可以隐藏中间栏
+    // 小屏幕时隐藏中间栏
     .layout-contact {
       width: 0;
       min-width: 0;
       border-right: none;
+      overflow: hidden;
     }
   }
 }
@@ -87,28 +161,16 @@
       border-right: none;
     }
 
-    // 默认只显示会话列表，其他通过状态切换
+    // 默认只显示会话列表
     .layout-contact,
     .layout-chat {
-      display: none;
+      display: none !important;
     }
 
-    &.show-chat {
-      .layout-sidebar {
-        display: none;
-      }
-      .layout-chat {
-        display: flex;
-      }
-    }
-
-    &.show-contact {
-      .layout-sidebar {
-        display: none;
-      }
-      .layout-contact {
-        display: block;
-      }
+    // 显示返回按钮
+    .sidebar-back,
+    .contact-back {
+      display: flex;
     }
   }
 }

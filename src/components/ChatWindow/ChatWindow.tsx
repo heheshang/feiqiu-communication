@@ -1,25 +1,75 @@
-// 组件 - 聊天窗口容器
-// TODO: Phase 4 时完善聊天窗口组件
+// src/components/ChatWindow/ChatWindow.tsx
+//
+/// 聊天窗口容器组件
+/// 包含头部信息、消息列表和输入框
 
 import React from 'react';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
-
 import './ChatWindow.less';
+import type { UserInfo } from '../../types';
 
 interface ChatWindowProps {
-  targetId: number;
-  targetName: string;
+  targetId?: number;
+  targetUser?: UserInfo;
+  sessionType?: 'single' | 'group';
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({ targetId, targetName }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({
+  targetId,
+  targetUser,
+  sessionType = 'single'
+}) => {
+  // 如果没有选中用户，显示空状态
+  if (!targetUser) {
+    return (
+      <div className="chat-window chat-window-empty">
+        <div className="empty-state">
+          <div className="empty-icon">💬</div>
+          <div className="empty-text">
+            <p>选择一个联系人开始聊天</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="chat-window">
+      {/* 头部 */}
       <div className="chat-header">
-        <h3>{targetName}</h3>
+        <div className="chat-header-info">
+          <div className="chat-header-name">{targetUser.nickname}</div>
+          <div className="chat-header-status">
+            {targetUser.status === 1 && <span className="status-text online">在线</span>}
+            {targetUser.status === 2 && <span className="status-text busy">忙碌</span>}
+            {targetUser.status === 0 && <span className="status-text offline">离线</span>}
+          </div>
+        </div>
+        <div className="chat-header-actions">
+          <button className="header-action-btn" title="查看资料">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+              <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+          <button className="header-action-btn" title="更多">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="1" fill="currentColor"/>
+              <circle cx="12" cy="5" r="1" fill="currentColor"/>
+              <circle cx="12" cy="19" r="1" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
       </div>
-      <MessageList targetId={targetId} />
-      <MessageInput targetId={targetId} />
+
+      {/* 消息列表 */}
+      <MessageList targetId={targetId} targetUser={targetUser} />
+
+      {/* 输入框 */}
+      <MessageInput targetId={targetId} sessionType={sessionType} />
     </div>
   );
 };
+
+export default ChatWindow;

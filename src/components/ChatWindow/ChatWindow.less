@@ -1,18 +1,128 @@
-// 聊天窗口样式
-// TODO: Phase 4 时完善样式
+// src/components/ChatWindow/ChatWindow.less
+//
+/// 聊天窗口样式 - 仿微信风格
+
+@import '../../styles/variables.less';
+@import '../../styles/mixins.less';
 
 .chat-window {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background-color: @chat-bg;
+}
 
+// ============================================================
+// 空状态
+// ============================================================
+
+.chat-window-empty {
+  .flex-center();
+  flex: 1;
+  background-color: @chat-bg;
+}
+
+.empty-state {
+  text-align: center;
+  color: @text-tertiary;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: @spacing-lg;
+  opacity: 0.3;
+}
+
+.empty-text {
+  font-size: @font-size-md;
+}
+
+// ============================================================
+// 头部
+// ============================================================
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: @header-height;
+  padding: 0 @spacing-xl;
+  background-color: @bg-white;
+  border-bottom: 1px solid @border-color;
+  flex-shrink: 0;
+}
+
+.chat-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-header-name {
+  font-size: @font-size-lg;
+  font-weight: 500;
+  color: @text-primary;
+  .ellipsis();
+}
+
+.chat-header-status {
+  margin-top: @spacing-xs;
+  font-size: @font-size-sm;
+}
+
+.status-text {
+  padding: @spacing-xs @spacing-sm;
+  border-radius: @border-radius-sm;
+
+  &.online {
+    color: @status-online;
+  }
+
+  &.busy {
+    color: @status-busy;
+  }
+
+  &.offline {
+    color: @text-tertiary;
+  }
+}
+
+.chat-header-actions {
+  display: flex;
+  gap: @spacing-md;
+  margin-left: @spacing-lg;
+}
+
+.header-action-btn {
+  width: 32px;
+  height: 32px;
+  .flex-center();
+  color: @text-secondary;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: @transition-fast;
+
+  &:hover {
+    background-color: @hover-bg;
+    color: @text-primary;
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// ============================================================
+// 响应式
+// ============================================================
+
+@media (max-width: 768px) {
   .chat-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid #e0e0e0;
+    padding: 0 @spacing-lg;
+  }
 
-    h3 {
-      font-size: 16px;
-      font-weight: 500;
-    }
+  .chat-header-actions {
+    margin-left: @spacing-md;
+    gap: @spacing-sm;
   }
 }
