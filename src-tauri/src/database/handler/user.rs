@@ -3,7 +3,7 @@
 //! 用户表 CRUD 操作
 
 use sea_orm::*;
-use crate::database::model::user;
+use crate::database::model::{user, User};
 use crate::error::{AppError, AppResult};
 
 /// 用户处理器

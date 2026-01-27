@@ -3,7 +3,7 @@
 //! 联系人表 CRUD 操作
 
 use sea_orm::*;
-use crate::database::model::contact;
+use crate::database::model::{contact, Contact};
 use crate::error::{AppError, AppResult};
 
 /// 联系人处理器

@@ -1,10 +1,15 @@
 // src-tauri/src/database/handler/mod.rs
 //
-//! 数据库 CRUD 封装
-//!
-//! TODO: Phase 3 时实现完整的 handler
+//! 数据库 CRUD 处理器模块
 
-// 暂时使用空实现
+pub mod user;
+pub mod contact;
+pub mod group;
+pub mod chat;
+pub mod file;
 
-// 占位符，避免空模块错误
-pub mod placeholder {}
+pub use user::UserHandler;
+pub use contact::ContactHandler;
+pub use group::{GroupHandler, GroupMemberHandler};
+pub use chat::{ChatMessageHandler, ChatSessionHandler};
+pub use file::{FileStorageHandler, FileStats};

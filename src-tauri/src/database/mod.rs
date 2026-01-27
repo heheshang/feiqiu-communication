@@ -3,7 +3,7 @@
 /// 数据库访问层模块
 
 pub mod model;
-pub mod migration;
+// pub mod migration; // TODO: Fix migration API issues
 pub mod handler;
 
 use sea_orm::{Database, DbConn};

@@ -43,6 +43,11 @@ sea-orm = { version = "0.12", features = [
     "with-json",
     "debug-print",
 ] }
+sea-orm-migration = { version = "0.12", features = [
+    "sqlx-sqlite",
+    "runtime-tokio-rustls",
+] }
+async-trait = "0.1"
 
 # ============================================================
 # 协议解析（基于 ipmsg-rs 参考实现）

@@ -34,6 +34,10 @@ pub enum AppError {
     /// 未找到
     #[error("未找到: {0}")]
     NotFound(String),
+
+    /// 已存在
+    #[error("记录已存在: {0}")]
+    AlreadyExists(String),
 }
 
 /// 应用结果类型
