@@ -1,7 +1,7 @@
 // IPC 封装 - 聊天相关
 // TODO: Phase 4 时完善聊天 IPC 接口
 
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 import type { ChatMessage, ChatSession } from '../types';
 
 export const chatAPI = {

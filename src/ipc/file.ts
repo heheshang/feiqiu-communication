@@ -1,7 +1,7 @@
 // IPC 封装 - 文件传输相关
 // TODO: Phase 4 时完善文件传输 IPC 接口
 
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 
 export const fileAPI = {
   /** 上传文件 */

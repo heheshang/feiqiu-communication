@@ -1,7 +1,7 @@
 // 自定义钩子 - IPC 通信
 // TODO: Phase 4 时完善 IPC 通信钩子
 
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 
 /** IPC 调用错误处理 */
 export function useIPC() {

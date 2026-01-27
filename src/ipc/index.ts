@@ -6,7 +6,7 @@ export { contactAPI } from './contact';
 export { fileAPI } from './file';
 
 // 群组相关 IPC 接口
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 import type { GroupInfo, GroupMember } from '../types';
 
 export const groupAPI = {
