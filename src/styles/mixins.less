@@ -1,0 +1,17 @@
+// Less Mixins
+// TODO: Phase 4 时根据需要添加常用 mixin
+
+// 文本省略
+.ellipsis(@width: 100%) {
+  width: @width;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Flex 居中
+.flex-center() {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

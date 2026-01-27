@@ -1,0 +1,72 @@
+// 联系人项样式
+// TODO: Phase 4 时完善样式
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f0f0f0;
+  }
+
+  .contact-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-right: 12px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #07c160;
+      color: white;
+      font-size: 18px;
+    }
+  }
+
+  .contact-info {
+    flex: 1;
+    min-width: 0;
+
+    .contact-name {
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .contact-machine {
+      font-size: 12px;
+      color: #999;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .contact-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+
+    &.online {
+      background-color: #07c160;
+    }
+
+    &.offline {
+      background-color: #ccc;
+    }
+  }
+}

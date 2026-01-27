@@ -1,0 +1,9 @@
+/node_modules
+/dist
+/build
+/coverage
+/.tmp
+/.vscode-test
+/.vscode
+/target
+node_modules

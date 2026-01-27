@@ -1,0 +1,65 @@
+// 输入框样式
+// TODO: Phase 4 时完善样式
+
+.message-input {
+  border-top: 1px solid #e0e0e0;
+  background-color: white;
+
+  .input-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px;
+    border: none;
+    resize: none;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+
+    &::placeholder {
+      color: #999;
+    }
+  }
+
+  .input-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-top: 1px solid #f0f0f0;
+
+    .toolbar-btn {
+      width: 32px;
+      height: 32px;
+      margin-right: 8px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 20px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: #f0f0f0;
+      }
+    }
+
+    .send-btn {
+      margin-left: auto;
+      padding: 6px 16px;
+      border: none;
+      background-color: #07c160;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: #06ad56;
+      }
+
+      &:active {
+        background-color: #059450;
+      }
+    }
+  }
+}
