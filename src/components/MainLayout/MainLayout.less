@@ -1,0 +1,114 @@
+// src/components/MainLayout/MainLayout.less
+//
+/// 主布局样式 - 三栏仿微信布局
+
+@import '../../styles/variables.less';
+@import '../../styles/mixins.less';
+
+.main-layout {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background-color: @bg-color;
+  overflow: hidden;
+}
+
+// ============================================================
+// 左侧：会话列表
+// ============================================================
+
+.layout-sidebar {
+  width: @sidebar-width;
+  min-width: @sidebar-width;
+  height: 100%;
+  background-color: @sidebar-bg;
+  border-right: 1px solid @border-color;
+
+  // 允许调整宽度（可选）
+  resize: horizontal;
+  overflow: auto;
+  .custom-scrollbar();
+}
+
+// ============================================================
+// 中间：通讯录
+// ============================================================
+
+.layout-contact {
+  width: @contact-width;
+  min-width: @contact-width;
+  height: 100%;
+  background-color: @bg-white;
+  border-right: 1px solid @border-color;
+  overflow: auto;
+  .custom-scrollbar();
+}
+
+// ============================================================
+// 右侧：聊天窗口
+// ============================================================
+
+.layout-chat {
+  flex: 1;
+  min-width: @chat-min-width;
+  height: 100%;
+  background-color: @chat-bg;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+// ============================================================
+// 响应式设计
+// ============================================================
+
+@media (max-width: 1200px) {
+  .main-layout {
+    // 小屏幕时可以隐藏中间栏
+    .layout-contact {
+      width: 0;
+      min-width: 0;
+      border-right: none;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .main-layout {
+    // 移动端采用单栏 + 切换的方式
+    flex-direction: column;
+
+    .layout-sidebar,
+    .layout-contact,
+    .layout-chat {
+      width: 100%;
+      min-width: 100%;
+      height: 100%;
+      border-right: none;
+    }
+
+    // 默认只显示会话列表，其他通过状态切换
+    .layout-contact,
+    .layout-chat {
+      display: none;
+    }
+
+    &.show-chat {
+      .layout-sidebar {
+        display: none;
+      }
+      .layout-chat {
+        display: flex;
+      }
+    }
+
+    &.show-contact {
+      .layout-sidebar {
+        display: none;
+      }
+      .layout-contact {
+        display: block;
+      }
+    }
+  }
+}

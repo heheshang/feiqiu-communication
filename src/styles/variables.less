@@ -1,18 +1,115 @@
-// 仿微信配色
-@primary-color: #07C160;        // 微信绿
-@bg-color: #F5F5F5;              // 背景灰
-@sidebar-bg: #EDEDED;            // 侧边栏灰
-@chat-bg: #F5F5F5;               // 聊天背景
-@border-color: #DCDCDC;          // 边框色
+// ============================================================
+// 仿微信配色方案
+// ============================================================
 
+// 主色调
+@primary-color: #07C160;           // 微信绿
+@primary-hover: #06AD56;           // 深绿色（悬停）
+@primary-active: #05944D;          // 更深绿色（激活）
+
+// 背景色
+@bg-color: #F5F5F5;                // 主背景灰
+@bg-white: #FFFFFF;                // 白色背景
+@sidebar-bg: #EDEDED;              // 侧边栏灰
+@chat-bg: #F5F5F5;                 // 聊天背景
+@hover-bg: #D9D9D9;                // 悬停背景
+@active-bg: #C6C6C6;               // 激活背景
+
+// 文字颜色
+@text-primary: #191919;            // 主文字
+@text-secondary: #999999;          // 次要文字
+@text-tertiary: #B2B2B2;           // 三级文字
+@text-white: #FFFFFF;              // 白色文字
+
+// 边框颜色
+@border-color: #DCDCDC;            // 主边框
+@border-light: #E5E5E5;            // 浅边框
+@border-dark: #CCCCCC;             // 深边框
+
+// 消息气泡颜色
+@bubble-self: #95EC69;             // 自己的消息（浅绿）
+@bubble-other: #FFFFFF;            // 他人的消息（白色）
+
+// 状态颜色
+@status-online: #07C160;           // 在线
+@status-offline: #999999;          // 离线
+@status-busy: #FA9D3B;             // 忙碌
+
+// 覆盖层
+@overlay-bg: rgba(0, 0, 0, 0.5);   // 遮罩背景
+
+// ============================================================
 // 字体
-@font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-@font-size-base: 14px;
-@font-size-small: 12px;
+// ============================================================
 
+@font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+@font-family-code: "Consolas", "Monaco", "Courier New", monospace;
+
+@font-size-xs: 10px;
+@font-size-sm: 11px;
+@font-size-base: 12px;
+@font-size-md: 13px;
+@font-size-lg: 14px;
+@font-size-xl: 16px;
+@font-size-xxl: 18px;
+
+@line-height-tight: 1.2;
+@line-height-base: 1.5;
+@line-height-loose: 1.8;
+
+// ============================================================
 // 间距
-@spacing-xs: 4px;
-@spacing-sm: 8px;
-@spacing-md: 12px;
-@spacing-lg: 16px;
-@spacing-xl: 24px;
+// ============================================================
+
+@spacing-xs: 2px;
+@spacing-sm: 4px;
+@spacing-md: 8px;
+@spacing-lg: 12px;
+@spacing-xl: 16px;
+@spacing-xxl: 20px;
+
+// ============================================================
+// 圆角
+// ============================================================
+
+@border-radius-sm: 2px;
+@border-radius-base: 4px;
+@border-radius-lg: 6px;
+@border-radius-xl: 8px;
+
+// ============================================================
+// 阴影
+// ============================================================
+
+@shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+@shadow-base: 0 2px 8px rgba(0, 0, 0, 0.1);
+@shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
+
+// ============================================================
+// 过渡动画
+// ============================================================
+
+@transition-base: all 0.3s ease;
+@transition-fast: all 0.15s ease;
+
+// ============================================================
+// 布局尺寸
+// ============================================================
+
+@sidebar-width: 280px;            // 左侧会话列宽度
+@contact-width: 250px;            // 中间通讯录宽度
+@chat-min-width: 400px;           // 聊天窗口最小宽度
+
+@header-height: 60px;             // 顶部栏高度
+@input-height: 120px;             // 输入框区域高度
+
+@message-max-width: 500px;        // 消息最大宽度
+
+// ============================================================
+// Z-index 层级
+// ============================================================
+
+@z-dropdown: 1000;
+@z-modal: 1050;
+@z-tooltip: 1070;

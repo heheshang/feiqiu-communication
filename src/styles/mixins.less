@@ -1,7 +1,9 @@
+// ============================================================
 // Less Mixins
-// TODO: Phase 4 时根据需要添加常用 mixin
+// 通用样式混入
+// ============================================================
 
-// 文本省略
+// 文本省略（单行）
 .ellipsis(@width: 100%) {
   width: @width;
   overflow: hidden;
@@ -9,9 +11,217 @@
   white-space: nowrap;
 }
 
+// 文本省略（多行）
+.ellipsis-multiline(@lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: @lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 // Flex 居中
 .flex-center() {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+// Flex 水平居中
+.flex-center-horizontal() {
+  display: flex;
+  justify-content: center;
+}
+
+// Flex 垂直居中
+.flex-center-vertical() {
+  display: flex;
+  align-items: center;
+}
+
+// Flex 两端对齐
+.flex-between() {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+// 清除浮动
+.clearfix() {
+  &::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+}
+
+// 滚动条样式（自定义）
+.custom-scrollbar(@width: 6px, @track-color: #f1f1f1, @thumb-color: #c1c1c1) {
+  &::-webkit-scrollbar {
+    width: @width;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: @track-color;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: @thumb-color;
+    border-radius: 3px;
+
+    &:hover {
+      background: darken(@thumb-color, 10%);
+    }
+  }
+}
+
+// 按钮基础样式
+.btn-base(@bg-color, @text-color: @text-white) {
+  background-color: @bg-color;
+  color: @text-color;
+  border: none;
+  border-radius: @border-radius-base;
+  padding: @spacing-md @spacing-lg;
+  cursor: pointer;
+  transition: @transition-fast;
+  font-size: @font-size-base;
+
+  &:hover {
+    background-color: darken(@bg-color, 5%);
+  }
+
+  &:active {
+    background-color: darken(@bg-color, 10%);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// 卡片样式
+.card-base(@padding: @spacing-lg) {
+  background: @bg-white;
+  border-radius: @border-radius-base;
+  box-shadow: @shadow-sm;
+  padding: @padding;
+}
+
+// 输入框样式
+.input-base() {
+  width: 100%;
+  padding: @spacing-md;
+  border: 1px solid @border-color;
+  border-radius: @border-radius-base;
+  font-size: @font-size-base;
+  outline: none;
+  transition: @transition-fast;
+
+  &:focus {
+    border-color: @primary-color;
+  }
+
+  &::placeholder {
+    color: @text-tertiary;
+  }
+}
+
+// 头像样式
+.avatar-base(@size: 40px) {
+  width: @size;
+  height: @size;
+  border-radius: 4px;
+  object-fit: cover;
+  background-color: @sidebar-bg;
+}
+
+// 在线状态指示器
+.status-indicator(@size: 8px) {
+  width: @size;
+  height: @size;
+  border-radius: 50%;
+  border: 1px solid @bg-white;
+
+  &.online {
+    background-color: @status-online;
+  }
+
+  &.offline {
+    background-color: @status-offline;
+  }
+
+  &.busy {
+    background-color: @status-busy;
+  }
+}
+
+// 消息气泡样式
+.message-bubble(@color: @bubble-other, @is-self: false) {
+  max-width: @message-max-width;
+  padding: @spacing-md @spacing-lg;
+  border-radius: @border-radius-base;
+  word-wrap: break-word;
+  word-break: break-all;
+
+  & when (@is-self = true) {
+    background-color: @bubble-self;
+    color: @text-primary;
+  }
+
+  & when (@is-self = false) {
+    background-color: @color;
+    box-shadow: @shadow-sm;
+  }
+}
+
+// 遮罩层
+.overlay-base() {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: @overlay-bg;
+  z-index: @z-modal;
+  .flex-center();
+}
+
+// 模态框基础样式
+.modal-base() {
+  background: @bg-white;
+  border-radius: @border-radius-lg;
+  box-shadow: @shadow-lg;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: auto;
+  .custom-scrollbar();
+}
+
+// 过渡动画
+.fade-in(@duration: 0.3s) {
+  animation: fadeIn @duration ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.slide-in-up(@duration: 0.3s) {
+  animation: slideInUp @duration ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }

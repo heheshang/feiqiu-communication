@@ -1,18 +1,35 @@
 // src/styles/global.less
 //
-/// 全局样式 - 仿微信配色
+/// 全局样式
 
-* {
+@import './variables.less';
+@import './mixins.less';
+
+// ============================================================
+// CSS Reset
+// ============================================================
+
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+html {
+  font-size: @font-size-base;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 14px;
-  color: #333;
-  background: #f5f5f5;
+  font-family: @font-family;
+  font-size: @font-size-base;
+  line-height: @line-height-base;
+  color: @text-primary;
+  background-color: @bg-color;
+  overflow: hidden; // 防止出现双滚动条
 }
 
 #root {
@@ -21,8 +38,195 @@ body {
   overflow: hidden;
 }
 
-// 仿微信配色变量
-@primary-color: #07C160;
-@bg-color: #F5F5F5;
-@sidebar-bg: #EDEDED;
-@border-color: #DCDCDC;
+// ============================================================
+// 通用样式类
+// ============================================================
+
+.App {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+// 文本省略
+.ellipsis {
+  .ellipsis();
+}
+
+.ellipsis-2 {
+  .ellipsis-multiline(2);
+}
+
+// Flex 居中
+.flex-center {
+  .flex-center();
+}
+
+.flex-between {
+  .flex-between();
+}
+
+// 滚动容器
+.scroll-container {
+  overflow: auto;
+  .custom-scrollbar();
+}
+
+// ============================================================
+// 按钮样式
+// ============================================================
+
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  outline: none;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid @primary-color;
+    outline-offset: 2px;
+  }
+}
+
+.btn-primary {
+  .btn-base(@primary-color);
+}
+
+.btn-secondary {
+  .btn-base(@sidebar-bg, @text-primary);
+}
+
+// ============================================================
+// 输入框样式
+// ============================================================
+
+input,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  outline: none;
+
+  &::placeholder {
+    color: @text-tertiary;
+  }
+}
+
+// ============================================================
+// 链接样式
+// ============================================================
+
+a {
+  color: @primary-color;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// ============================================================
+// 滚动条样式（全局）
+// ============================================================
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+
+  &:hover {
+    background: #a8a8a8;
+  }
+}
+
+// ============================================================
+// 选择文本样式
+// ============================================================
+
+::selection {
+  background: @primary-color;
+  color: @text-white;
+}
+
+::-moz-selection {
+  background: @primary-color;
+  color: @text-white;
+}
+
+// ============================================================
+// 禁用用户选择（某些UI元素）
+// ============================================================
+
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+// ============================================================
+// 动画
+// ============================================================
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+// ============================================================
+// 工具类
+// ============================================================
+
+.hidden {
+  display: none !important;
+}
+
+.invisible {
+  visibility: hidden;
+}
+
+.transparent {
+  opacity: 0;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-not-allowed {
+  cursor: not-allowed;
+}
+
+// ============================================================
+// 响应式
+// ============================================================
+
+@media (max-width: 768px) {
+  body {
+    font-size: @font-size-sm;
+  }
+}
