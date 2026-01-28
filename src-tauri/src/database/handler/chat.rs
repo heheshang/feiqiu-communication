@@ -61,6 +61,37 @@ impl ChatMessageHandler {
         Ok(messages.into_iter().rev().collect())
     }
 
+    /// 分页获取会话的聊天消息
+    /// page: 页码，从 1 开始
+    /// page_size: 每页消息数量
+    /// 返回: 按时间正序排列的消息列表（最旧的消息在前）
+    pub async fn find_by_session_paged(
+        db: &DbConn,
+        session_type: i8,
+        target_id: i64,
+        page: i32,
+        page_size: i32,
+    ) -> AppResult<Vec<chat_message::Model>> {
+        let page = page.max(1) as u64;
+        let page_size = page_size.max(1) as u64;
+        let offset = (page - 1) * page_size;
+
+        // 使用原生 SQL 实现正确的分页逻辑
+        // 分页获取最新 N 页的消息，然后反转顺序
+        let messages = ChatMessage::find()
+            .filter(chat_message::Column::SessionType.eq(session_type))
+            .filter(chat_message::Column::TargetId.eq(target_id))
+            .order_by_desc(chat_message::Column::SendTime)
+            .limit(page_size)
+            .offset(offset)
+            .all(db)
+            .await
+            .map_err(|e| AppError::Database(e))?;
+
+        // 反转顺序，使最新的消息在最后（正序：旧 -> 新）
+        Ok(messages.into_iter().rev().collect())
+    }
+
     /// 更新消息状态
     pub async fn update_status(db: &DbConn, mid: i64, status: i8) -> AppResult<()> {
         let message = Self::find_by_id(db, mid).await?;

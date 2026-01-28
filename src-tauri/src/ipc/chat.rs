@@ -7,19 +7,49 @@ use sea_orm::DbConn;
 use crate::database::handler::{ChatMessageHandler, ChatSessionHandler};
 use crate::types::{SessionType, ChatMessage, ChatSession};
 
-/// 获取聊天历史记录
+/// 获取聊天历史记录（分页）
 #[tauri::command]
 pub async fn get_chat_history_handler(
-    _session_type: i8,
-    _target_id: i64,
-    _page: i32,
-    _page_size: i32,
-    _state: State<'_, DbConn>,
+    session_type: i8,
+    target_id: i64,
+    page: i32,
+    page_size: i32,
+    state: State<'_, DbConn>,
 ) -> Result<Vec<ChatMessage>, String> {
-    // TODO: Implement proper pagination
-    // For now, return empty vec as we need to join with user table to get sender info
-    // This will be implemented after we have proper data models
-    Ok(vec![])
+    let db = state.inner();
+
+    let messages = ChatMessageHandler::find_by_session_paged(
+        db,
+        session_type,
+        target_id,
+        page,
+        page_size,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // Convert to frontend type
+    let result: Vec<ChatMessage> = messages
+        .into_iter()
+        .map(|m| {
+            ChatMessage {
+                mid: m.mid,
+                session_type: if m.session_type == 0 {
+                    SessionType::Single
+                } else {
+                    SessionType::Group
+                },
+                target_id: m.target_id,
+                sender_uid: m.sender_uid,
+                msg_type: m.msg_type,
+                content: m.content,
+                send_time: m.send_time,
+                status: m.status,
+            }
+        })
+        .collect();
+
+    Ok(result)
 }
 
 /// 发送文本消息
