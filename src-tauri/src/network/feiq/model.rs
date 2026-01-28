@@ -242,7 +242,7 @@ mod tests {
 
     #[test]
     fn test_detect_protocol_feiq() {
-        let data = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:LINLINDONG-N:6291459:ssk";
+        let data = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:SHIKUN-SH:6291459:ssk";
         assert_eq!(FeiqPacket::detect_protocol(data), ProtocolType::FeiQ);
     }
 
@@ -267,7 +267,7 @@ mod tests {
             "1_lbt6_0".to_string(),
             0x4001,
             9,
-            "LINLINDONG-N".to_string(),
+            "SHIKUN-SH".to_string(),
             "5C60BA7361C6".to_string(),
             6452,
             1765442982,
@@ -279,7 +279,7 @@ mod tests {
         assert_eq!(packet.version, "1_lbt6_0");
         assert_eq!(packet.command, 0x4001);
         assert_eq!(packet.msg_type, Some(9));
-        assert_eq!(packet.hostname, Some("LINLINDONG-N".to_string()));
+        assert_eq!(packet.hostname, Some("SHIKUN-SH".to_string()));
         assert_eq!(packet.mac_addr, Some("5C60BA7361C6".to_string()));
     }
 }

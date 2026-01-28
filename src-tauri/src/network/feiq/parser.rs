@@ -57,7 +57,7 @@ impl From<ParseError> for String {
 /// let packet = parse_feiq_packet(ipmsg).unwrap();
 ///
 /// // FeiQ 格式
-/// let feiq = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:LINLINDONG-N:6291459:ssk";
+/// let feiq = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:SHIKUN-SH:6291459:ssk";
 /// let packet = parse_feiq_packet(feiq).unwrap();
 /// ```
 pub fn parse_feiq_packet(s: &str) -> Result<FeiqPacket, ParseError> {
@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn test_parse_feiq_basic() {
-        let input = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:LINLINDONG-N:6291459:ssk";
+        let input = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:SHIKUN-SH:6291459:ssk";
         let packet = parse_feiq_packet(input).unwrap();
 
         assert_eq!(packet.protocol_type, ProtocolType::FeiQ);
@@ -293,7 +293,7 @@ mod tests {
         assert_eq!(packet.command, 0x4001);
         assert_eq!(packet.msg_type, Some(9));
         assert_eq!(packet.mac_addr, Some("5C60BA7361C6".to_string()));
-        assert_eq!(packet.hostname, Some("LINLINDONG-N".to_string()));
+        assert_eq!(packet.hostname, Some("SHIKUN-SH".to_string()));
         assert_eq!(packet.timestamp, Some(1765442982));
         assert_eq!(packet.user_id, Some("6291459".to_string()));
         assert_eq!(packet.msg_no, "T0220165");
