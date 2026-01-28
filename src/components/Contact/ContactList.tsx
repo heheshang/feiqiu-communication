@@ -24,9 +24,10 @@ const ContactList: React.FC<ContactListProps> = ({ users = [], onUserClick }) =>
       setFilteredUsers(users);
     } else {
       const query = searchQuery.toLowerCase();
-      const filtered = users.filter(user =>
-        user.nickname.toLowerCase().includes(query) ||
-        user.feiq_machine_id.toLowerCase().includes(query)
+      const filtered = users.filter(
+        (user) =>
+          user.nickname.toLowerCase().includes(query) ||
+          user.feiq_machine_id.toLowerCase().includes(query)
       );
       setFilteredUsers(filtered);
     }
@@ -36,7 +37,7 @@ const ContactList: React.FC<ContactListProps> = ({ users = [], onUserClick }) =>
     setSearchQuery(query);
   };
 
-  const onlineCount = users.filter(u => u.status === 1).length;
+  const onlineCount = users.filter((u) => u.status === 1).length;
 
   return (
     <div className="contact-list">
@@ -54,16 +55,10 @@ const ContactList: React.FC<ContactListProps> = ({ users = [], onUserClick }) =>
       {/* 用户列表 */}
       <div className="contact-list-body">
         {filteredUsers.length === 0 ? (
-          <div className="contact-empty">
-            {searchQuery ? '未找到匹配的联系人' : '暂无在线用户'}
-          </div>
+          <div className="contact-empty">{searchQuery ? '未找到匹配的联系人' : '暂无在线用户'}</div>
         ) : (
           filteredUsers.map((user) => (
-            <ContactItem
-              key={user.uid}
-              user={user}
-              onClick={() => onUserClick?.(user)}
-            />
+            <ContactItem key={user.uid} user={user} onClick={() => onUserClick?.(user)} />
           ))
         )}
       </div>

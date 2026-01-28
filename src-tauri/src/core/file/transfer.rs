@@ -3,7 +3,7 @@
 //! 文件分块传输逻辑
 
 use crate::error::{AppError, AppResult};
-use crate::network::feiq::model::{FeiqPacket, FileAttachment};
+use crate::network::feiq::model::FeiqPacket;
 use crate::network::udp::sender;
 use sha2::{Digest, Sha256};
 use std::fs::File;
@@ -67,13 +67,10 @@ impl FileSender {
     /// 发送文件（分块传输）
     pub async fn send(&self) -> AppResult<FileTransferProgress> {
         let path = Path::new(&self.file_path);
-        let file_size = path
-            .metadata()
-            .map_err(|e| AppError::IoError(e.to_string()))?
-            .len();
+        let file_size = path.metadata().map_err(AppError::Io)?.len();
 
         let mut progress = FileTransferProgress::new(self.file_id, file_size);
-        let mut file = File::open(path).map_err(|e| AppError::IoError(e.to_string()))?;
+        let mut file = File::open(path).map_err(AppError::Io)?;
 
         loop {
             if progress.is_complete() {
@@ -81,9 +78,7 @@ impl FileSender {
             }
 
             let mut chunk = vec![0u8; CHUNK_SIZE];
-            let n = file
-                .read(&mut chunk)
-                .map_err(|e| AppError::IoError(e.to_string()))?;
+            let n = file.read(&mut chunk).map_err(AppError::Io)?;
 
             if n == 0 {
                 break;
@@ -101,16 +96,11 @@ impl FileSender {
                     }
                     Err(e) if retries < MAX_RETRIES => {
                         retries += 1;
-                        tracing::warn!(
-                            "Chunk send failed (attempt {}/{}): {}",
-                            retries,
-                            MAX_RETRIES,
-                            e
-                        );
+                        tracing::warn!("Chunk send failed (attempt {}/{}): {}", retries, MAX_RETRIES, e);
                         tokio::time::sleep(Duration::from_millis(500)).await;
                     }
                     Err(e) => {
-                        return Err(AppError::TransferError(format!(
+                        return Err(AppError::Network(format!(
                             "Failed to send chunk after {} retries: {}",
                             MAX_RETRIES, e
                         )));
@@ -125,20 +115,20 @@ impl FileSender {
     /// 发送单个数据块
     async fn send_chunk(&self, chunk: &[u8], offset: u64) -> AppResult<()> {
         // 构建数据包: "packet_no:file_id:offset:data"
-        let data_base64 = base64::encode(chunk);
+        use base64::Engine;
+        let data_base64 = base64::engine::general_purpose::STANDARD.encode(chunk);
         let extension = format!("{}:{}:{}:{}", self.packet_no, self.file_id, offset, data_base64);
 
         let packet = FeiqPacket {
-            command: crate::network::feiq::constants::IPMSG_SENDMSG
-                | crate::network::feiq::constants::IPMSG_UTF8OPT,
+            command: crate::network::feiq::constants::IPMSG_SENDMSG | crate::network::feiq::constants::IPMSG_UTF8OPT,
             extension: Some(extension),
             ..Default::default()
         };
 
         timeout(TRANSFER_TIMEOUT, sender::send_packet(&self.target_addr, &packet))
             .await
-            .map_err(|_| AppError::TransferError("Transfer timeout".to_string()))?
-            .map_err(|e| AppError::TransferError(e.to_string()))?;
+            .map_err(|_| AppError::Network("Transfer timeout".to_string()))?
+            .map_err(|e| AppError::Network(e.to_string()))?;
 
         Ok(())
     }
@@ -146,14 +136,12 @@ impl FileSender {
     /// 计算文件 SHA256 校验和
     pub fn checksum(&self) -> AppResult<String> {
         let path = Path::new(&self.file_path);
-        let mut file = File::open(path).map_err(|e| AppError::IoError(e.to_string()))?;
+        let mut file = File::open(path).map_err(AppError::Io)?;
         let mut hasher = Sha256::new();
         let mut buffer = vec![0u8; 8192];
 
         loop {
-            let n = file
-                .read(&mut buffer)
-                .map_err(|e| AppError::IoError(e.to_string()))?;
+            let n = file.read(&mut buffer).map_err(AppError::Io)?;
             if n == 0 {
                 break;
             }
@@ -183,35 +171,29 @@ impl FileReceiver {
     /// 接收文件数据块
     pub fn receive_chunk(&mut self, offset: u64, data: &[u8]) -> AppResult<usize> {
         // 以读写模式打开文件，追加数据
-        use std::io::Write;
+        use std::io::{Seek, Write};
 
         let mut file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .open(&self.save_path)
-            .map_err(|e| AppError::IoError(e.to_string()))?;
+            .map_err(AppError::Io)?;
 
-        file
-            .seek(io::SeekFrom::Start(offset))
-            .map_err(|e| AppError::IoError(e.to_string()))?;
+        file.seek(io::SeekFrom::Start(offset)).map_err(AppError::Io)?;
 
-        file
-            .write_all(data)
-            .map_err(|e| AppError::IoError(e.to_string()))?;
+        file.write_all(data).map_err(AppError::Io)?;
 
         Ok(data.len())
     }
 
     /// 验证文件完整性
     pub fn verify(&self, expected_checksum: &str) -> AppResult<bool> {
-        let mut file = File::open(&self.save_path).map_err(|e| AppError::IoError(e.to_string()))?;
+        let mut file = File::open(&self.save_path).map_err(AppError::Io)?;
         let mut hasher = Sha256::new();
         let mut buffer = vec![0u8; 8192];
 
         loop {
-            let n = file
-                .read(&mut buffer)
-                .map_err(|e| AppError::IoError(e.to_string()))?;
+            let n = file.read(&mut buffer).map_err(AppError::Io)?;
             if n == 0 {
                 break;
             }
@@ -226,10 +208,7 @@ impl FileReceiver {
     pub fn current_size(&self) -> AppResult<u64> {
         let path = Path::new(&self.save_path);
         if path.exists() {
-            Ok(path
-                .metadata()
-                .map_err(|e| AppError::IoError(e.to_string()))?
-                .len())
+            Ok(path.metadata().map_err(AppError::Io)?.len())
         } else {
             Ok(0)
         }

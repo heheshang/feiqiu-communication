@@ -82,12 +82,7 @@ pub async fn create_transfer_state(
 }
 
 /// 更新传输进度
-pub async fn update_transfer_progress(
-    db: &DbConn,
-    tid: i64,
-    transferred: i64,
-    status: i8,
-) -> AppResult<()> {
+pub async fn update_transfer_progress(db: &DbConn, tid: i64, transferred: i64, status: i8) -> AppResult<()> {
     TransferStateHandler::update_progress(db, tid, transferred, status).await?;
     Ok(())
 }

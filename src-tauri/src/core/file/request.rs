@@ -3,7 +3,10 @@
 //! 文件请求处理逻辑
 
 use crate::error::{AppError, AppResult};
-use crate::network::feiq::{constants::*, model::{FeiqPacket, FileAttachment}};
+use crate::network::feiq::{
+    constants::*,
+    model::{FeiqPacket, FileAttachment},
+};
 
 /// 处理接收到的文件附件请求
 ///
@@ -11,17 +14,17 @@ use crate::network::feiq::{constants::*, model::{FeiqPacket, FileAttachment}};
 pub fn handle_file_attach_request(packet: &FeiqPacket) -> AppResult<Vec<FileAttachment>> {
     // 检查是否带文件附件
     if !packet.has_option(IPMSG_FILEATTACHOPT) {
-        return Err(AppError::InvalidPacket("Not a file attachment packet".to_string()));
+        return Err(AppError::Protocol("Not a file attachment packet".to_string()));
     }
 
     // 解析文件附件头
     let extension = packet
         .extension
         .as_ref()
-        .ok_or_else(|| AppError::InvalidPacket("Missing file attachment extension".to_string()))?;
+        .ok_or_else(|| AppError::Protocol("Missing file attachment extension".to_string()))?;
 
     let files = FileAttachment::from_ipmsg_header(extension)
-        .map_err(|e| AppError::InvalidPacket(format!("Failed to parse file attachment: {}", e)))?;
+        .map_err(|e| AppError::Protocol(format!("Failed to parse file attachment: {}", e)))?;
 
     Ok(files)
 }
@@ -29,11 +32,7 @@ pub fn handle_file_attach_request(packet: &FeiqPacket) -> AppResult<Vec<FileAtta
 /// 创建文件附件请求包
 ///
 /// 用于发送文件给其他用户
-pub fn create_file_attach_request(
-    files: &[FileAttachment],
-    receiver_ip: &str,
-    receiver_port: u16,
-) -> FeiqPacket {
+pub fn create_file_attach_request(files: &[FileAttachment], receiver_ip: &str, receiver_port: u16) -> FeiqPacket {
     let receiver = format!("{}:{}", receiver_ip, receiver_port);
     FeiqPacket::make_file_attach_packet(files, &receiver)
 }

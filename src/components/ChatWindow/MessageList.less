@@ -2,8 +2,8 @@
 //
 /// 消息列表样式 - 仿微信风格
 
-@import '../../styles/variables.less';
-@import '../../styles/mixins.less';
+@import url('../../styles/variables.less');
+@import url('../../styles/mixins.less');
 
 .message-list {
   flex: 1;
@@ -15,6 +15,7 @@
   // 空状态
   &.message-list-empty {
     .flex-center();
+
     flex-direction: column;
   }
 }
@@ -54,7 +55,7 @@
 
   .time-divider-content {
     padding: @spacing-xs @spacing-md;
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: rgb(0 0 0 / 5%);
     border-radius: @border-radius-base;
   }
 }

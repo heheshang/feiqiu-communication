@@ -2,8 +2,8 @@
 //
 /// 消息输入框样式 - 仿微信风格
 
-@import '../../styles/variables.less';
-@import '../../styles/mixins.less';
+@import url('../../styles/variables.less');
+@import url('../../styles/mixins.less');
 
 .message-input {
   display: flex;
@@ -35,6 +35,7 @@
     height: 32px;
     margin-right: @spacing-md;
     .flex-center();
+
     color: @text-secondary;
     background: none;
     border: none;
@@ -115,11 +116,13 @@
   .send-btn {
     padding: @spacing-sm @spacing-xl;
     .btn-base(@sidebar-bg, @text-tertiary);
+
     cursor: not-allowed;
     font-size: @font-size-base;
 
     &.active {
       .btn-base(@primary-color, @text-white);
+
       cursor: pointer;
     }
   }
@@ -152,6 +155,7 @@
 
 .file-upload-dialog {
   .modal-base();
+
   padding: @spacing-xxl;
 }
 
@@ -159,7 +163,7 @@
 // 响应式
 // ============================================================
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .input-actions {
     .send-btn {
       padding: @spacing-sm @spacing-lg;

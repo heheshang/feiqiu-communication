@@ -147,6 +147,7 @@ pub struct GroupMember {
     pub id: i64,
     pub gid: i64,
     pub member_uid: i64,
+    pub nickname: String, // 成员昵称
     pub role: GroupRole,
     pub join_time: String,
 }

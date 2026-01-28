@@ -54,18 +54,18 @@ export interface PendingTransfer {
 export interface GroupInfo {
   gid: number;
   group_name: string;
-  creator_uid: number;
-  member_count: number;
   avatar?: string;
+  creator_uid: number;
+  desc?: string;
   create_time: string;
-  update_time: string;
 }
 
 /** 群组成员 */
 export interface GroupMember {
-  uid: number;
+  id: number;
   gid: number;
+  member_uid: number;
   nickname: string;
-  role: number;
+  role: number; // 0=Member, 1=Admin, 2=Owner
   join_time: string;
 }

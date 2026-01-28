@@ -26,9 +26,7 @@ const ContactItem: React.FC<ContactItemProps> = ({ user, onClick, className = ''
         {user.avatar ? (
           <img src={user.avatar} alt={user.nickname} />
         ) : (
-          <div className="avatar-placeholder">
-            {user.nickname.charAt(0).toUpperCase()}
-          </div>
+          <div className="avatar-placeholder">{user.nickname.charAt(0).toUpperCase()}</div>
         )}
       </div>
 

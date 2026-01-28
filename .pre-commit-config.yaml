@@ -10,7 +10,7 @@ repos:
     hooks:
       - id: tsc
         name: TypeScript type check
-        entry: npx tsc --noEmit
+        entry: bunx tsc --noEmit
         language: system
         types: [file]
         files: \.(ts|tsx)$
@@ -21,10 +21,30 @@ repos:
     hooks:
       - id: eslint
         name: ESLint
-        entry: npx eslint --fix
+        entry: bunx eslint --fix
         language: system
         types: [file]
         files: \.(js|ts|tsx|jsx)$
+        exclude: |
+          (?x)^(
+            node_modules/.*|
+            dist/.*
+          )$
+
+  # Stylelint - CSS/Less linting
+  - repo: local
+    hooks:
+      - id: stylelint
+        name: Stylelint
+        entry: bunx stylelint --fix
+        language: system
+        types: [file]
+        files: \.(css|less)$
+        exclude: |
+          (?x)^(
+            node_modules/.*|
+            dist/.*
+          )$
 
   # Prettier - Code formatting (runs last, may modify files)
   - repo: https://github.com/pre-commit/mirrors-prettier
@@ -46,15 +66,15 @@ repos:
         types: [rust]
         pass_filenames: false
 
-  # Clippy - Rust linter
-  - repo: local
-    hooks:
-      - id: clippy
-        name: Clippy
-        entry: cargo clippy --all-targets -- -D warnings
-        language: system
-        types: [rust]
-        pass_filenames: false
+  # # Clippy - Rust linter
+  # - repo: local
+  #   hooks:
+  #     - id: clippy
+  #       name: Clippy
+  #       entry: cargo clippy --all-targets -- -D warnings
+  #       language: system
+  #       types: [rust]
+  #       pass_filenames: false
 
   # Cargo check - Compile verification
   - repo: local

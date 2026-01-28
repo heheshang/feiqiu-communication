@@ -7,18 +7,14 @@
 /// - 监听其他用户的 BR_ENTRY 并回复 ANSENTRY
 /// - 维护在线用户列表
 /// - 处理用户离线事件
-
 use crate::event::bus::EVENT_RECEIVER;
 use crate::event::model::{AppEvent, NetworkEvent, UiEvent};
-use crate::network::feiq::{
-    constants::*,
-    model::FeiqPacket,
-};
+use crate::network::feiq::{constants::*, model::FeiqPacket};
 use crate::network::udp::sender::send_packet_data;
 use crate::types::UserInfo;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use tracing::{info, error, warn};
+use tracing::{error, info, warn};
 
 /// 在线用户列表
 ///
@@ -33,9 +29,7 @@ use once_cell::sync::OnceCell;
 
 /// 获取全局在线用户列表
 pub fn get_online_users() -> &'static OnlineUsers {
-    ONLINE_USERS.get_or_init(|| {
-        Arc::new(Mutex::new(HashMap::new()))
-    })
+    ONLINE_USERS.get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
 }
 
 /// 获取在线用户列表的副本
@@ -185,13 +179,15 @@ async fn handle_packet_received(packet_json: String, addr: String) {
     };
 
     // 解析发送者信息
-    let sender_info = parse_sender_info(&packet.sender, &addr);
-    if sender_info.is_none() {
-        warn!("无法解析发送者信息: {}", packet.sender);
-        return;
-    }
+    let sender_info = match parse_sender_info(&packet.sender, &addr) {
+        Ok(info) => info,
+        Err(e) => {
+            warn!("无法解析发送者信息: {} - {}", packet.sender, e);
+            return;
+        }
+    };
 
-    let (nickname, ip, port, machine_id) = sender_info.unwrap();
+    let (nickname, ip, port, machine_id) = sender_info;
 
     // 根据命令字处理
     let base_cmd = packet.base_command();
@@ -258,26 +254,59 @@ async fn handle_packet_received(packet_json: String, addr: String) {
 
 /// 解析发送者信息
 ///
-/// 发送者格式: `用户名@机器名/IP:端口|MAC地址`
-/// 示例: `admin@PC-001/192.168.1.100:2425|AA:BB:CC:DD:EE:FF`
-fn parse_sender_info(sender: &str, addr: &str) -> Option<(String, String, u16, String)> {
-    // 提取用户名和机器名
-    let at_pos = sender.find('@')?;
-    let nickname = sender[..at_pos].to_string();
+/// 根据 IPMsg/FeiQ 协议格式解析发送者信息
+///
+/// # IPMsg 协议格式
+/// ```text
+/// 版本号:命令字:发送者:接收者:消息编号:附加信息
+/// Example: 1.0:32:sender:host:12345:Hello
+/// ```
+/// - `sender` 字段: 发送者标识符（如 "sender" 或 "user@hostname"）
+/// - IP:port 从 UDP 包的 addr 参数获取
+///
+/// # FeiQ 协议格式
+/// ```text
+/// Header: 版本号#长度#MAC地址#端口#标志1#标志2#命令#类型
+/// Data: 时间戳:包ID:主机名:用户ID:内容
+/// Example: 1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH:6291459:ssk
+/// ```
+/// - `sender` 字段: `hostname@mac_addr` 格式
+/// - IP:port 从 UDP 包的 addr 参数获取
+///
+/// # 参数
+/// - `sender`: 数据包中的 sender 字段
+/// - `addr`: UDP 包的源地址（格式: "IP:port"）
+///
+/// # 返回
+/// - `Ok((nickname, ip, port, machine_id))`: 解析成功
+/// - `Err`: 解析失败
+fn parse_sender_info(sender: &str, addr: &str) -> Result<(String, String, u16, String), String> {
+    // 从 addr 解析 IP 和端口
+    let addr_parts: Vec<&str> = addr.split(':').collect();
+    let ip = addr_parts
+        .first()
+        .ok_or_else(|| format!("Invalid addr format: {}", addr))?
+        .to_string();
+    let port: u16 = addr_parts
+        .get(1)
+        .and_then(|p| p.parse().ok())
+        .ok_or_else(|| format!("Invalid port in addr: {}", addr))?;
 
-    // 提取 IP 和端口（优先使用 UDP 包的来源地址）
-    let ip = addr.split(':').next().unwrap_or("127.0.0.1").to_string();
-
-    // 提取端口
-    let colon_pos = sender.rfind(':')?;
-    let port_part = &sender[colon_pos + 1..];
-    let port_end = port_part.find('|').unwrap_or(port_part.len());
-    let port: u16 = port_part[..port_end].parse().ok()?;
+    // 解析 nickname
+    // IPMsg: sender 可能是 "nickname" 或 "nickname@hostname"
+    // FeiQ: sender 是 "hostname@mac_addr"
+    let nickname = if let Some(at_pos) = sender.find('@') {
+        // 包含 @，提取 @ 之前的部分
+        sender[..at_pos].to_string()
+    } else {
+        // 不包含 @，整个 sender 就是 nickname
+        sender.to_string()
+    };
 
     // 生成机器 ID
     let machine_id = format!("{}:{}", ip, port);
 
-    Some((nickname, ip, port, machine_id))
+    Ok((nickname, ip, port, machine_id))
 }
 
 // ============================================================
@@ -289,18 +318,66 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_sender_info() {
-        let sender = "admin@PC-001/192.168.1.100:2425|AA:BB:CC:DD:EE:FF";
-        let addr = "192.168.1.100:54321";
+    fn test_parse_sender_info_ipmsg_simple() {
+        // IPMsg 协议: sender 字段是简单标识符
+        // 协议格式: 版本号:命令字:发送者:接收者:消息编号:附加信息
+        // Example: 1.0:32:sender:host:12345:Hello
+        let sender = "sender";
+        let addr = "192.168.1.100:2425";
 
         let result = parse_sender_info(sender, addr);
 
-        assert!(result.is_some());
+        assert!(result.is_ok());
         let (nickname, ip, port, machine_id) = result.unwrap();
-        assert_eq!(nickname, "admin");
+        assert_eq!(nickname, "sender");
         assert_eq!(ip, "192.168.1.100");
         assert_eq!(port, 2425);
         assert_eq!(machine_id, "192.168.1.100:2425");
+    }
+
+    #[test]
+    fn test_parse_sender_info_ipmsg_with_host() {
+        // IPMsg 协议: sender 字段包含用户名@主机名
+        let sender = "user@hostname";
+        let addr = "192.168.1.100:2425";
+
+        let result = parse_sender_info(sender, addr);
+
+        assert!(result.is_ok());
+        let (nickname, ip, port, machine_id) = result.unwrap();
+        assert_eq!(nickname, "user");
+        assert_eq!(ip, "192.168.1.100");
+        assert_eq!(port, 2425);
+        assert_eq!(machine_id, "192.168.1.100:2425");
+    }
+
+    #[test]
+    fn test_parse_sender_info_feiq() {
+        // FeiQ 协议: sender 字段是 hostname@mac_addr
+        // Header: 版本号#长度#MAC地址#端口#标志1#标志2#命令#类型
+        // Data: 时间戳:包ID:主机名:用户ID:内容
+        let sender = "SHIKUN-SH@5C60BA7361C6";
+        let addr = "192.168.1.100:6452";
+
+        let result = parse_sender_info(sender, addr);
+
+        assert!(result.is_ok());
+        let (nickname, ip, port, machine_id) = result.unwrap();
+        assert_eq!(nickname, "SHIKUN-SH");
+        assert_eq!(ip, "192.168.1.100");
+        assert_eq!(port, 6452);
+        assert_eq!(machine_id, "192.168.1.100:6452");
+    }
+
+    #[test]
+    fn test_parse_sender_info_invalid_addr() {
+        // 测试无效的 addr 格式
+        let sender = "user";
+        let addr = "invalid-addr";
+
+        let result = parse_sender_info(sender, addr);
+
+        assert!(result.is_err());
     }
 
     #[test]

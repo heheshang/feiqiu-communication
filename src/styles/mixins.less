@@ -161,7 +161,7 @@
   max-width: @message-max-width;
   padding: @spacing-md @spacing-lg;
   border-radius: @border-radius-base;
-  word-wrap: break-word;
+  overflow-wrap: break-word;
   word-break: break-all;
 
   & when (@is-self = true) {
@@ -178,10 +178,7 @@
 // 遮罩层
 .overlay-base() {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: @overlay-bg;
   z-index: @z-modal;
   .flex-center();
@@ -208,6 +205,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -221,7 +219,28 @@
   from {
     transform: translateY(100%);
   }
+
   to {
     transform: translateY(0);
+  }
+}
+
+// 禁止文本选择
+.no-select() {
+  user-select: none;
+}
+
+// 旋转动画
+.spinning(@duration: 1s) {
+  animation: spin @duration linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
   }
 }

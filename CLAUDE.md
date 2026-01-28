@@ -16,10 +16,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Development mode (starts both frontend dev server and Tauri)
-npm run tauri dev
+bun run tauri dev
 
 # Production build
-npm run tauri build
+bun run tauri build
 
 # Build output location (Windows)
 src-tauri/target/release/feiqiu-communication.exe
@@ -57,16 +57,16 @@ cargo build
 
 ```bash
 # Install dependencies
-npm install
+bun install
 
 # Start frontend dev server only
-npm run dev
+bun run dev
 
 # Type check
-npx tsc --noEmit
+bunx tsc --noEmit
 
 # Lint
-npm run lint
+bun run lint
 ```
 
 ## Architecture Overview
@@ -104,17 +104,20 @@ Event Bus (event/bus.rs) - connects all layers asynchronously
 ### Backend (src-tauri/src/)
 
 **Core Modules:**
+
 - `main.rs` - Tauri app entry point, event loop, initialization
 - `lib.rs` - Library module exports
 - `error.rs` - Centralized error types (`AppError`, `AppResult`)
 - `types.rs` - Shared types between frontend/backend
 
 **Event System** (`event/`):
+
 - `bus.rs` - Global event bus using `crossbeam_channel`
 - `model.rs` - Event types (`AppEvent`, `NetworkEvent`, `UiEvent`)
 - **Usage**: `EVENT_SENDER.send(event)` to publish, `EVENT_RECEIVER.recv()` in event loop to consume
 
 **Network Layer** (`network/`):
+
 - `feiq/constants.rs` - IPMsg protocol constants (commands, options, default port 2425)
 - `feiq/model.rs` - `FeiqPacket` struct with `ProtocolType` enum (IPMsg/FeiQ)
 - `feiq/parser.rs` - Protocol parser with auto-detection
@@ -123,32 +126,38 @@ Event Bus (event/bus.rs) - connects all layers asynchronously
 - `udp/sender.rs` - UDP sender with broadcast support
 
 **Database Layer** (`database/`):
+
 - `mod.rs` - Database initialization and table creation (raw SQL, not migrations)
 - `model/*.rs` - SeaORM entity definitions (user, contact, group, chat_message, chat_session, file_storage)
 - `handler/*.rs` - CRUD operations for each entity
 
 **IPC Layer** (`ipc/`):
+
 - `mod.rs` - IPC module exports
 - `*.rs` - Tauri command handlers (chat.rs, contact.rs, file.rs, group.rs)
 - Commands use `#[tauri::command]` macro and can access global state via `State<'_, DbConn>`
 
 **Business Logic** (`core/`):
+
 - `contact/discovery.rs` - User discovery via UDP broadcast/entry/ansentry
 - `chat/*.rs`, `file/*.rs`, `group/*.rs` - Business logic modules (mostly stubs currently)
 
 **Utilities** (`utils/`):
+
 - `snowflake/*.rs` - Snowflake ID generation (for unique IDs)
 - `serde/*.rs` - Serialization helpers
 
 ## Protocol Implementation Details
 
 ### IPMsg Protocol Format
+
 ```
 版本号:命令字:发送者:接收者:消息编号:附加信息
 Example: 1.0:32:sender:host:12345:Hello
 ```
 
 ### FeiQ Protocol Format
+
 ```
 Header: 版本号#长度#MAC地址#端口#标志1#标志2#命令#类型
 Data: 时间戳:包ID:主机名:用户ID:内容
@@ -156,6 +165,7 @@ Example: 1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH
 ```
 
 ### Key Protocol Constants (from constants.rs)
+
 - `IPMSG_BR_ENTRY` (0x01) - Broadcast online presence
 - `IPMSG_BR_EXIT` (0x02) - Broadcast offline
 - `IPMSG_ANSENTRY` (0x03) - Response to entry broadcast
@@ -166,6 +176,7 @@ Example: 1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH
 - Default port: 2425
 
 ### Parser Logic
+
 - Auto-detects protocol by checking for `#` in the packet (FeiQ indicator)
 - IPMsg parser splits on first 5 colons to extract fields; everything after 5th colon is `extension` (may contain colons)
 - FeiQ parser splits header (by `#`) and data (by `:`) separately
@@ -180,12 +191,14 @@ Example: 1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH
 ## Important Implementation Notes
 
 ### User Discovery Flow
+
 1. On startup: broadcast `IPMSG_BR_ENTRY` packet via UDP to 255.255.255.255:2425
 2. When receiving `IPMSG_BR_ENTRY`: send `IPMSG_ANSENTRY` back and add to online user list
 3. When receiving `IPMSG_ANSENTRY`: add to online user list
 4. On exit: broadcast `IPMSG_BR_EXIT`
 
 ### Database Schema Notes
+
 - Tables use INTEGER PRIMARY KEY AUTOINCREMENT for simplicity (not Snowflake IDs yet)
 - `session_type` in chat tables: 0 = single chat, 1 = group chat
 - `status` in user table: 0 = offline, 1 = online
@@ -193,6 +206,7 @@ Example: 1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH
 - `msg_no` is string (from protocol) but could be parsed to u64 via `packet.msg_no_value()`
 
 ### IPC Command Pattern
+
 ```rust
 #[tauri::command]
 async fn command_name(
@@ -207,6 +221,7 @@ async fn command_name(
 ```
 
 ### Error Handling
+
 - Use `AppError` enum for domain-specific errors
 - Use `AppResult<T>` = `Result<T, AppError>` for return types
 - Convert errors with `.map_err(|e| AppError::variant(e))?` or `.map_err(|e| e.to_string())?` for IPC
@@ -214,12 +229,14 @@ async fn command_name(
 ## Development Workflow
 
 1. **Adding a new IPC command:**
+
    - Add handler function in appropriate `ipc/*.rs` file with `#[tauri::command]`
    - Export in `ipc/mod.rs`
    - Create TypeScript wrapper in frontend `src/ipc/*.ts`
    - Call from frontend with `invoke('command_name', args)`
 
 2. **Adding a new database table:**
+
    - Add SeaORM model in `database/model/*.rs`
    - Add table creation SQL in `database/mod.rs::create_tables()`
    - Add CRUD operations in `database/handler/*.rs`

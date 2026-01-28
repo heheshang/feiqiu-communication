@@ -25,7 +25,7 @@ pub async fn init_database() -> AppResult<DbConn> {
 }
 
 /// 创建数据库表
-async fn create_tables(db: &DbConn) -> AppResult<()> {
+pub async fn create_tables(db: &DbConn) -> AppResult<()> {
     tracing::info!("正在创建数据库表...");
 
     // 创建用户表
@@ -229,6 +229,56 @@ async fn create_tables(db: &DbConn) -> AppResult<()> {
     db.execute(Statement::from_string(
         sea_orm::DatabaseBackend::Sqlite,
         "CREATE INDEX IF NOT EXISTS idx_chat_session_owner_target ON chat_session(owner_uid, target_id)".to_string(),
+    ))
+    .await
+    .map_err(|e| AppError::Database(e))?;
+
+    // 性能优化: 为常用查询添加更多索引
+    // 消息分页查询优化
+    db.execute(Statement::from_string(
+        sea_orm::DatabaseBackend::Sqlite,
+        "CREATE INDEX IF NOT EXISTS idx_chat_message_session_target_time ON chat_message(session_type, target_id, \
+         send_time DESC)"
+            .to_string(),
+    ))
+    .await
+    .map_err(|e| AppError::Database(e))?;
+
+    // 用户在线状态查询优化
+    db.execute(Statement::from_string(
+        sea_orm::DatabaseBackend::Sqlite,
+        "CREATE INDEX IF NOT EXISTS idx_user_status ON user(status)".to_string(),
+    ))
+    .await
+    .map_err(|e| AppError::Database(e))?;
+
+    // 用户机器ID查询优化（用户发现）
+    db.execute(Statement::from_string(
+        sea_orm::DatabaseBackend::Sqlite,
+        "CREATE INDEX IF NOT EXISTS idx_user_machine_id ON user(feiq_machine_id)".to_string(),
+    ))
+    .await
+    .map_err(|e| AppError::Database(e))?;
+
+    // 群组创建者查询优化
+    db.execute(Statement::from_string(
+        sea_orm::DatabaseBackend::Sqlite,
+        "CREATE INDEX IF NOT EXISTS idx_group_creator ON group_table(creator_uid)".to_string(),
+    ))
+    .await
+    .map_err(|e| AppError::Database(e))?;
+
+    // 传输状态查询优化
+    db.execute(Statement::from_string(
+        sea_orm::DatabaseBackend::Sqlite,
+        "CREATE INDEX IF NOT EXISTS idx_transfer_status ON transfer_state(status)".to_string(),
+    ))
+    .await
+    .map_err(|e| AppError::Database(e))?;
+
+    db.execute(Statement::from_string(
+        sea_orm::DatabaseBackend::Sqlite,
+        "CREATE INDEX IF NOT EXISTS idx_transfer_session_file ON transfer_state(session_type, file_id)".to_string(),
     ))
     .await
     .map_err(|e| AppError::Database(e))?;

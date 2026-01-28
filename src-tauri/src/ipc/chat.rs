@@ -1,5 +1,6 @@
 // src-tauri/src/ipc/chat.rs
 //
+use crate::core::group::GroupBroadcaster;
 use crate::database::handler::{ChatMessageHandler, ChatSessionHandler};
 use crate::types::{ChatMessage, ChatSession, MessageStatus, MessageType, SessionType};
 use sea_orm::DbConn;
@@ -71,7 +72,7 @@ pub async fn send_text_message_handler(
         session_type,
         target_id,
         owner_uid,
-        content,
+        content.clone(),
         0, // Text message type
     )
     .await
@@ -87,7 +88,35 @@ pub async fn send_text_message_handler(
         .await
         .map_err(|e| e.to_string())?;
 
-    // TODO: Send via UDP network
+    // Send via UDP network
+    use crate::network::feiq::model::FeiqPacket;
+    use crate::network::udp::sender;
+
+    // Create message packet
+    let packet = FeiqPacket::make_message_packet(&content, true);
+
+    // Check if this is a group message
+    if session_type == 1 {
+        // Group chat: broadcast to all members
+        let sent_count = GroupBroadcaster::broadcast_message(db, target_id, &packet, owner_uid)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        tracing::info!("Group message broadcast to {} members", sent_count);
+    } else {
+        // Single chat: send to target user
+        // TODO: Get target user's IP from database
+        let addr = format!("0.0.0.0:2425"); // TODO: 获取实际的目标地址
+
+        sender::send_packet(&addr, &packet)
+            .await
+            .map_err(|e| format!("发送消息失败: {}", e))?;
+    }
+
+    // Update message status to sent
+    ChatMessageHandler::update_status(db, message.mid, 1)
+        .await
+        .map_err(|e| e.to_string())?;
 
     Ok(message.mid)
 }

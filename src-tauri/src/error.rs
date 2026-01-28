@@ -48,3 +48,15 @@ impl From<AppError> for String {
         err.to_string()
     }
 }
+
+/// 为 TransferStateError 实现 From 转换
+impl From<crate::database::handler::transfer_state::TransferStateError> for AppError {
+    fn from(err: crate::database::handler::transfer_state::TransferStateError) -> Self {
+        match err {
+            crate::database::handler::transfer_state::TransferStateError::DbError(e) => AppError::Database(e),
+            crate::database::handler::transfer_state::TransferStateError::NotFound(id) => {
+                AppError::NotFound(format!("Transfer state not found: {}", id))
+            }
+        }
+    }
+}

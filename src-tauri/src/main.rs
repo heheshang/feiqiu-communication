@@ -8,6 +8,7 @@
 use tauri::Manager;
 
 // 导入模块
+mod core;
 mod database;
 mod error;
 mod event;
@@ -141,6 +142,10 @@ async fn main() {
             ipc::group::create_group_handler,
             ipc::group::get_group_info_handler,
             ipc::group::get_group_members_handler,
+            ipc::group::add_group_member_handler,
+            ipc::group::remove_group_member_handler,
+            ipc::group::update_member_role_handler,
+            ipc::group::get_user_groups_handler,
         ])
         // 应用启动事件
         .setup(|app| {

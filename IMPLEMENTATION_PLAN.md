@@ -26,14 +26,14 @@
 
 ### 1.2 核心功能
 
-| 功能模块 | 优先级 | 说明 |
-|---------|-------|------|
-| 用户发现 | P0 | 内网用户自动发现、在线状态同步 |
-| 单聊 | P0 | 点对点文字消息、已读回执 |
-| 群聊 | P0 | 群组创建、成员管理、消息广播 |
-| 文件传输 | P0 | 单聊/群聊文件传输、断点续传 |
-| 通讯录 | P1 | 联系人管理、分组、搜索 |
-| UI 界面 | P0 | 仿微信风格、响应式设计 |
+| 功能模块 | 优先级 | 说明                           |
+| -------- | ------ | ------------------------------ |
+| 用户发现 | P0     | 内网用户自动发现、在线状态同步 |
+| 单聊     | P0     | 点对点文字消息、已读回执       |
+| 群聊     | P0     | 群组创建、成员管理、消息广播   |
+| 文件传输 | P0     | 单聊/群聊文件传输、断点续传    |
+| 通讯录   | P1     | 联系人管理、分组、搜索         |
+| UI 界面  | P0     | 仿微信风格、响应式设计         |
 
 ### 1.3 当前状态
 
@@ -107,18 +107,21 @@ Phase 8: 优化与测试 ━━━━━━━━━━━━━━━━━━�
 **目标**: 创建完整的 Tauri + React 项目结构
 
 **步骤**:
-1. 使用 `npm create tauri-app@latest` 初始化项目
+
+1. 使用 `bun create tauri-app@latest` 初始化项目
 2. 配置 TypeScript、Vite、Less
 3. 设置代码规范（ESLint + Prettier）
 4. 配置 Git 仓库
 
 **交付物**:
+
 - 可运行的 Tauri 应用骨架
 - 完整的目录结构
 - 开发环境配置文档
 
 **验收标准**:
-- [ ] `npm run tauri dev` 成功启动
+
+- [ ] `bun run tauri dev` 成功启动
 - [ ] 能看到默认的 Tauri 窗口
 - [ ] 热更新正常工作
 
@@ -129,12 +132,14 @@ Phase 8: 优化与测试 ━━━━━━━━━━━━━━━━━━�
 **目标**: 创建符合架构规范的 Rust 目录结构
 
 **步骤**:
+
 1. 创建 `src/` 下的所有模块目录
 2. 添加 `mod.rs` 文件
 3. 配置 Cargo.toml 依赖
 4. 设置编译选项
 
 **交付物**:
+
 ```
 src/
 ├── main.rs                 # Tauri 入口
@@ -173,6 +178,7 @@ src/
 ```
 
 **验收标准**:
+
 - [ ] `cargo check` 无错误
 - [ ] 所有模块正确导出
 - [ ] 目录结构符合文档规范
@@ -184,6 +190,7 @@ src/
 **目标**: 创建符合架构规范的 React 目录结构
 
 **步骤**:
+
 1. 创建组件目录
 2. 创建 hooks 目录
 3. 创建 IPC 封装目录
@@ -191,6 +198,7 @@ src/
 5. 配置 Less 主题变量
 
 **交付物**:
+
 ```
 src/
 ├── App.tsx                 # 应用根组件
@@ -229,7 +237,8 @@ src/
 ```
 
 **验收标准**:
-- [ ] `npm run dev` 无错误
+
+- [ ] `bun run dev` 无错误
 - [ ] TypeScript 类型检查通过
 - [ ] Less 样式正常编译
 
@@ -244,6 +253,7 @@ src/
 **文件**: `src/network/feiq/constants.rs`
 
 **内容**:
+
 ```rust
 /// 默认端口
 pub const FEIQ_DEFAULT_PORT: u16 = 2425;
@@ -269,6 +279,7 @@ pub const IPMSG_UTF8OPT: u32 = 0x00800000;
 ```
 
 **验收标准**:
+
 - [ ] 所有常量定义完整
 - [ ] 单元测试覆盖
 
@@ -281,6 +292,7 @@ pub const IPMSG_UTF8OPT: u32 = 0x00800000;
 **文件**: `src/network/feiq/model.rs`
 
 **内容**:
+
 ```rust
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FeiqPacket {
@@ -307,6 +319,7 @@ impl FeiqPacket {
 ```
 
 **验收标准**:
+
 - [ ] 结构体定义完整
 - [ ] 实现必要的辅助方法
 - [ ] 序列化/反序列化正常
@@ -322,12 +335,14 @@ impl FeiqPacket {
 **参考**: `reference/network/feiq/parser.rs`
 
 **关键功能**:
+
 1. 主解析器 `feiq_packet_parser()`
 2. 发送者信息解析器
 3. 文件头解析器（文件传输用）
 4. 错误处理
 
 **单元测试**:
+
 ```rust
 #[test]
 fn test_parse_entry_packet() {
@@ -338,6 +353,7 @@ fn test_parse_entry_packet() {
 ```
 
 **验收标准**:
+
 - [ ] 能解析 BR_ENTRY 包
 - [ ] 能解析 SENDMSG 包
 - [ ] 能解析带附件的包
@@ -352,6 +368,7 @@ fn test_parse_entry_packet() {
 **文件**: `src/network/feiq/packer.rs`
 
 **关键功能**:
+
 ```rust
 impl FeiqPacket {
     /// 创建在线广播包
@@ -377,6 +394,7 @@ impl FeiqPacket {
 ```
 
 **验收标准**:
+
 - [ ] 能创建各种类型的数据包
 - [ ] 序列化格式符合飞秋协议
 - [ ] 单元测试覆盖
@@ -390,6 +408,7 @@ impl FeiqPacket {
 **文件**: `src/network/udp/receiver.rs`
 
 **关键功能**:
+
 ```rust
 use tokio::net::UdpSocket;
 
@@ -413,6 +432,7 @@ pub async fn start_udp_receiver() -> anyhow::Result<()> {
 ```
 
 **验收标准**:
+
 - [ ] 能绑定 2425 端口
 - [ ] 能接收 UDP 数据包
 - [ ] 能将数据包发送到事件总线
@@ -426,6 +446,7 @@ pub async fn start_udp_receiver() -> anyhow::Result<()> {
 **文件**: `src/network/udp/sender.rs`
 
 **关键功能**:
+
 ```rust
 /// 发送 UDP 数据包
 pub async fn send_packet(addr: &str, packet: &FeiqPacket) -> anyhow::Result<()> {
@@ -442,6 +463,7 @@ pub async fn broadcast_packet(packet: &FeiqPacket) -> anyhow::Result<()> {
 ```
 
 **验收标准**:
+
 - [ ] 能发送单播消息
 - [ ] 能发送广播消息
 - [ ] 错误处理完善
@@ -455,6 +477,7 @@ pub async fn broadcast_packet(packet: &FeiqPacket) -> anyhow::Result<()> {
 **文件**: `src/core/contact/discovery.rs`
 
 **流程**:
+
 ```
 启动时:
 1. 广播 BR_ENTRY 包
@@ -464,6 +487,7 @@ pub async fn broadcast_packet(packet: &FeiqPacket) -> anyhow::Result<()> {
 ```
 
 **关键代码**:
+
 ```rust
 /// 启动用户发现
 pub async fn start_discovery() {
@@ -494,6 +518,7 @@ pub async fn start_discovery() {
 ```
 
 **验收标准**:
+
 - [ ] 启动时能广播上线
 - [ ] 能发现其他上线用户
 - [ ] 能回复其他用户的上线请求
@@ -508,6 +533,7 @@ pub async fn start_discovery() {
 **目标**: 定义所有数据库实体模型
 
 **文件**:
+
 - `src/database/model/user.rs`
 - `src/database/model/contact.rs`
 - `src/database/model/group.rs`
@@ -516,6 +542,7 @@ pub async fn start_discovery() {
 - `src/database/model/file_storage.rs`
 
 **示例**:
+
 ```rust
 use sea_orm::entity::prelude::*;
 
@@ -541,6 +568,7 @@ impl ActiveModelBehavior for ActiveModel {}
 ```
 
 **验收标准**:
+
 - [ ] 所有实体定义完成
 - [ ] 符合架构文档的表结构
 - [ ] 导出正确
@@ -554,6 +582,7 @@ impl ActiveModelBehavior for ActiveModel {}
 **工具**: sea-orm-cli
 
 **步骤**:
+
 ```bash
 # 安装 sea-orm-cli
 cargo install sea-orm-cli
@@ -566,6 +595,7 @@ sea-orm-cli migrate generate create_user_table
 ```
 
 **迁移文件**:
+
 - `migrations/m20250127_000001_create_user_table.rs`
 - `migrations/m20250127_000002_create_contact_table.rs`
 - `migrations/m20250127_000003_create_group_tables.rs`
@@ -573,6 +603,7 @@ sea-orm-cli migrate generate create_user_table
 - `migrations/m20250127_000005_create_file_storage_table.rs`
 
 **验收标准**:
+
 - [ ] 所有表创建脚本完成
 - [ ] 索引定义正确
 - [ ] 迁移能成功执行
@@ -586,6 +617,7 @@ sea-orm-cli migrate generate create_user_table
 **文件**: `src/database/handler/*.rs`
 
 **示例**:
+
 ```rust
 use sea_orm::{EntityTrait, ActiveModelTrait, DatabaseConnection};
 
@@ -617,6 +649,7 @@ impl UserHandler {
 ```
 
 **验收标准**:
+
 - [ ] 所有 CRUD 方法实现
 - [ ] 错误处理完善
 - [ ] 单元测试覆盖
@@ -630,6 +663,7 @@ impl UserHandler {
 **文件**: `src/database/mod.rs`
 
 **功能**:
+
 ```rust
 use sea_orm::{Database, DbConn};
 
@@ -650,6 +684,7 @@ async fn run_migrations(db: &DbConn) -> Result<(), DbErr> {
 ```
 
 **验收标准**:
+
 - [ ] 数据库文件自动创建
 - [ ] 迁移自动执行
 - [ ] 错误处理完善
@@ -665,16 +700,17 @@ async fn run_migrations(db: &DbConn) -> Result<(), DbErr> {
 **文件**: `src/styles/variables.less`
 
 **变量定义**:
+
 ```less
 // 仿微信配色
-@primary-color: #07C160;        // 微信绿
-@bg-color: #F5F5F5;              // 背景灰
-@sidebar-bg: #EDEDED;            // 侧边栏灰
-@chat-bg: #F5F5F5;               // 聊天背景
-@border-color: #DCDCDC;          // 边框色
+@primary-color: #07c160; // 微信绿
+@bg-color: #f5f5f5; // 背景灰
+@sidebar-bg: #ededed; // 侧边栏灰
+@chat-bg: #f5f5f5; // 聊天背景
+@border-color: #dcdcdc; // 边框色
 
 // 字体
-@font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+@font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 @font-size-base: 14px;
 @font-size-small: 12px;
 
@@ -687,6 +723,7 @@ async fn run_migrations(db: &DbConn) -> Result<(), DbErr> {
 ```
 
 **验收标准**:
+
 - [ ] 变量定义完整
 - [ ] Less 编译正常
 
@@ -699,6 +736,7 @@ async fn run_migrations(db: &DbConn) -> Result<(), DbErr> {
 **文件**: `src/components/MainLayout.tsx`
 
 **布局结构**:
+
 ```tsx
 <div className="main-layout">
   <div className="sidebar">          <!-- 左侧：最近会话 -->
@@ -716,6 +754,7 @@ async fn run_migrations(db: &DbConn) -> Result<(), DbErr> {
 **样式**: `src/styles/layout.less`
 
 **验收标准**:
+
 - [ ] 三栏布局正确显示
 - [ ] 可调整列宽
 - [ ] 响应式适配
@@ -729,18 +768,21 @@ async fn run_migrations(db: &DbConn) -> Result<(), DbErr> {
 **文件**: `src/components/Contact/*`
 
 **组件结构**:
+
 - `ContactList.tsx` - 联系人列表
 - `ContactItem.tsx` - 单个联系人项
 - `ContactSearch.tsx` - 搜索框
 - `ContactGroup.tsx` - 分组展示
 
 **功能**:
+
 - 显示在线用户列表
 - 实时搜索过滤
 - 显示在线状态
 - 点击打开聊天
 
 **验收标准**:
+
 - [ ] 能显示在线用户
 - [ ] 搜索功能正常
 - [ ] 点击能切换聊天
@@ -754,18 +796,21 @@ async fn run_migrations(db: &DbConn) -> Result<(), DbErr> {
 **文件**: `src/components/ChatWindow/*`
 
 **组件结构**:
+
 - `ChatWindow.tsx` - 聊天窗口容器
 - `MessageList.tsx` - 消息列表
 - `MessageItem.tsx` - 单条消息
 - `MessageInput.tsx` - 输入框
 
 **功能**:
+
 - 显示消息历史
 - 发送消息
 - 消息气泡样式
 - 时间戳显示
 
 **验收标准**:
+
 - [ ] 消息正确显示
 - [ ] 能发送消息
 - [ ] 样式符合微信
@@ -779,6 +824,7 @@ async fn run_migrations(db: &DbConn) -> Result<(), DbErr> {
 **文件**: `src/ipc/*.ts`
 
 **示例**:
+
 ```typescript
 // src/ipc/chat.ts
 import { invoke } from '@tauri-apps/api/tauri';
@@ -807,6 +853,7 @@ export const chatAPI = {
 ```
 
 **验收标准**:
+
 - [ ] 所有 IPC 接口封装
 - [ ] TypeScript 类型正确
 - [ ] 错误处理完善
@@ -820,6 +867,7 @@ export const chatAPI = {
 **文件**: `src/ipc/*.rs`
 
 **示例**:
+
 ```rust
 #[tauri::command]
 pub async fn get_chat_history_handler(
@@ -838,6 +886,7 @@ pub async fn get_chat_history_handler(
 ```
 
 **验收标准**:
+
 - [ ] 所有接口实现
 - [ ] 参数校验完善
 - [ ] 错误转换正确
@@ -851,11 +900,13 @@ pub async fn get_chat_history_handler(
 **目标**: 实现滚动加载历史消息
 
 **功能**:
+
 - 每页 50 条消息
 - 滚动到顶部自动加载
 - 反向追加到列表
 
 **验收标准**:
+
 - [ ] 分页加载正常
 - [ ] 滚动流畅
 - [ ] 无重复消息
@@ -867,10 +918,12 @@ pub async fn get_chat_history_handler(
 **目标**: 实现消息已读功能
 
 **协议**:
+
 - 发送方: IPMSG_SENDMSG | IPMSG_READMSG
 - 接收方: IPMSG_READMSG → IPMSG_ANSREADMSG
 
 **验收标准**:
+
 - [ ] 能发送已读回执
 - [ ] 能接收并更新状态
 - [ ] UI 显示已读状态
@@ -884,11 +937,13 @@ pub async fn get_chat_history_handler(
 **文件**: `src/components/EmojiPicker/*`
 
 **功能**:
+
 - Emoji 选择器面板
 - 分类显示
 - 点击插入到输入框
 
 **验收标准**:
+
 - [ ] Emoji 面板显示
 - [ ] 选择插入正常
 - [ ] 发送接收正确
@@ -900,12 +955,14 @@ pub async fn get_chat_history_handler(
 **目标**: 实现消息发送状态
 
 **状态**:
+
 - 发送中 (0)
 - 已发送 (1)
 - 已读 (2)
 - 发送失败 (-1)
 
 **验收标准**:
+
 - [ ] 状态正确更新
 - [ ] UI 显示状态图标
 - [ ] 失败可重发
@@ -919,12 +976,14 @@ pub async fn get_chat_history_handler(
 **目标**: 实现文件传输请求流程
 
 **协议**:
+
 1. 发送方: IPMSG_SENDMSG | IPMSG_FILEATTACHOPT
 2. 附加信息包含文件头
 3. 接收方: IPMSG_GETFILEDATA
 4. 发送方: 分块传输
 
 **验收标准**:
+
 - [ ] 能发送文件请求
 - [ ] 能接收并提示
 - [ ] 能确认传输
@@ -936,11 +995,13 @@ pub async fn get_chat_history_handler(
 **目标**: 实现文件分块传输
 
 **参数**:
+
 - 块大小: 4KB
 - 超时: 30 秒
 - 重传: 最多 3 次
 
 **验收标准**:
+
 - [ ] 文件正确传输
 - [ ] 进度实时更新
 - [ ] 校验完整性
@@ -954,12 +1015,14 @@ pub async fn get_chat_history_handler(
 **组件**: `FileProgress.tsx`
 
 **功能**:
+
 - 进度条
 - 速度显示
 - 剩余时间
 - 取消按钮
 
 **验收标准**:
+
 - [ ] 进度条准确
 - [ ] 实时更新
 - [ ] 可取消传输
@@ -971,11 +1034,13 @@ pub async fn get_chat_history_handler(
 **目标**: 实现断点续传功能
 
 **实现**:
+
 - 记录已传输位置
 - 重启后从断点继续
 - 传输状态持久化
 
 **验收标准**:
+
 - [ ] 断点后可继续
 - [ ] 状态正确恢复
 - [ ] 不重新传输已完成部分
@@ -989,11 +1054,13 @@ pub async fn get_chat_history_handler(
 **目标**: 实现群组创建功能
 
 **流程**:
+
 1. 选择成员
 2. 创建群组（本地）
 3. 通知所有成员
 
 **验收标准**:
+
 - [ ] 能创建群组
 - [ ] 成员正确添加
 - [ ] 群信息显示
@@ -1005,12 +1072,14 @@ pub async fn get_chat_history_handler(
 **目标**: 实现群成员管理
 
 **功能**:
+
 - 添加成员
 - 移除成员
 - 角色管理（管理员/群主）
 - 成员列表展示
 
 **验收标准**:
+
 - [ ] 成员添加正常
 - [ ] 成员移除正常
 - [ ] 权限控制正确
@@ -1022,11 +1091,13 @@ pub async fn get_chat_history_handler(
 **目标**: 实现群消息发送
 
 **实现**:
+
 - 遍历群成员
 - 逐个发送 UDP 包
 - 本地存储（session_type=1）
 
 **验收标准**:
+
 - [ ] 消息广播到所有成员
 - [ ] 不重复发送
 - [ ] 显示在群聊窗口
@@ -1040,12 +1111,14 @@ pub async fn get_chat_history_handler(
 **目标**: 优化应用性能
 
 **项目**:
+
 - 虚拟滚动（消息列表）
 - 消息分页加载
 - 图片懒加载
 - 数据库查询优化
 
 **验收标准**:
+
 - [ ] 1000+ 消息流畅滚动
 - [ ] 启动时间 < 2 秒
 - [ ] 内存占用合理
@@ -1059,11 +1132,13 @@ pub async fn get_chat_history_handler(
 **覆盖率要求**: > 80%
 
 **重点模块**:
+
 - 协议解析器
 - 数据库 handler
 - 业务逻辑
 
 **验收标准**:
+
 - [ ] 覆盖率达标
 - [ ] 所有测试通过
 - [ ] 无 clippy 警告
@@ -1075,12 +1150,14 @@ pub async fn get_chat_history_handler(
 **目标**: 端到端测试
 
 **场景**:
+
 - 两机通信
 - 消息收发
 - 文件传输
 - 群聊
 
 **验收标准**:
+
 - [ ] 所有场景通过
 - [ ] 无崩溃
 - [ ] 稳定运行
@@ -1092,11 +1169,13 @@ pub async fn get_chat_history_handler(
 **目标**: 多平台兼容性测试
 
 **平台**:
+
 - Windows 10/11
 - macOS 10.15+
 - Ubuntu 20.04+
 
 **验收标准**:
+
 - [ ] 各平台功能一致
 - [ ] UI 正常显示
 - [ ] 无平台相关 bug
@@ -1108,12 +1187,14 @@ pub async fn get_chat_history_handler(
 ### 4.1 代码规范
 
 **Rust 代码**:
+
 - 遵循 Rust API Guidelines
 - 使用 `cargo fmt` 格式化
 - 通过 `cargo clippy` 检查
 - 单文件不超过 500 行
 
 **TypeScript 代码**:
+
 - 遵循 Airbnb Style Guide
 - 使用 ESLint + Prettier
 - 严格类型检查
@@ -1122,6 +1203,7 @@ pub async fn get_chat_history_handler(
 ### 4.2 Git 工作流
 
 **分支策略**:
+
 ```
 main          - 稳定版本
 develop       - 开发分支
@@ -1130,6 +1212,7 @@ fix/*         - 修复分支
 ```
 
 **提交规范**:
+
 ```
 feat: 添加功能
 fix: 修复 bug
@@ -1162,40 +1245,40 @@ chore: 构建/工具
 
 ### 5.1 功能验收
 
-| 功能 | 验收标准 |
-|------|---------|
-| 用户发现 | 两台内网机器能互相发现 |
-| 单聊 | 能发送接收文字消息，消息正确存储 |
-| 群聊 | 能创建群组，群消息正确广播 |
-| 文件传输 | 能传输 10MB 文件，支持断点续传 |
-| UI | 界面与微信高度相似，交互流畅 |
+| 功能     | 验收标准                         |
+| -------- | -------------------------------- |
+| 用户发现 | 两台内网机器能互相发现           |
+| 单聊     | 能发送接收文字消息，消息正确存储 |
+| 群聊     | 能创建群组，群消息正确广播       |
+| 文件传输 | 能传输 10MB 文件，支持断点续传   |
+| UI       | 界面与微信高度相似，交互流畅     |
 
 ### 5.2 性能验收
 
-| 指标 | 要求 |
-|------|------|
-| 消息延迟 | < 200ms |
+| 指标     | 要求               |
+| -------- | ------------------ |
+| 消息延迟 | < 200ms            |
 | 并发用户 | 支持 100+ 在线用户 |
-| 启动时间 | < 2 秒 |
-| 内存占用 | < 200MB |
-| 应用体积 | < 20MB |
+| 启动时间 | < 2 秒             |
+| 内存占用 | < 200MB            |
+| 应用体积 | < 20MB             |
 
 ### 5.3 稳定性验收
 
-| 项目 | 标准 |
-|------|------|
-| 崩溃率 | < 0.1% |
-| 内存泄漏 | 无 |
+| 项目     | 标准          |
+| -------- | ------------- |
+| 崩溃率   | < 0.1%        |
+| 内存泄漏 | 无            |
 | 长期运行 | 7×24 小时稳定 |
 
 ### 5.4 代码质量
 
-| 指标 | 要求 |
-|------|------|
+| 指标           | 要求  |
+| -------------- | ----- |
 | 单元测试覆盖率 | > 80% |
-| Clippy 警告 | 0 |
-| ESLint 错误 | 0 |
-| 代码重复率 | < 5% |
+| Clippy 警告    | 0     |
+| ESLint 错误    | 0     |
+| 代码重复率     | < 5%  |
 
 ---
 
@@ -1203,29 +1286,29 @@ chore: 构建/工具
 
 ### 6.1 技术风险
 
-| 风险 | 影响 | 应对措施 |
-|------|------|---------|
-| UDP 丢包 | 消息丢失 | ACK + 超时重传 |
-| 跨平台兼容 | 功能不一致 | 早期跨平台测试 |
-| 性能瓶颈 | 卡顿 | 异步处理 + 虚拟滚动 |
-| 协议兼容性 | 无法通信 | 严格遵循 IPMsg 规范 |
+| 风险       | 影响       | 应对措施            |
+| ---------- | ---------- | ------------------- |
+| UDP 丢包   | 消息丢失   | ACK + 超时重传      |
+| 跨平台兼容 | 功能不一致 | 早期跨平台测试      |
+| 性能瓶颈   | 卡顿       | 异步处理 + 虚拟滚动 |
+| 协议兼容性 | 无法通信   | 严格遵循 IPMsg 规范 |
 
 ### 6.2 进度风险
 
-| 风险 | 应对措施 |
-|------|---------|
+| 风险     | 应对措施                   |
+| -------- | -------------------------- |
 | 需求变更 | 锁定核心需求，扩展功能延后 |
 | 技术难题 | 提前技术验证，准备备选方案 |
-| 人员变动 | 代码文档化，知识共享 |
-| 时间不足 | 优先 P0 功能，P1 功能迭代 |
+| 人员变动 | 代码文档化，知识共享       |
+| 时间不足 | 优先 P0 功能，P1 功能迭代  |
 
 ### 6.3 质量风险
 
-| 风险 | 应对措施 |
-|------|---------|
+| 风险     | 应对措施               |
+| -------- | ---------------------- |
 | Bug 漏测 | 完善测试用例，代码审查 |
 | 性能问题 | 早期性能测试，持续监控 |
-| 安全漏洞 | 安全审计，输入校验 |
+| 安全漏洞 | 安全审计，输入校验     |
 
 ---
 

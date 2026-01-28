@@ -2,8 +2,8 @@
 //
 /// 消息项样式 - WeChat 风格气泡
 
-@import '../../styles/variables.less';
-@import '../../styles/mixins.less';
+@import url('../../styles/variables.less');
+@import url('../../styles/mixins.less');
 
 .message-item {
   margin-bottom: @spacing-lg;
@@ -33,12 +33,14 @@
 
   .message-avatar {
     .avatar-base(36px);
+
     flex-shrink: 0;
 
     .avatar-placeholder {
       width: 100%;
       height: 100%;
       .flex-center();
+
       background-color: @sidebar-bg;
       color: @text-secondary;
       font-size: @font-size-lg;
@@ -54,6 +56,7 @@
 
   .message-bubble {
     .message-bubble(@bubble-other, false);
+
     border-top-left-radius: 4px;
   }
 }
@@ -75,6 +78,7 @@
 
   .message-bubble {
     .message-bubble(@bubble-self, true);
+
     border-top-right-radius: 4px;
   }
 }
@@ -92,7 +96,7 @@
     font-size: @font-size-base;
     line-height: @line-height-base;
     color: @text-primary;
-    word-wrap: break-word;
+    overflow-wrap: break-word;
     word-break: break-all;
     white-space: pre-wrap;
   }
@@ -107,7 +111,7 @@
   }
 
   .message-time {
-    color: rgba(0, 0, 0, 0.45);
+    color: rgb(0 0 0 / 45%);
   }
 
   // 消息状态图标
@@ -154,6 +158,7 @@
     width: 100%;
     height: 100%;
     .flex-center();
+
     background-color: @sidebar-bg;
     color: @text-secondary;
     font-size: @font-size-lg;
@@ -166,7 +171,7 @@
 // 响应式
 // ============================================================
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .message-bubble {
     max-width: calc(100vw - 180px);
   }

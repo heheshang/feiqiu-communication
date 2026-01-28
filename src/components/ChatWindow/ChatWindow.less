@@ -2,8 +2,8 @@
 //
 /// 聊天窗口样式 - 仿微信风格
 
-@import '../../styles/variables.less';
-@import '../../styles/mixins.less';
+@import url('../../styles/variables.less');
+@import url('../../styles/mixins.less');
 
 .chat-window {
   display: flex;
@@ -18,6 +18,7 @@
 
 .chat-window-empty {
   .flex-center();
+
   flex: 1;
   background-color: @chat-bg;
 }
@@ -96,6 +97,7 @@
   width: 32px;
   height: 32px;
   .flex-center();
+
   color: @text-secondary;
   border-radius: 50%;
   cursor: pointer;
@@ -116,7 +118,7 @@
 // 响应式
 // ============================================================
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .chat-header {
     padding: 0 @spacing-lg;
   }
