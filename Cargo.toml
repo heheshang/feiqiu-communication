@@ -3,3 +3,44 @@ members = [
     "src-tauri",
 ]
 resolver = "2"
+
+
+# ============================================================
+# Tauri 配置
+# ============================================================
+# https://tauri.app/v1/api/config
+[workspace.dependencies]
+tauri = { version = "2.0", default-features = false, features = [
+    "tray-icon",
+    "macos-private-api",
+] }
+
+
+
+
+# ============================================================
+# 配置文件
+# ============================================================
+# https://doc.rust-lang.org/cargo/reference/profiles.html
+[profile.dev]
+opt-level = 0                # 开发时不优化
+debug = true                 # 包含调试信息
+overflow-checks = true       # 启用溢出检查
+lto = false                  # 不使用链接时优化
+
+[profile.dev.package."*"]    # 优化依赖项
+opt-level = 2
+
+[profile.release]
+opt-level = 3                # 最高优化
+debug = false                # 不包含调试信息
+overflow-checks = false      # 禁用溢出检查（生产）
+lto = "fat"                  # 链接时优化
+codegen-units = 1            # 单个代码生成单元（最大优化）
+strip = true                 # 移除符号表
+panic = "abort"              # 生产时 panic 直接 abort
+
+[profile.release-debug]
+inherits = "release"
+debug = true                 # 包含调试信息的 release 构建
+strip = false
