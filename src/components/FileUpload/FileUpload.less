@@ -1,23 +1,227 @@
 // 文件上传样式
-// TODO: Phase 6 时完善样式
 
 .file-upload {
-  .upload-btn {
-    padding: 8px 16px;
-    border: 1px solid #e0e0e0;
-    background-color: white;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
+  width: 100%;
+  max-width: 400px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+  overflow: hidden;
 
-    &:hover {
-      background-color: #f0f0f0;
-      border-color: #d0d0d0;
+  &-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f5f5f5;
+
+    .header-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
     }
 
-    &:active {
-      background-color: #e0e0e0;
+    .close-btn {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: none;
+      background: none;
+      color: #999;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s;
+
+      &:hover {
+        color: #666;
+      }
     }
   }
+
+  &-body {
+    padding: 20px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    transition: background-color 0.2s;
+
+    &.drag-active {
+      background-color: #f0f8ff;
+      border: 2px dashed #07c160;
+    }
+  }
+}
+
+.upload-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  gap: 12px;
+
+  .upload-hint {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.file-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+
+  &-image {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #f0f0f0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #999;
+
+    &.file-icon-image { color: #52c41a; }
+    &.file-icon-video { color: #722ed1; }
+    &.file-icon-audio { color: #fa8c16; }
+    &.file-icon-document { color: #1890ff; }
+    &.file-icon-archive { color: #faad14; }
+  }
+
+  .file-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .file-name {
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-size {
+    font-size: 12px;
+    color: #999;
+  }
+
+  .clear-btn {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #999;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #f5222d;
+    }
+  }
+}
+
+.file-upload-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.upload-btn {
+  padding: 8px 20px;
+  border: 1px solid #e0e0e0;
+  background-color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &:hover:not(:disabled) {
+    background-color: #f0f0f0;
+    border-color: #d0d0d0;
+  }
+
+  &:active:not(:disabled) {
+    background-color: #e0e0e0;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &.select-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  &.send-btn {
+    background-color: #07c160;
+    color: white;
+    border-color: #07c160;
+
+    &:hover:not(:disabled) {
+      background-color: #06ad56;
+      border-color: #06ad56;
+    }
+
+    &:active:not(:disabled) {
+      background-color: #059049;
+    }
+  }
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgb(255 255 255 / 30%);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.debug-info {
+  padding: 8px 16px;
+  font-size: 11px;
+  color: #999;
+  background: #f9f9f9;
+  border-top: 1px solid #e0e0e0;
+  text-align: center;
 }

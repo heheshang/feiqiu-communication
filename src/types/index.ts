@@ -1,8 +1,8 @@
 // TypeScript 类型定义 - 统一导出
-// TODO: Phase 4 时根据需要完善更多类型定义
 
 export * from './chat';
 export * from './user';
+import type { ContactInfo } from './user';
 
 /** 文件传输信息 */
 export interface FileInfo {
@@ -34,7 +34,7 @@ export interface TransferProgress {
   total: number;
   speed: number;
   transferred: number;
-  status?: TransferStatus; // 可选的状态字段
+  status?: TransferStatus;
 }
 
 /** 待恢复的传输信息 */
@@ -69,3 +69,6 @@ export interface GroupMember {
   role: number; // 0=Member, 1=Admin, 2=Owner
   join_time: string;
 }
+
+/** 联系人（从 contact 导出的别名） */
+export type Contact = ContactInfo;

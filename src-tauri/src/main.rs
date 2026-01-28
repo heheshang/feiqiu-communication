@@ -17,6 +17,7 @@ mod network;
 mod types;
 mod utils;
 
+use core::contact::start_discovery;
 use database::init_database;
 use event::bus::EVENT_RECEIVER;
 use event::model::AppEvent;
@@ -46,6 +47,13 @@ async fn init_app(app_handle: tauri::AppHandle) -> Result<(), String> {
 
     // 存储数据库连接到应用状态
     app_handle.manage(db);
+
+    // 启动用户发现服务
+    tokio::spawn(async move {
+        if let Err(e) = start_discovery().await {
+            error!("用户发现服务启动失败: {}", e);
+        }
+    });
 
     // 启动 UDP 接收器（后台任务）
     let _app_handle_clone = app_handle.clone();
@@ -94,8 +102,17 @@ async fn handle_network_event(event: crate::event::model::NetworkEvent, _app_han
     match event {
         crate::event::model::NetworkEvent::PacketReceived { packet, addr } => {
             info!("收到数据包: {} from {}", packet, addr);
-            // TODO: 解析并处理具体的数据包
-            // let feiq_packet: FeiqPacket = serde_json::from_str(&packet).unwrap();
+            // 数据包解析和处理由 discovery 模块的事件循环处理
+            // 这里只记录日志用于调试
+        }
+        crate::event::model::NetworkEvent::UserOnline { user } => {
+            info!("用户上线事件: {}", user);
+        }
+        crate::event::model::NetworkEvent::UserOffline { ip } => {
+            info!("用户离线事件: {}", ip);
+        }
+        crate::event::model::NetworkEvent::UserUpdated { user } => {
+            info!("用户更新事件: {}", user);
         }
         _ => {}
     }
@@ -120,6 +137,9 @@ async fn main() {
         .invoke_handler(tauri::generate_handler![
             get_version,
             init_app,
+            // 用户相关
+            ipc::user::get_current_user_handler,
+            ipc::user::update_current_user_handler,
             // 聊天相关
             ipc::chat::get_chat_history_handler,
             ipc::chat::send_text_message_handler,

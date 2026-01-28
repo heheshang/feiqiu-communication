@@ -36,6 +36,10 @@ pub struct Model {
     /// 消息状态 (0-发送中, 1-已发送, 2-已读, -1-失败)
     pub status: i8,
 
+    /// 消息编号（用于已读回执匹配）
+    #[sea_orm(column_type = "Text", nullable)]
+    pub msg_no: Option<String>,
+
     /// 创建时间
     pub create_time: DateTime,
 

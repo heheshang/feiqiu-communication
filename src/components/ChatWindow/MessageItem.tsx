@@ -6,6 +6,7 @@
 import React from 'react';
 import { FileProgress } from '../FileProgress';
 import type { ChatMessage, TransferProgress } from '../../types';
+import { getFileIconType, formatFileSize } from '../../utils/path';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -128,18 +129,105 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
 
     // 渲染文件消息内容
     const renderFileContent = () => {
-      // TODO: Phase 6 - 解析消息内容获取文件信息
-      // 消息格式: "文件名:大小" 或 JSON 格式的文件信息
-      const parts = message.content.split(':');
-      const fileName = parts[0] || '未知文件';
-      const fileSize = parts[1] ? parseInt(parts[1], 10) : 0;
+      // Try to parse file_info from message if available
+      if (message.file_info) {
+        const info = message.file_info;
+        const iconType = getFileIconType(info.file_name);
+        const iconClass = `file-icon file-icon-${iconType}`;
+
+        return (
+          <div className="message-file">
+            <div className={iconClass}>
+              <svg viewBox="0 0 24 24" fill="none" width="24" height="24">
+                <path
+                  d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M14 2V8H20"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <div className="file-info">
+              <div className="file-name" title={info.file_name}>
+                {info.file_name}
+              </div>
+              <div className="file-size">{formatFileSize(info.file_size)}</div>
+            </div>
+
+            {/* 如果有传输进度，显示进度条 */}
+            {transferProgress && (
+              <FileProgress
+                fileId={transferProgress.file_id}
+                fileName={info.file_name}
+                progress={transferProgress.transferred}
+                total={transferProgress.total}
+                speed={transferProgress.speed}
+                status={transferProgress.status as any}
+                onCancel={onTransferCancel}
+              />
+            )}
+          </div>
+        );
+      }
+
+      // Fallback: Parse from content string
+      // Format: "[文件] filename" or "filename:size" or JSON
+      let fileName = '未知文件';
+      let fileSize = 0;
+
+      // Remove "[文件]" prefix if present
+      let content = message.content.replace(/^\[文件\]\s*/, '');
+
+      // Try JSON parse first
+      try {
+        const fileInfo = JSON.parse(content);
+        fileName = fileInfo.file_name || fileInfo.name || fileName;
+        fileSize = fileInfo.file_size || fileInfo.size || 0;
+      } catch {
+        // Parse "filename:size" format
+        const parts = content.split(':');
+        fileName = parts[0] || fileName;
+        if (parts[1]) {
+          fileSize = parseInt(parts[1], 10);
+        }
+      }
+
+      const iconType = getFileIconType(fileName);
+      const iconClass = `file-icon file-icon-${iconType}`;
 
       return (
         <div className="message-file">
-          <div className="file-icon">📎</div>
+          <div className={iconClass}>
+            <svg viewBox="0 0 24 24" fill="none" width="24" height="24">
+              <path
+                d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M14 2V8H20"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
           <div className="file-info">
-            <div className="file-name">{fileName}</div>
-            <div className="file-size">{fileSize > 0 ? `${fileSize} 字节` : '未知大小'}</div>
+            <div className="file-name" title={fileName}>
+              {fileName}
+            </div>
+            <div className="file-size">{fileSize > 0 ? formatFileSize(fileSize) : '未知大小'}</div>
           </div>
 
           {/* 如果有传输进度，显示进度条 */}

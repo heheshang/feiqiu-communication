@@ -18,6 +18,7 @@ interface ChatWindowProps {
   isLoading?: boolean;
   onLoadMore?: () => void;
   onRetryMessage?: (message: ChatMessage) => void;
+  onSendFile?: (file: File) => Promise<void>;
 }
 
 const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -29,6 +30,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   isLoading = false,
   onLoadMore,
   onRetryMessage,
+  onSendFile,
 }) => {
   // 如果没有选中用户，显示空状态
   if (!targetUser) {
@@ -85,7 +87,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       />
 
       {/* 输入框 */}
-      <MessageInput sessionType={sessionType} />
+      <MessageInput sessionType={sessionType} targetId={targetUser?.uid} onSendFile={onSendFile} />
     </div>
   );
 };

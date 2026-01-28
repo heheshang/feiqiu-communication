@@ -1,5 +1,4 @@
 // 联系人列表样式
-// TODO: Phase 4 时完善样式
 
 .contact-list {
   display: flex;
@@ -16,6 +15,7 @@
     h3 {
       font-size: 16px;
       font-weight: 500;
+      margin: 0;
     }
 
     .online-count {
@@ -24,10 +24,22 @@
     }
   }
 
+  &-search {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
   &-body {
     flex: 1;
     overflow-y: auto;
   }
+}
+
+.contact-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
 }
 
 .contact-item {
@@ -47,6 +59,7 @@
     border-radius: 4px;
     overflow: hidden;
     margin-right: 12px;
+    flex-shrink: 0;
 
     img {
       width: 100%;
@@ -74,6 +87,9 @@
       font-size: 14px;
       color: #333;
       margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .contact-machine {
@@ -85,13 +101,18 @@
     }
   }
 
-  .contact-status {
+  .contact-status-indicator {
     width: 8px;
     height: 8px;
     border-radius: 50%;
+    flex-shrink: 0;
 
     &.online {
       background-color: #07c160;
+    }
+
+    &.busy {
+      background-color: #f5222d;
     }
 
     &.offline {

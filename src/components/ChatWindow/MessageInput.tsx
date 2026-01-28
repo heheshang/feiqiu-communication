@@ -13,6 +13,7 @@ interface MessageInputProps {
   targetId?: number;
   sessionType?: SessionType;
   onSendMessage?: (content: string) => Promise<void>;
+  onSendFile?: (file: File) => Promise<void>;
   placeholder?: string;
 }
 
@@ -20,6 +21,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   targetId,
   sessionType = 0,
   onSendMessage,
+  onSendFile,
   placeholder = '输入消息...',
 }) => {
   const [content, setContent] = useState('');
@@ -64,9 +66,14 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   const handleFileUpload = async (file: File) => {
-    // TODO: 实现文件上传
-    console.log('上传文件:', file.name);
-    setShowFileUpload(false);
+    if (!targetId) return;
+
+    try {
+      await onSendFile?.(file);
+      setShowFileUpload(false);
+    } catch (error) {
+      console.error('文件上传失败:', error);
+    }
   };
 
   const canSend = content.trim().length > 0 && targetId !== undefined;

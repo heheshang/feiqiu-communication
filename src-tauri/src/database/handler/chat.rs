@@ -20,6 +20,19 @@ impl ChatMessageHandler {
         content: String,
         msg_type: i8,
     ) -> AppResult<chat_message::Model> {
+        Self::create_with_msg_no(db, session_type, target_id, sender_uid, content, msg_type, None).await
+    }
+
+    /// 发送消息（带消息编号）
+    pub async fn create_with_msg_no(
+        db: &DbConn,
+        session_type: i8,
+        target_id: i64,
+        sender_uid: i64,
+        content: String,
+        msg_type: i8,
+        msg_no: Option<String>,
+    ) -> AppResult<chat_message::Model> {
         let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
         let new_message = chat_message::ActiveModel {
             mid: ActiveValue::NotSet,
@@ -30,6 +43,7 @@ impl ChatMessageHandler {
             content: ActiveValue::Set(content),
             send_time: ActiveValue::Set(now),
             status: ActiveValue::Set(0), // 0 = 发送中
+            msg_no: ActiveValue::Set(msg_no),
             create_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
             update_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
         };
@@ -49,6 +63,17 @@ impl ChatMessageHandler {
             .await
             .map_err(|e| AppError::Database(e))?
             .ok_or_else(|| AppError::NotFound(format!("消息 {} 不存在", mid)))?;
+
+        Ok(message)
+    }
+
+    /// 根据消息编号查找消息
+    pub async fn find_by_msg_no(db: &DbConn, msg_no: &str) -> AppResult<Option<chat_message::Model>> {
+        let message = ChatMessage::find()
+            .filter(chat_message::Column::MsgNo.eq(msg_no))
+            .one(db)
+            .await
+            .map_err(|e| AppError::Database(e))?;
 
         Ok(message)
     }

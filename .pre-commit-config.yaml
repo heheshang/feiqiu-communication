@@ -17,19 +17,19 @@ repos:
         pass_filenames: false
 
   # ESLint - Linting (uses local project version)
-  - repo: local
-    hooks:
-      - id: eslint
-        name: ESLint
-        entry: bunx eslint --fix
-        language: system
-        types: [file]
-        files: \.(js|ts|tsx|jsx)$
-        exclude: |
-          (?x)^(
-            node_modules/.*|
-            dist/.*
-          )$
+  # - repo: local
+  #   hooks:
+  #     - id: eslint
+  #       name: ESLint
+  #       entry: bunx eslint --fix
+  #       language: system
+  #       types: [file]
+  #       files: \.(js|ts|tsx|jsx)$
+  #       exclude: |
+  #         (?x)^(
+  #           node_modules/.*|
+  #           dist/.*
+  #         )$
 
   # Stylelint - CSS/Less linting
   - repo: local

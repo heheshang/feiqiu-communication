@@ -418,8 +418,90 @@ export function hasEmoji(text: string): boolean {
   );
 }
 
-/** 转换 Emoji 短代码 */
+/** Emoji 短代码映射表 */
+const EMOJI_SHORTCODE_MAP: Record<string, string> = {
+  // 表情
+  smile: '😀',
+  laughing: '😂',
+  wink: '😉',
+  heart: '❤️',
+  kiss: '😘',
+  cry: '😢',
+  angry: '😠',
+  sad: '😞',
+  thumbsup: '👍',
+  thumbsdown: '👎',
+  ok: '👌',
+  victory: '✌️',
+  clap: '👏',
+  wave: '👋',
+  muscle: '💪',
+
+  // 动物
+  dog: '🐶',
+  cat: '🐱',
+  mouse: '🐭',
+  rabbit: '🐰',
+  bear: '🐻',
+  panda: '🐼',
+  fox: '🦊',
+  lion: '🦁',
+  pig: '🐷',
+
+  // 食物
+  apple: '🍎',
+  banana: '🍌',
+  cherry: '🍒',
+  grape: '🍇',
+  watermelon: '🍉',
+  peach: '🍑',
+  pineapple: '🍍',
+
+  // 活动
+  soccer: '⚽',
+  basketball: '🏀',
+  football: '🏈',
+  baseball: '⚾',
+  tennis: '🎾',
+  golf: '⛳',
+
+  // 符号
+  check: '✅',
+  cross: '❌',
+  star: '⭐',
+  fire: '🔥',
+  lightning: '⚡',
+  moon: '🌙',
+  sun: '☀️',
+};
+
+/** 转换 Emoji 短代码到实际 Emoji */
 export function convertEmojiShortcode(text: string): string {
-  // TODO: 实现 Emoji 短代码到实际 Emoji 的转换
-  return text;
+  // 匹配 :shortcode: 格式
+  return text.replace(/:([a-z_]+):/gi, (match, shortcode) => {
+    return EMOJI_SHORTCODE_MAP[shortcode] || match;
+  });
+}
+
+/** 转换实际 Emoji 到短代码 */
+export function convertEmojiToShortcode(text: string): string {
+  let result = text;
+
+  // 反向映射
+  for (const [shortcode, emoji] of Object.entries(EMOJI_SHORTCODE_MAP)) {
+    const regex = new RegExp(emoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+    result = result.replace(regex, `:${shortcode}:`);
+  }
+
+  return result;
+}
+
+/** 获取 Emoji 的短代码 */
+export function getEmojiShortcode(emoji: string): string | undefined {
+  for (const [shortcode, value] of Object.entries(EMOJI_SHORTCODE_MAP)) {
+    if (value === emoji) {
+      return shortcode;
+    }
+  }
+  return undefined;
 }

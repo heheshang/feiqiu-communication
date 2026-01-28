@@ -123,6 +123,7 @@ pub async fn create_tables(db: &DbConn) -> AppResult<()> {
             content TEXT NOT NULL,
             send_time TEXT NOT NULL,
             status INTEGER NOT NULL DEFAULT 0,
+            msg_no TEXT,
             create_time TEXT NOT NULL,
             update_time TEXT NOT NULL,
             FOREIGN KEY (sender_uid) REFERENCES user(uid) ON DELETE CASCADE ON UPDATE CASCADE
@@ -132,6 +133,18 @@ pub async fn create_tables(db: &DbConn) -> AppResult<()> {
     ))
     .await
     .map_err(|e| AppError::Database(e))?;
+
+    // 为已存在的表添加 msg_no 字段（如果不存在）
+    // 使用 ALTER TABLE 添加列，SQLite 要求 IF NOT EXISTS 语法
+    db.execute(Statement::from_string(
+        sea_orm::DatabaseBackend::Sqlite,
+        r#"
+        ALTER TABLE chat_message ADD COLUMN msg_no TEXT
+        "#
+        .to_string(),
+    ))
+    .await
+    .ok(); // 忽略错误，因为字段可能已存在
 
     // 创建聊天会话表
     db.execute(Statement::from_string(

@@ -1,9 +1,14 @@
 // 工具函数 - 时间相关
-// TODO: Phase 4 时完善时间格式化
 
 /** 格式化时间戳为显示时间 */
 export function formatTime(timestamp: string | number | Date): string {
   const date = typeof timestamp === 'string' ? new Date(timestamp) : new Date(timestamp);
+
+  // 检查日期是否有效
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+
   const now = new Date();
   const diff = now.getTime() - date.getTime();
 
@@ -27,7 +32,7 @@ export function formatTime(timestamp: string | number | Date): string {
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
   if (date.toDateString() === yesterday.toDateString()) {
-    return '昨天';
+    return '昨天 ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
   }
 
   // 本周
@@ -45,6 +50,24 @@ export function formatTime(timestamp: string | number | Date): string {
 
   // 其他
   return date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
+
+/** 格式化完整日期时间 */
+export function formatDateTime(timestamp: string | number | Date): string {
+  const date = typeof timestamp === 'string' ? new Date(timestamp) : new Date(timestamp);
+
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 }
 
 /** 格式化文件大小 */
@@ -66,4 +89,46 @@ export function formatDuration(seconds: number): string {
     return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   }
   return `${minutes}:${String(secs).padStart(2, '0')}`;
+}
+
+/** 格式化传输速度 */
+export function formatTransferSpeed(bytesPerSecond: number): string {
+  return formatFileSize(bytesPerSecond) + '/s';
+}
+
+/** 判断是否为今天 */
+export function isToday(date: Date): boolean {
+  const today = new Date();
+  return date.toDateString() === today.toDateString();
+}
+
+/** 判断是否为本周 */
+export function isThisWeek(date: Date): boolean {
+  const now = new Date();
+  const weekAgo = new Date(now);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  return date > weekAgo;
+}
+
+/** 获取相对时间描述 */
+export function getRelativeTime(timestamp: string | number | Date): string {
+  const date = typeof timestamp === 'string' ? new Date(timestamp) : new Date(timestamp);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diff < minute) {
+    return '刚刚';
+  } else if (diff < hour) {
+    return `${Math.floor(diff / minute)}分钟前`;
+  } else if (diff < day) {
+    return `${Math.floor(diff / hour)}小时前`;
+  } else if (diff < 7 * day) {
+    return `${Math.floor(diff / day)}天前`;
+  } else {
+    return formatTime(date);
+  }
 }

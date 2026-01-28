@@ -1,7 +1,7 @@
 // src-tauri/src/ipc/chat.rs
 //
 use crate::core::group::GroupBroadcaster;
-use crate::database::handler::{ChatMessageHandler, ChatSessionHandler};
+use crate::database::handler::{ChatMessageHandler, ChatSessionHandler, UserHandler};
 use crate::types::{ChatMessage, ChatSession, MessageStatus, MessageType, SessionType};
 use sea_orm::DbConn;
 /// 聊天相关 IPC 接口
@@ -105,8 +105,12 @@ pub async fn send_text_message_handler(
         tracing::info!("Group message broadcast to {} members", sent_count);
     } else {
         // Single chat: send to target user
-        // TODO: Get target user's IP from database
-        let addr = format!("0.0.0.0:2425"); // TODO: 获取实际的目标地址
+        // Get target user's IP from database
+        let target_user = UserHandler::find_by_id(db, target_id)
+            .await
+            .map_err(|e| format!("查找目标用户失败: {}", e))?;
+
+        let addr = format!("{}:{}", target_user.feiq_ip, target_user.feiq_port);
 
         sender::send_packet(&addr, &packet)
             .await
@@ -206,16 +210,19 @@ pub async fn mark_message_read_and_send_receipt(
 /// 处理接收到的已读回执（由网络层调用）
 #[allow(dead_code)]
 pub async fn handle_read_receipt(db: &DbConn, msg_no: &str) -> Result<(), String> {
-    // TODO: 需要在 chat_message 表中添加 msg_no 字段
-    // 目前先使用消息ID作为临时方案
-    // 当收到已读回执时，通过 msg_no 查找消息
-
-    // 临时实现：尝试解析 msg_no 为数字
-    if let Ok(mid) = msg_no.parse::<i64>() {
-        let _ = ChatMessageHandler::update_status(db, mid, 2).await;
+    // 通过 msg_no 查找消息并更新状态
+    if let Ok(Some(message)) = ChatMessageHandler::find_by_msg_no(db, msg_no).await {
+        // 更新消息状态为已读
+        let _ = ChatMessageHandler::update_status(db, message.mid, 2).await;
+        Ok(())
+    } else {
+        // 如果找不到消息，可能是旧数据（msg_no 为空）
+        // 尝试将 msg_no 解析为消息 ID（向后兼容）
+        if let Ok(mid) = msg_no.parse::<i64>() {
+            let _ = ChatMessageHandler::update_status(db, mid, 2).await;
+        }
+        Ok(())
     }
-
-    Ok(())
 }
 
 /// 重试发送失败的消息
@@ -223,7 +230,7 @@ pub async fn handle_read_receipt(db: &DbConn, msg_no: &str) -> Result<(), String
 pub async fn retry_send_message(
     mid: i64,
     _session_type: i8,
-    _target_id: i64,
+    target_id: i64,
     _owner_uid: i64,
     state: State<'_, DbConn>,
 ) -> Result<(), String> {
@@ -239,8 +246,13 @@ pub async fn retry_send_message(
     use crate::network::feiq::model::FeiqPacket;
     use crate::network::udp::sender;
 
+    // Get target user's IP from database
+    let target_user = UserHandler::find_by_id(db, target_id)
+        .await
+        .map_err(|e| format!("查找目标用户失败: {}", e))?;
+
     let packet = FeiqPacket::make_message_packet(&message.content, true);
-    let addr = format!("0.0.0.0:2425"); // TODO: 获取实际的目标地址
+    let addr = format!("{}:{}", target_user.feiq_ip, target_user.feiq_port);
 
     // 发送消息
     sender::send_packet(&addr, &packet)

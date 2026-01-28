@@ -10,44 +10,74 @@ import ChatWindow from '../ChatWindow/ChatWindow';
 import { useUser } from '../../hooks/useUser';
 import { useContact } from '../../hooks/useContact';
 import { useChat } from '../../hooks/useChat';
+import { useUserStore } from '../../store';
 import type { UserInfo, ChatMessage } from '../../types';
 import './MainLayout.less';
 
 interface LayoutState {
   selectedUser: UserInfo | null;
+  selectedSessionId: number | null;
   viewMode: 'normal' | 'chat' | 'contact';
 }
 
 const MainLayout: React.FC = () => {
-  const { currentUser } = useUser();
+  const { currentUser, getCurrentUser } = useUser();
   const { onlineUsers } = useContact();
+  const { initialize } = useUserStore();
+
   const [layoutState, setLayoutState] = useState<LayoutState>({
     selectedUser: null,
+    selectedSessionId: null,
     viewMode: 'normal',
   });
 
   // 使用 useChat hook 管理聊天状态
-  const {
-    messages,
-    loadInitialMessages,
-    loadMoreMessages,
-    resetPagination,
-    pagination,
-    retrySendMessage,
-  } = useChat();
+  const { messages, loadSessionMessages, selectSession, retryMessage, sendFileMessage, sessions } =
+    useChat();
 
-  // 当选中用户变化时，加载初始消息
+  // 初始化用户状态
   useEffect(() => {
-    if (layoutState.selectedUser) {
-      loadInitialMessages(0, layoutState.selectedUser.uid);
-    } else {
-      resetPagination();
+    initialize();
+  }, [initialize]);
+
+  // 确保 currentUser 存在
+  useEffect(() => {
+    if (!currentUser) {
+      getCurrentUser();
     }
-  }, [layoutState.selectedUser?.uid, loadInitialMessages, resetPagination]);
+  }, [currentUser, getCurrentUser]);
+
+  // 会话选择处理
+  const handleSessionSelect = (sessionId: number, userId: number) => {
+    // 从会话列表中查找选中的会话
+    const session = sessions.find((s) => s.sid === sessionId);
+    if (!session) {
+      console.warn('Session not found:', sessionId);
+      return;
+    }
+
+    // 从在线用户中查找目标用户
+    const targetUser = onlineUsers.find((u) => u.uid === userId);
+    if (!targetUser) {
+      console.warn('User not found:', userId);
+      return;
+    }
+
+    // 选择会话并加载数据
+    selectSession(session);
+
+    // 更新布局状态
+    setLayoutState({
+      selectedUser: targetUser,
+      selectedSessionId: sessionId,
+      viewMode: 'chat',
+    });
+  };
 
   const handleUserSelect = (user: UserInfo) => {
     setLayoutState({
       selectedUser: user,
+      selectedSessionId: null,
       viewMode: 'chat',
     });
   };
@@ -55,18 +85,30 @@ const MainLayout: React.FC = () => {
   const handleBackToList = () => {
     setLayoutState({
       selectedUser: null,
+      selectedSessionId: null,
       viewMode: 'normal',
     });
   };
 
   const handleLoadMore = () => {
     if (layoutState.selectedUser) {
-      loadMoreMessages(0, layoutState.selectedUser.uid);
+      loadSessionMessages(0, layoutState.selectedUser.uid);
     }
   };
 
   const handleRetryMessage = (message: ChatMessage) => {
-    retrySendMessage(message);
+    retryMessage(message);
+  };
+
+  const handleSendFile = async (file: File) => {
+    if (!layoutState.selectedUser) return;
+
+    try {
+      await sendFileMessage(0, layoutState.selectedUser.uid, file.name, file.name);
+    } catch (error) {
+      console.error('发送文件失败:', error);
+      throw error;
+    }
   };
 
   // 移动端：返回按钮
@@ -91,10 +133,7 @@ const MainLayout: React.FC = () => {
         )}
         <SessionList
           selectedUserId={layoutState.selectedUser?.uid}
-          onSessionSelect={(sessionId, userId) => {
-            // TODO: 实现会话选择逻辑
-            console.log('Selected session:', sessionId, 'User:', userId);
-          }}
+          onSessionSelect={handleSessionSelect}
         />
       </div>
 
@@ -121,12 +160,11 @@ const MainLayout: React.FC = () => {
         <ChatWindow
           targetUser={layoutState.selectedUser || undefined}
           sessionType={0}
-          messages={messages}
+          messages={Object.values(messages).flat()}
           currentUserId={currentUser?.uid}
-          hasMore={pagination.hasMore}
-          isLoading={pagination.isLoading}
           onLoadMore={handleLoadMore}
           onRetryMessage={handleRetryMessage}
+          onSendFile={handleSendFile}
         />
       </div>
     </div>

@@ -198,7 +198,7 @@ async fn handle_packet_received(packet_json: String, addr: String) {
 
             // 创建用户信息
             let user = UserInfo {
-                uid: 0, // TODO: 生成唯一 ID
+                uid: generate_user_id(&machine_id),
                 nickname: nickname.clone(),
                 feiq_ip: ip.clone(),
                 feiq_port: port,
@@ -221,7 +221,7 @@ async fn handle_packet_received(packet_json: String, addr: String) {
 
             // 创建用户信息
             let user = UserInfo {
-                uid: 0, // TODO: 生成唯一 ID
+                uid: generate_user_id(&machine_id),
                 nickname: nickname.clone(),
                 feiq_ip: ip.clone(),
                 feiq_port: port,
@@ -307,6 +307,23 @@ fn parse_sender_info(sender: &str, addr: &str) -> Result<(String, String, u16, S
     let machine_id = format!("{}:{}", ip, port);
 
     Ok((nickname, ip, port, machine_id))
+}
+
+/// 生成用户唯一 ID
+///
+/// 使用机器 ID（IP:port）的哈希值作为用户 ID
+/// 这确保了同一台机器的用户 ID 是一致的
+fn generate_user_id(machine_id: &str) -> i64 {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+
+    // 使用 FNV 哈希算法生成唯一 ID
+    let mut hasher = DefaultHasher::new();
+    machine_id.hash(&mut hasher);
+
+    // 取哈希值的绝对值作为 ID，避免负数
+    let hash = hasher.finish();
+    (hash % 9000000000000000000 + 1000000000000000000) as i64 // 确保 ID 在有效范围内
 }
 
 // ============================================================

@@ -1,14 +1,46 @@
 // 联系人分组样式
-// TODO: Phase 4 时完善样式
 
 .contact-group {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 
   &-header {
     padding: 8px 16px;
     font-size: 12px;
     color: #666;
     background-color: #f5f5f5;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: #e8e8e8;
+    }
+
+    .group-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .group-expand-icon {
+      width: 14px;
+      height: 14px;
+      transition: transform 0.2s;
+      color: #999;
+
+      &.expanded {
+        transform: rotate(90deg);
+      }
+    }
+
+    .group-name {
+      font-weight: 500;
+    }
+
+    .group-count {
+      color: #999;
+      font-size: 11px;
+    }
   }
 
   &-body {
