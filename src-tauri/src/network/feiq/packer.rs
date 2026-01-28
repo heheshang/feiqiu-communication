@@ -49,7 +49,7 @@ impl FeiqPacket {
         Self::make_packet(IPMSG_READMSG, Some(msg_no.to_string()))
     }
 
-    /// 创建基础数据包
+    /// 创建基础数据包 (IPMsg 格式)
     #[allow(dead_code)]
     fn make_packet(command: u32, extension: Option<String>) -> Self {
         let timestamp = SystemTime::now()
@@ -74,6 +74,7 @@ impl FeiqPacket {
             msg_no: timestamp.to_string(),
             extension,
             ip: String::new(),
+            ..Default::default()
         }
     }
 
@@ -127,6 +128,7 @@ mod tests {
             msg_no: "12345".to_string(),
             extension: Some("Hello".to_string()),
             ip: String::new(),
+            ..Default::default()
         };
 
         let s = packet.to_string();
