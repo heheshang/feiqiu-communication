@@ -2,19 +2,28 @@
 //
 //! 联系人表 CRUD 操作
 
-use sea_orm::*;
 use crate::database::model::{contact, Contact};
 use crate::error::{AppError, AppResult};
+use sea_orm::*;
 
 /// 联系人处理器
 pub struct ContactHandler;
 
 impl ContactHandler {
     /// 添加联系人
-    pub async fn create(db: &DbConn, owner_uid: i64, contact_uid: i64, remark: Option<String>, tag: Option<String>) -> AppResult<contact::Model> {
+    pub async fn create(
+        db: &DbConn,
+        owner_uid: i64,
+        contact_uid: i64,
+        remark: Option<String>,
+        tag: Option<String>,
+    ) -> AppResult<contact::Model> {
         // 检查是否已存在
         if let Some(_) = Self::find_by_owner_and_contact(db, owner_uid, contact_uid).await? {
-            return Err(AppError::AlreadyExists(format!("联系人关系已存在: {} -> {}", owner_uid, contact_uid)));
+            return Err(AppError::AlreadyExists(format!(
+                "联系人关系已存在: {} -> {}",
+                owner_uid, contact_uid
+            )));
         }
 
         let new_contact = contact::ActiveModel {
@@ -27,10 +36,7 @@ impl ContactHandler {
             update_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
         };
 
-        let result = Contact::insert(new_contact)
-            .exec(db)
-            .await
-            .map_err(|e| AppError::Database(e))?;
+        let result = Contact::insert(new_contact).exec(db).await.map_err(|e| AppError::Database(e))?;
 
         Self::find_by_id(db, result.last_insert_id).await
     }
@@ -47,7 +53,11 @@ impl ContactHandler {
     }
 
     /// 根据所有者 ID 和联系人 ID 查找
-    pub async fn find_by_owner_and_contact(db: &DbConn, owner_uid: i64, contact_uid: i64) -> AppResult<Option<contact::Model>> {
+    pub async fn find_by_owner_and_contact(
+        db: &DbConn,
+        owner_uid: i64,
+        contact_uid: i64,
+    ) -> AppResult<Option<contact::Model>> {
         let contact = Contact::find()
             .filter(contact::Column::OwnerUid.eq(owner_uid))
             .filter(contact::Column::ContactUid.eq(contact_uid))
@@ -71,7 +81,8 @@ impl ContactHandler {
 
     /// 更新联系人备注
     pub async fn update_remark(db: &DbConn, owner_uid: i64, contact_uid: i64, remark: Option<String>) -> AppResult<()> {
-        let contact = Self::find_by_owner_and_contact(db, owner_uid, contact_uid).await?
+        let contact = Self::find_by_owner_and_contact(db, owner_uid, contact_uid)
+            .await?
             .ok_or_else(|| AppError::NotFound(format!("联系人关系不存在: {} -> {}", owner_uid, contact_uid)))?;
 
         let mut contact_update: contact::ActiveModel = contact.into();
@@ -84,7 +95,8 @@ impl ContactHandler {
 
     /// 更新联系人标签
     pub async fn update_tag(db: &DbConn, owner_uid: i64, contact_uid: i64, tag: Option<String>) -> AppResult<()> {
-        let contact = Self::find_by_owner_and_contact(db, owner_uid, contact_uid).await?
+        let contact = Self::find_by_owner_and_contact(db, owner_uid, contact_uid)
+            .await?
             .ok_or_else(|| AppError::NotFound(format!("联系人关系不存在: {} -> {}", owner_uid, contact_uid)))?;
 
         let mut contact_update: contact::ActiveModel = contact.into();
@@ -97,7 +109,8 @@ impl ContactHandler {
 
     /// 删除联系人
     pub async fn delete(db: &DbConn, owner_uid: i64, contact_uid: i64) -> AppResult<()> {
-        let contact = Self::find_by_owner_and_contact(db, owner_uid, contact_uid).await?
+        let contact = Self::find_by_owner_and_contact(db, owner_uid, contact_uid)
+            .await?
             .ok_or_else(|| AppError::NotFound(format!("联系人关系不存在: {} -> {}", owner_uid, contact_uid)))?;
 
         Contact::delete_by_id(contact.id)

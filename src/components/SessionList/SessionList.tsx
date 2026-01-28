@@ -8,7 +8,12 @@ import type { ChatSession } from '../../types';
 
 import './SessionList.less';
 
-export const SessionList: React.FC = () => {
+interface SessionListProps {
+  selectedUserId?: number;
+  onSessionSelect?: (sessionId: number, userId: number) => void;
+}
+
+export const SessionList: React.FC<SessionListProps> = ({ selectedUserId, onSessionSelect }) => {
   const { sessions, getSessionList } = useChat();
 
   React.useEffect(() => {
@@ -18,7 +23,12 @@ export const SessionList: React.FC = () => {
   return (
     <div className="session-list">
       {sessions.map((session) => (
-        <SessionItem key={session.session_id} session={session} />
+        <SessionItem
+          key={session.sid}
+          session={session}
+          isSelected={selectedUserId === session.target_id}
+          onSelect={() => onSessionSelect?.(session.sid, session.target_id)}
+        />
       ))}
     </div>
   );
@@ -26,24 +36,28 @@ export const SessionList: React.FC = () => {
 
 interface SessionItemProps {
   session: ChatSession;
+  isSelected?: boolean;
+  onSelect?: () => void;
 }
 
-const SessionItem: React.FC<SessionItemProps> = ({ session }) => {
+const SessionItem: React.FC<SessionItemProps> = ({ session, isSelected, onSelect }) => {
+  // TODO: Get target name from user data
+  const targetName = `User ${session.target_id}`;
+  const lastMessage = '...'; // TODO: Get from message data
+
   return (
-    <div className="session-item">
+    <div className={`session-item ${isSelected ? 'selected' : ''}`} onClick={onSelect}>
       <div className="session-avatar">
-        <div className="avatar-placeholder">{session.target_name[0]}</div>
+        <div className="avatar-placeholder">{targetName[0]}</div>
       </div>
       <div className="session-info">
         <div className="session-header-row">
-          <div className="session-name">{session.target_name}</div>
-          <div className="session-time">{formatTime(session.last_time)}</div>
+          <div className="session-name">{targetName}</div>
+          <div className="session-time">{formatTime(session.update_time)}</div>
         </div>
         <div className="session-footer-row">
-          <div className="session-message">{session.last_message}</div>
-          {session.unread_count > 0 && (
-            <div className="session-badge">{session.unread_count}</div>
-          )}
+          <div className="session-message">{lastMessage}</div>
+          {session.unread_count > 0 && <div className="session-badge">{session.unread_count}</div>}
         </div>
       </div>
     </div>

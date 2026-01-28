@@ -2,9 +2,9 @@
 //
 //! 聊天消息和会话 CRUD 操作
 
-use sea_orm::*;
 use crate::database::model::{chat_message, chat_session, ChatMessage, ChatSession};
 use crate::error::{AppError, AppResult};
+use sea_orm::*;
 use serde::{Deserialize, Serialize};
 
 /// 聊天消息处理器
@@ -12,7 +12,14 @@ pub struct ChatMessageHandler;
 
 impl ChatMessageHandler {
     /// 发送消息
-    pub async fn create(db: &DbConn, session_type: i8, target_id: i64, sender_uid: i64, content: String, msg_type: i8) -> AppResult<chat_message::Model> {
+    pub async fn create(
+        db: &DbConn,
+        session_type: i8,
+        target_id: i64,
+        sender_uid: i64,
+        content: String,
+        msg_type: i8,
+    ) -> AppResult<chat_message::Model> {
         let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
         let new_message = chat_message::ActiveModel {
             mid: ActiveValue::NotSet,
@@ -47,7 +54,12 @@ impl ChatMessageHandler {
     }
 
     /// 获取会话的聊天消息
-    pub async fn find_by_session(db: &DbConn, session_type: i8, target_id: i64, limit: u64) -> AppResult<Vec<chat_message::Model>> {
+    pub async fn find_by_session(
+        db: &DbConn,
+        session_type: i8,
+        target_id: i64,
+        limit: u64,
+    ) -> AppResult<Vec<chat_message::Model>> {
         let messages = ChatMessage::find()
             .filter(chat_message::Column::SessionType.eq(session_type))
             .filter(chat_message::Column::TargetId.eq(target_id))
@@ -119,7 +131,12 @@ pub struct ChatSessionHandler;
 
 impl ChatSessionHandler {
     /// 创建或获取会话
-    pub async fn get_or_create(db: &DbConn, owner_uid: i64, session_type: i8, target_id: i64) -> AppResult<chat_session::Model> {
+    pub async fn get_or_create(
+        db: &DbConn,
+        owner_uid: i64,
+        session_type: i8,
+        target_id: i64,
+    ) -> AppResult<chat_session::Model> {
         // 尝试查找现有会话
         if let Some(session) = Self::find_by_owner_and_target(db, owner_uid, session_type, target_id).await? {
             return Ok(session);
@@ -157,7 +174,12 @@ impl ChatSessionHandler {
     }
 
     /// 根据所有者、类型和目标 ID 查找会话
-    pub async fn find_by_owner_and_target(db: &DbConn, owner_uid: i64, session_type: i8, target_id: i64) -> AppResult<Option<chat_session::Model>> {
+    pub async fn find_by_owner_and_target(
+        db: &DbConn,
+        owner_uid: i64,
+        session_type: i8,
+        target_id: i64,
+    ) -> AppResult<Option<chat_session::Model>> {
         let session = ChatSession::find()
             .filter(chat_session::Column::OwnerUid.eq(owner_uid))
             .filter(chat_session::Column::SessionType.eq(session_type))

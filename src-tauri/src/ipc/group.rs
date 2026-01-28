@@ -16,18 +16,14 @@ pub async fn create_group_handler(
 
 /// 获取群组信息
 #[tauri::command]
-pub async fn get_group_info_handler(
-    _gid: i64,
-) -> Result<crate::types::GroupInfo, String> {
+pub async fn get_group_info_handler(_gid: i64) -> Result<crate::types::GroupInfo, String> {
     // TODO: 实现获取群组信息
     Err("Not implemented".to_string())
 }
 
 /// 获取群成员列表
 #[tauri::command]
-pub async fn get_group_members_handler(
-    _gid: i64,
-) -> Result<Vec<crate::types::GroupMember>, String> {
+pub async fn get_group_members_handler(_gid: i64) -> Result<Vec<crate::types::GroupMember>, String> {
     // TODO: 实现获取群成员
     Ok(vec![])
 }

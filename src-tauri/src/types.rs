@@ -1,7 +1,6 @@
 // src-tauri/src/types.rs
 //
 /// 共享类型定义
-
 use serde::{Deserialize, Serialize};
 
 // ============================================================
@@ -66,18 +65,18 @@ impl SessionType {
 /// 消息类型
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MessageType {
-    Text = 0,   // 文字消息
-    File = 1,   // 文件消息
-    Emoji = 2,  // Emoji 消息
+    Text = 0,  // 文字消息
+    File = 1,  // 文件消息
+    Emoji = 2, // Emoji 消息
 }
 
 /// 消息状态
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MessageStatus {
-    Sending = 0,   // 发送中
-    Sent = 1,      // 已发送
-    Read = 2,      // 已读
-    Failed = -1,   // 发送失败
+    Sending = 0, // 发送中
+    Sent = 1,    // 已发送
+    Read = 2,    // 已读
+    Failed = -1, // 发送失败
 }
 
 /// 聊天消息
@@ -137,9 +136,9 @@ pub struct GroupInfo {
 /// 群成员角色
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GroupRole {
-    Member = 0,   // 普通成员
-    Admin = 1,    // 管理员
-    Owner = 2,    // 群主
+    Member = 0, // 普通成员
+    Admin = 1,  // 管理员
+    Owner = 2,  // 群主
 }
 
 /// 群成员
@@ -187,4 +186,18 @@ pub struct TransferProgress {
     pub progress: u64,
     pub total: u64,
     pub status: TransferStatus,
+}
+
+/// 待恢复的传输信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PendingTransfer {
+    pub tid: i64,
+    pub file_id: i64,
+    pub file_name: String,
+    pub file_path: String,
+    pub transferred: i64,
+    pub file_size: i64,
+    pub status: TransferStatus,
+    pub target_ip: String,
+    pub direction: i8, // 0=下载, 1=上传
 }

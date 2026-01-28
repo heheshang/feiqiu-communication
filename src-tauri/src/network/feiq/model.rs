@@ -5,9 +5,70 @@
 use serde::{Deserialize, Serialize};
 
 // 导入常量
-use crate::network::feiq::constants::{
-    IPMSG_UTF8OPT, IPMSG_SENDCHECKOPT, IPMSG_FILEATTACHOPT,
-};
+use crate::network::feiq::constants::{IPMSG_FILEATTACHOPT, IPMSG_SENDCHECKOPT, IPMSG_UTF8OPT};
+
+// ============================================================
+// 文件附件相关
+// ============================================================
+
+/// 文件附件信息（用于文件传输）
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FileAttachment {
+    /// 文件名
+    pub file_name: String,
+    /// 文件大小（字节）
+    pub file_size: i64,
+    /// 文件修改时间（Unix 时间戳）
+    pub mtime: u64,
+    /// 文件属性 (1=普通文件, 2=目录)
+    pub attr: u32,
+}
+
+impl FileAttachment {
+    /// 从 IPMsg 文件头字符串解析
+    ///
+    /// 格式: `文件名:大小:修改时间:属性`
+    /// 多个文件用 \x07 分隔
+    #[allow(dead_code)]
+    pub fn from_ipmsg_header(s: &str) -> Result<Vec<Self>, String> {
+        let mut files = Vec::new();
+        for file_str in s.split('\x07') {
+            let parts: Vec<&str> = file_str.split(':').collect();
+            if parts.len() < 4 {
+                return Err(format!("File header must have 4 fields, found {}", parts.len()));
+            }
+
+            let file_name = parts[0].to_string();
+            let file_size = parts[1].parse::<i64>().map_err(|_| "Invalid file size".to_string())?;
+            let mtime = parts[2].parse::<u64>().map_err(|_| "Invalid mtime".to_string())?;
+            let attr = parts[3].parse::<u32>().map_err(|_| "Invalid file attr".to_string())?;
+
+            files.push(FileAttachment {
+                file_name,
+                file_size,
+                mtime,
+                attr,
+            });
+        }
+        Ok(files)
+    }
+
+    /// 转换为 IPMsg 文件头字符串
+    #[allow(dead_code)]
+    pub fn to_ipmsg_header(&self) -> String {
+        format!("{}:{}:{}:{}", self.file_name, self.file_size, self.mtime, self.attr)
+    }
+
+    /// 检查是否为目录
+    #[allow(dead_code)]
+    pub fn is_dir(&self) -> bool {
+        self.attr == 2
+    }
+}
+
+// ============================================================
+// 协议类型枚举
+// ============================================================
 
 /// 协议类型枚举
 #[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]

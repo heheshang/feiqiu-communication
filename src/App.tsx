@@ -2,7 +2,6 @@
 //
 /// 应用根组件
 
-import React from 'react';
 import MainLayout from './components/MainLayout/MainLayout';
 import './styles/global.less';
 

@@ -2,9 +2,9 @@
 //
 //! 文件存储 CRUD 操作
 
-use sea_orm::*;
 use crate::database::model::{file_storage, FileStorage};
 use crate::error::{AppError, AppResult};
+use sea_orm::*;
 use serde::{Deserialize, Serialize};
 
 /// 文件存储处理器
@@ -12,7 +12,14 @@ pub struct FileStorageHandler;
 
 impl FileStorageHandler {
     /// 记录文件上传
-    pub async fn create(db: &DbConn, file_name: String, file_path: String, file_size: i64, file_type: String, uploader_uid: i64) -> AppResult<file_storage::Model> {
+    pub async fn create(
+        db: &DbConn,
+        file_name: String,
+        file_path: String,
+        file_size: i64,
+        file_type: String,
+        uploader_uid: i64,
+    ) -> AppResult<file_storage::Model> {
         let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
         let new_file = file_storage::ActiveModel {
             fid: ActiveValue::NotSet,

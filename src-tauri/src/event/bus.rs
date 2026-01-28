@@ -1,11 +1,10 @@
 // src-tauri/src/event/bus.rs
 //
+use crate::event::model::AppEvent;
 /// 全局事件总线
 /// 参考: reference/event/bus.rs
-
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use once_cell::sync::Lazy;
-use crate::event::model::AppEvent;
 
 // ============================================================
 // 全局事件总线
@@ -29,14 +28,10 @@ pub static EVENT_BUS: Lazy<EventBus<AppEvent>> = Lazy::new(|| {
 ///     user: "...".to_string(),
 /// })).unwrap();
 /// ```
-pub static EVENT_SENDER: Lazy<Sender<AppEvent>> = Lazy::new(|| {
-    EVENT_BUS.sender().clone()
-});
+pub static EVENT_SENDER: Lazy<Sender<AppEvent>> = Lazy::new(|| EVENT_BUS.sender().clone());
 
 /// 事件接收器（全局可访问）
-pub static EVENT_RECEIVER: Lazy<Receiver<AppEvent>> = Lazy::new(|| {
-    EVENT_BUS.receiver().clone()
-});
+pub static EVENT_RECEIVER: Lazy<Receiver<AppEvent>> = Lazy::new(|| EVENT_BUS.receiver().clone());
 
 // ============================================================
 // EventBus 结构体
@@ -92,10 +87,7 @@ impl<T> EventBus<T> {
 
     /// 超时接收事件
     #[allow(dead_code)]
-    pub fn recv_timeout(
-        &self,
-        timeout: std::time::Duration
-    ) -> Result<T, crossbeam_channel::RecvTimeoutError> {
+    pub fn recv_timeout(&self, timeout: std::time::Duration) -> Result<T, crossbeam_channel::RecvTimeoutError> {
         self.rx.recv_timeout(timeout)
     }
 }

@@ -22,7 +22,7 @@ export enum TransferStatus {
   /** 已完成 */
   Completed = 2,
   /** 已取消 */
-  Cancelled = 3,
+  Cancelled = -2,
   /** 失败 */
   Failed = -1,
 }
@@ -34,6 +34,20 @@ export interface TransferProgress {
   total: number;
   speed: number;
   transferred: number;
+  status?: TransferStatus; // 可选的状态字段
+}
+
+/** 待恢复的传输信息 */
+export interface PendingTransfer {
+  tid: number;
+  file_id: number;
+  file_name: string;
+  file_path: string;
+  transferred: number;
+  file_size: number;
+  status: TransferStatus;
+  target_ip: string;
+  direction: number; // 0=下载, 1=上传
 }
 
 /** 群组信息 */

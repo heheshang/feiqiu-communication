@@ -1,9 +1,8 @@
 // src-tauri/src/network/udp/sender.rs
 //
-/// UDP 发送器
-
-use tokio::net::UdpSocket;
 use crate::network::feiq::model::FeiqPacket;
+/// UDP 发送器
+use tokio::net::UdpSocket;
 
 /// 发送 UDP 数据包到指定地址（字符串形式）
 #[allow(dead_code)]

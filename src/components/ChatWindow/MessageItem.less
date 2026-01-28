@@ -171,3 +171,37 @@
     max-width: calc(100vw - 180px);
   }
 }
+
+// ============================================================
+// 文件消息
+// ============================================================
+
+.message-file {
+  display: flex;
+  flex-direction: column;
+  gap: @spacing-sm;
+  min-width: 200px;
+
+  .file-icon {
+    font-size: 32px;
+    margin-bottom: @spacing-xs;
+  }
+
+  .file-info {
+    .file-name {
+      font-size: @font-size-base;
+      font-weight: 500;
+      color: @text-primary;
+      margin-bottom: 4px;
+    }
+
+    .file-size {
+      font-size: @font-size-small;
+      color: @text-secondary;
+    }
+  }
+
+  .file-progress {
+    margin-top: @spacing-sm;
+  }
+}

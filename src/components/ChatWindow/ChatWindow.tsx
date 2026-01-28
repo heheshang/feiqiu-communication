@@ -4,13 +4,12 @@
 /// 包含头部信息、消息列表和输入框
 
 import React from 'react';
-import { MessageList } from './MessageList';
-import { MessageInput } from './MessageInput';
+import MessageList from './MessageList';
+import MessageInput from './MessageInput';
 import './ChatWindow.less';
 import type { UserInfo, SessionType, ChatMessage } from '../../types';
 
 interface ChatWindowProps {
-  targetId?: number;
   targetUser?: UserInfo;
   sessionType?: SessionType;
   messages?: ChatMessage[];
@@ -18,10 +17,10 @@ interface ChatWindowProps {
   hasMore?: boolean;
   isLoading?: boolean;
   onLoadMore?: () => void;
+  onRetryMessage?: (message: ChatMessage) => void;
 }
 
 const ChatWindow: React.FC<ChatWindowProps> = ({
-  targetId,
   targetUser,
   sessionType = 0,
   messages = [],
@@ -29,6 +28,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   hasMore = true,
   isLoading = false,
   onLoadMore,
+  onRetryMessage,
 }) => {
   // 如果没有选中用户，显示空状态
   if (!targetUser) {
@@ -59,15 +59,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         <div className="chat-header-actions">
           <button className="header-action-btn" title="查看资料">
             <svg viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-              <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+              <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
           <button className="header-action-btn" title="更多">
             <svg viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="1" fill="currentColor"/>
-              <circle cx="12" cy="5" r="1" fill="currentColor"/>
-              <circle cx="12" cy="19" r="1" fill="currentColor"/>
+              <circle cx="12" cy="12" r="1" fill="currentColor" />
+              <circle cx="12" cy="5" r="1" fill="currentColor" />
+              <circle cx="12" cy="19" r="1" fill="currentColor" />
             </svg>
           </button>
         </div>
@@ -75,18 +75,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* 消息列表 */}
       <MessageList
-        targetId={targetId}
         targetUser={targetUser}
         messages={messages}
         currentUserId={currentUserId}
-        sessionType={sessionType}
         hasMore={hasMore}
         isLoading={isLoading}
         onLoadMore={onLoadMore}
+        onRetryMessage={onRetryMessage}
       />
 
       {/* 输入框 */}
-      <MessageInput targetId={targetId} sessionType={sessionType} />
+      <MessageInput sessionType={sessionType} />
     </div>
   );
 };

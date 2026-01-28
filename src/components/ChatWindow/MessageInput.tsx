@@ -4,22 +4,23 @@
 /// 支持文本输入、表情、文件上传等功能
 
 import React, { useState, useRef, useEffect } from 'react';
-import EmojiPicker from '../EmojiPicker/EmojiPicker';
-import FileUpload from '../FileUpload/FileUpload';
+import { EmojiPicker } from '../EmojiPicker/EmojiPicker';
+import { FileUpload } from '../FileUpload/FileUpload';
 import './MessageInput.less';
+import type { SessionType } from '../../types';
 
 interface MessageInputProps {
   targetId?: number;
-  sessionType?: 'single' | 'group';
+  sessionType?: SessionType;
   onSendMessage?: (content: string) => Promise<void>;
   placeholder?: string;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
   targetId,
-  sessionType = 'single',
+  sessionType = 0,
   onSendMessage,
-  placeholder = '输入消息...'
+  placeholder = '输入消息...',
 }) => {
   const [content, setContent] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -56,7 +57,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   const handleEmojiSelect = (emoji: string) => {
-    setContent(prev => prev + emoji);
+    setContent((prev) => prev + emoji);
     setShowEmoji(false);
     // 聚焦回输入框
     setTimeout(() => textareaRef.current?.focus(), 100);
@@ -74,14 +75,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
     <div className={`message-input ${isFocused ? 'focused' : ''}`}>
       {/* Emoji 选择器 */}
       {showEmoji && (
-        <EmojiPicker
-          onSelect={handleEmojiSelect}
-          onClose={() => setShowEmoji(false)}
-        />
+        <EmojiPicker onEmojiSelect={handleEmojiSelect} onClose={() => setShowEmoji(false)} />
       )}
 
       {/* 文件上传 */}
-      {showFileUpload && (
+      {showFileUpload && targetId !== undefined && (
         <FileUpload
           targetId={targetId}
           sessionType={sessionType}
@@ -92,43 +90,73 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
       {/* 工具栏 */}
       <div className="input-toolbar">
-        <button
-          className="toolbar-btn"
-          title="表情"
-          onClick={() => setShowEmoji(!showEmoji)}
-        >
+        <button className="toolbar-btn" title="表情" onClick={() => setShowEmoji(!showEmoji)}>
           <svg viewBox="0 0 24 24" fill="none">
-            <circle cx="8" cy="8" r="2" fill="currentColor"/>
-            <circle cx="16" cy="8" r="2" fill="currentColor"/>
-            <circle cx="8" cy="16" r="2" fill="currentColor"/>
-            <circle cx="16" cy="16" r="2" fill="currentColor"/>
-            <circle cx="12" cy="12" r="2" fill="currentColor"/>
-            <path d="M7 7C7 5.34315 7 5 7 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M17 7C17 5.34315 17 5 17 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M7 17C7 18.6568 7 19 7 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M17 17C17 18.6568 17 19 17 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <circle cx="8" cy="8" r="2" fill="currentColor" />
+            <circle cx="16" cy="8" r="2" fill="currentColor" />
+            <circle cx="8" cy="16" r="2" fill="currentColor" />
+            <circle cx="16" cy="16" r="2" fill="currentColor" />
+            <circle cx="12" cy="12" r="2" fill="currentColor" />
+            <path
+              d="M7 7C7 5.34315 7 5 7 5"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M17 7C17 5.34315 17 5 17 5"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M7 17C7 18.6568 7 19 7 19"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M17 17C17 18.6568 17 19 17 19"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
           </svg>
         </button>
 
-        <button
-          className="toolbar-btn"
-          title="发送文件"
-          onClick={() => setShowFileUpload(true)}
-        >
+        <button className="toolbar-btn" title="发送文件" onClick={() => setShowFileUpload(true)}>
           <svg viewBox="0 0 24 24" fill="none">
-            <path d="M12 15V3M12 15L8 11M12 15L16 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M17 8L12 13L7 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path
+              d="M12 15V3M12 15L8 11M12 15L16 11"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M17 8L12 13L7 8"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </button>
 
-        <button
-          className="toolbar-btn"
-          title="截图（Ctrl+Alt+A）"
-        >
+        <button className="toolbar-btn" title="截图（Ctrl+Alt+A）">
           <svg viewBox="0 0 24 24" fill="none">
-            <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z" stroke="currentColor" strokeWidth="2"/>
-            <path d="M8 9h8M12 13v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path
+              d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"
+              stroke="currentColor"
+              strokeWidth="2"
+            />
+            <path d="M8 9h8M12 13v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
       </div>
@@ -150,9 +178,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
       {/* 发送按钮 */}
       <div className="input-actions">
-        <span className="char-count">
-          {content.length}/2000
-        </span>
+        <span className="char-count">{content.length}/2000</span>
         <button
           className={`send-btn ${canSend ? 'active' : ''}`}
           onClick={handleSend}

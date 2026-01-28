@@ -1257,6 +1257,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64 0.22.1",
  "chrono",
  "combine",
  "criterion",
@@ -1273,6 +1274,7 @@ dependencies = [
  "sea-orm-migration",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "thiserror 1.0.69",

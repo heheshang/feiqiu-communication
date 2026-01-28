@@ -2,20 +2,22 @@
 // TODO: Phase 6 时完善文件上传组件
 
 import React, { useRef } from 'react';
-import { fileAPI } from '../../ipc';
+import type { SessionType } from '../../types';
 
 import './FileUpload.less';
 
 interface FileUploadProps {
-  sessionType: number;
+  sessionType: SessionType;
   targetId: number;
-  onUploadStart?: (fileId: number) => void;
+  onUpload?: (file: File) => Promise<void>;
+  onClose?: () => void;
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({
-  sessionType,
-  targetId,
-  onUploadStart,
+  // sessionType, // TODO: Phase 6 时使用
+  // targetId,    // TODO: Phase 6 时使用
+  onUpload,
+  onClose,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -23,12 +25,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // TODO: 在 Tauri 中需要使用 dialog API 来获取真实文件路径
-    // 目前先用文件名作为占位符
-    const fileName = files[0].name;
+    const file = files[0];
     try {
-      const fileId = await fileAPI.uploadFile(fileName, sessionType, targetId);
-      onUploadStart?.(fileId);
+      await onUpload?.(file);
+      onClose?.();
     } catch (error) {
       console.error('文件上传失败:', error);
     }
@@ -41,18 +41,23 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   return (
     <div className="file-upload">
-      <input
-        ref={fileInputRef}
-        type="file"
-        style={{ display: 'none' }}
-        onChange={handleFileSelect}
-      />
-      <button
-        className="upload-btn"
-        onClick={() => fileInputRef.current?.click()}
-      >
-        选择文件
-      </button>
+      <div className="file-upload-header">
+        <span>发送文件</span>
+        <button className="close-btn" onClick={onClose}>
+          ×
+        </button>
+      </div>
+      <div className="file-upload-body">
+        <input
+          ref={fileInputRef}
+          type="file"
+          style={{ display: 'none' }}
+          onChange={handleFileSelect}
+        />
+        <button className="upload-btn" onClick={() => fileInputRef.current?.click()}>
+          选择文件
+        </button>
+      </div>
     </div>
   );
 };

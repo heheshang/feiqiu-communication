@@ -1,7 +1,6 @@
 // src-tauri/src/network/feiq/parser.rs
 //
 /// 飞秋协议解析器 (使用 combine)
-
 use crate::network::feiq::model::{FeiqPacket, ProtocolType};
 use std::str::Utf8Error;
 
@@ -77,7 +76,7 @@ fn parse_feiq_packet_feiq(s: &str) -> Result<FeiqPacket, ParseError> {
     let parts: Vec<&str> = s.splitn(2, ':').collect();
     if parts.len() != 2 {
         return Err(ParseError::InvalidFormat(
-            "FeiQ packet must have header and data sections separated by ':'".to_string()
+            "FeiQ packet must have header and data sections separated by ':'".to_string(),
         ));
     }
 
@@ -87,9 +86,10 @@ fn parse_feiq_packet_feiq(s: &str) -> Result<FeiqPacket, ParseError> {
     // 解析头部 (以 # 分隔)
     let header_fields: Vec<&str> = header.split('#').collect();
     if header_fields.len() < 8 {
-        return Err(ParseError::InvalidFormat(
-            format!("FeiQ header must have at least 8 fields, found {}", header_fields.len())
-        ));
+        return Err(ParseError::InvalidFormat(format!(
+            "FeiQ header must have at least 8 fields, found {}",
+            header_fields.len()
+        )));
     }
 
     let version = header_fields[0].to_string();
@@ -117,12 +117,14 @@ fn parse_feiq_packet_feiq(s: &str) -> Result<FeiqPacket, ParseError> {
     // 解析数据部分 (以 : 分隔)
     let data_fields: Vec<&str> = data.split(':').collect();
     if data_fields.len() < 5 {
-        return Err(ParseError::InvalidFormat(
-            format!("FeiQ data must have at least 5 fields, found {}", data_fields.len())
-        ));
+        return Err(ParseError::InvalidFormat(format!(
+            "FeiQ data must have at least 5 fields, found {}",
+            data_fields.len()
+        )));
     }
 
-    let timestamp = data_fields[0].parse::<u64>()
+    let timestamp = data_fields[0]
+        .parse::<u64>()
         .map_err(|_| ParseError::ParseError("Invalid timestamp".to_string()))?;
 
     let msg_no = data_fields[1].to_string();
@@ -172,9 +174,10 @@ fn parse_feiq_packet_ipmsg(s: &str) -> Result<FeiqPacket, ParseError> {
     }
 
     if colon_positions.len() < 5 {
-        return Err(ParseError::InvalidFormat(
-            format!("IPMsg packet must have at least 5 colons separating fields, found {}", colon_positions.len())
-        ));
+        return Err(ParseError::InvalidFormat(format!(
+            "IPMsg packet must have at least 5 colons separating fields, found {}",
+            colon_positions.len()
+        )));
     }
 
     // 提取前 5 个基本字段
@@ -312,7 +315,10 @@ mod tests {
 
     #[test]
     fn test_detect_protocol_ipmsg() {
-        assert_eq!(FeiqPacket::detect_protocol("1.0:32:sender:host:receiver:12345:Hello"), ProtocolType::IPMsg);
+        assert_eq!(
+            FeiqPacket::detect_protocol("1.0:32:sender:host:receiver:12345:Hello"),
+            ProtocolType::IPMsg
+        );
     }
 
     #[test]

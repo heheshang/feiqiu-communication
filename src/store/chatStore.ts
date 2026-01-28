@@ -2,7 +2,7 @@
 // TODO: Phase 4 时完善聊天状态管理
 
 import { create } from 'zustand';
-import type { ChatMessage, ChatSession } from '../types';
+import type { ChatMessage, ChatSession, MessageStatus } from '../types';
 
 interface ChatState {
   sessions: ChatSession[];
@@ -11,7 +11,7 @@ interface ChatState {
   setSessions: (sessions: ChatSession[]) => void;
   setCurrentSession: (session: ChatSession | null) => void;
   addMessage: (sessionId: number, message: ChatMessage) => void;
-  updateMessageStatus: (msgId: number, status: number) => void;
+  updateMessageStatus: (msgId: number, status: MessageStatus) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -36,7 +36,7 @@ export const useChatStore = create<ChatState>((set) => ({
       const messages = { ...state.messages };
       for (const sessionId in messages) {
         messages[sessionId] = messages[sessionId].map((msg) =>
-          msg.msg_id === msgId ? { ...msg, status } : msg
+          msg.mid === msgId ? { ...msg, status } : msg
         );
       }
       return { messages };

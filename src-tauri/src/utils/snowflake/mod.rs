@@ -2,7 +2,6 @@
 //
 /// 雪花算法 ID 生成器
 /// TODO: 实现分布式唯一 ID 生成
-
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// 雪花算法生成器

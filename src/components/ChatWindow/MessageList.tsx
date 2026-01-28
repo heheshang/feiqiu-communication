@@ -6,28 +6,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import MessageItem from './MessageItem';
 import './MessageList.less';
-import type { ChatMessage, UserInfo, SessionType } from '../../types';
+import type { ChatMessage, UserInfo } from '../../types';
 
 interface MessageListProps {
-  targetId?: number;
   targetUser?: UserInfo;
   messages?: ChatMessage[];
   currentUserId?: number;
-  sessionType?: SessionType;
-  onLoadMore?: () => void;
   hasMore?: boolean;
   isLoading?: boolean;
+  onLoadMore?: () => void;
+  onRetryMessage?: (message: ChatMessage) => void;
 }
 
 const MessageList: React.FC<MessageListProps> = ({
-  targetId,
   targetUser,
   messages = [],
   currentUserId = 0, // TODO: 从用户状态获取
-  sessionType = 0,
-  onLoadMore,
   hasMore = true,
   isLoading = false,
+  onLoadMore,
+  onRetryMessage,
 }) => {
   const listRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -92,11 +90,7 @@ const MessageList: React.FC<MessageListProps> = ({
   }
 
   return (
-    <div
-      ref={listRef}
-      className="message-list"
-      onScroll={handleScroll}
-    >
+    <div ref={listRef} className="message-list" onScroll={handleScroll}>
       {/* 加载更多指示器 */}
       {isLoading && (
         <div className="message-loading-more">
@@ -122,8 +116,10 @@ const MessageList: React.FC<MessageListProps> = ({
             showAvatar={!isSelf}
             showTime={
               index === 0 ||
-              new Date(messages[index - 1].send_time).getDate() !== new Date(message.send_time).getDate()
+              new Date(messages[index - 1].send_time).getDate() !==
+                new Date(message.send_time).getDate()
             }
+            onRetry={onRetryMessage}
           />
         );
       })}

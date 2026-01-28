@@ -1,10 +1,9 @@
 // src-tauri/src/network/feiq/packer.rs
 //
 /// 飞秋协议封装器
-
 use crate::network::feiq::{
-    model::FeiqPacket,
     constants::*,
+    model::{FeiqPacket, FileAttachment},
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -49,21 +48,64 @@ impl FeiqPacket {
         Self::make_packet(IPMSG_READMSG, Some(msg_no.to_string()))
     }
 
+    /// 创建已读应答包 (ANSREADMSG)
+    #[allow(dead_code)]
+    pub fn make_ansread_packet(msg_no: &str) -> Self {
+        Self::make_packet(IPMSG_ANSREADMSG, Some(msg_no.to_string()))
+    }
+
+    // ============================================================
+    // 文件传输相关数据包
+    // ============================================================
+
+    /// 创建文件附件消息包 (SENDMSG | FILEATTACHOPT)
+    #[allow(dead_code)]
+    pub fn make_file_attach_packet(files: &[FileAttachment], receiver: &str) -> Self {
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+
+        // 构建文件附件头: 多个文件用 \x07 分隔
+        let file_headers: Vec<String> = files.iter().map(|f| f.to_ipmsg_header()).collect();
+        let extension = Some(file_headers.join("\x07"));
+
+        let sender = format!("{}@{}/{}:{}", "User", "PC-001", "192.168.1.100", "2425");
+
+        FeiqPacket {
+            version: "1.0".to_string(),
+            command: IPMSG_SENDMSG | IPMSG_UTF8OPT | IPMSG_FILEATTACHOPT,
+            sender,
+            receiver: receiver.to_string(),
+            msg_no: timestamp.to_string(),
+            extension,
+            ip: String::new(),
+            ..Default::default()
+        }
+    }
+
+    /// 创建文件数据请求包 (GETFILEDATA)
+    #[allow(dead_code)]
+    pub fn make_get_file_data_packet(packet_no: &str, file_id: u64, offset: u64) -> Self {
+        let extension = Some(format!("{}:{}:{}", packet_no, file_id, offset));
+        Self::make_packet(IPMSG_GETFILEDATA, extension)
+    }
+
+    /// 创建文件释放包 (RELEASEFILES)
+    #[allow(dead_code)]
+    pub fn make_release_files_packet(packet_no: &str) -> Self {
+        Self::make_packet(IPMSG_RELEASEFILES, Some(packet_no.to_string()))
+    }
+
     /// 创建基础数据包 (IPMsg 格式)
     #[allow(dead_code)]
     fn make_packet(command: u32, extension: Option<String>) -> Self {
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
 
         // TODO: 获取真实的用户名和机器名
         let sender = format!(
             "{}@{}/{}:{}",
-            "User",           // 用户名
-            "PC-001",         // 机器名
-            "192.168.1.100",  // IP
-            "2425"            // 端口
+            "User",          // 用户名
+            "PC-001",        // 机器名
+            "192.168.1.100", // IP
+            "2425"           // 端口
         );
 
         FeiqPacket {
@@ -84,12 +126,7 @@ impl FeiqPacket {
         let ext = self.extension.as_deref().unwrap_or("");
         format!(
             "{}:{}:{}:{}:{}:{}",
-            self.version,
-            self.command,
-            self.sender,
-            self.receiver,
-            self.msg_no,
-            ext
+            self.version, self.command, self.sender, self.receiver, self.msg_no, ext
         )
     }
 }

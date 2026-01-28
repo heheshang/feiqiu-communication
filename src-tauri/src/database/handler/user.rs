@@ -2,9 +2,9 @@
 //
 //! 用户表 CRUD 操作
 
-use sea_orm::*;
 use crate::database::model::{user, User};
 use crate::error::{AppError, AppResult};
+use sea_orm::*;
 
 /// 用户处理器
 pub struct UserHandler;
@@ -24,10 +24,7 @@ impl UserHandler {
             update_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
         };
 
-        let result = User::insert(new_user)
-            .exec(db)
-            .await
-            .map_err(|e| AppError::Database(e))?;
+        let result = User::insert(new_user).exec(db).await.map_err(|e| AppError::Database(e))?;
 
         Self::find_by_id(db, result.last_insert_id).await
     }
@@ -96,19 +93,13 @@ impl UserHandler {
 
     /// 删除用户
     pub async fn delete(db: &DbConn, uid: i64) -> AppResult<()> {
-        User::delete_by_id(uid)
-            .exec(db)
-            .await
-            .map_err(|e| AppError::Database(e))?;
+        User::delete_by_id(uid).exec(db).await.map_err(|e| AppError::Database(e))?;
         Ok(())
     }
 
     /// 获取所有用户
     pub async fn list_all(db: &DbConn) -> AppResult<Vec<user::Model>> {
-        let users = User::find()
-            .all(db)
-            .await
-            .map_err(|e| AppError::Database(e))?;
+        let users = User::find().all(db).await.map_err(|e| AppError::Database(e))?;
 
         Ok(users)
     }

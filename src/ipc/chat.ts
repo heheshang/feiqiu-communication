@@ -38,4 +38,28 @@ export const chatAPI = {
       ownerUid,
     });
   },
+
+  /** 标记单条消息已读并发送已读回执 */
+  markMessageReadAndSendReceipt: async (mid: number, msgNo: string, targetIp: string) => {
+    return await invoke<void>('mark_message_read_and_send_receipt', {
+      mid,
+      msgNo,
+      targetIp,
+    });
+  },
+
+  /** 重试发送失败的消息 */
+  retrySendMessage: async (
+    mid: number,
+    sessionType: number,
+    targetId: number,
+    ownerUid: number
+  ) => {
+    return await invoke<void>('retry_send_message', {
+      mid,
+      sessionType,
+      targetId,
+      ownerUid,
+    });
+  },
 };

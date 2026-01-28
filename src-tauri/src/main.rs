@@ -8,19 +8,19 @@
 use tauri::Manager;
 
 // 导入模块
+mod database;
 mod error;
+mod event;
+mod ipc;
+mod network;
 mod types;
 mod utils;
-mod event;
-mod network;
-mod database;
-mod ipc;
 
 use database::init_database;
-use network::udp::start_udp_receiver;
 use event::bus::EVENT_RECEIVER;
 use event::model::AppEvent;
-use tracing::{info, error};
+use network::udp::start_udp_receiver;
+use tracing::{error, info};
 
 // ============================================================
 // Tauri 命令：基础功能
@@ -36,16 +36,12 @@ async fn get_version() -> String {
 #[tauri::command]
 async fn init_app(app_handle: tauri::AppHandle) -> Result<(), String> {
     // 初始化日志
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
+    tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
 
     info!("飞秋通讯启动中...");
 
     // 初始化数据库
-    let db = init_database()
-        .await
-        .map_err(|e| format!("数据库初始化失败: {}", e))?;
+    let db = init_database().await.map_err(|e| format!("数据库初始化失败: {}", e))?;
 
     // 存储数据库连接到应用状态
     app_handle.manage(db);
@@ -93,10 +89,7 @@ async fn event_loop(app_handle: tauri::AppHandle) {
 }
 
 /// 处理网络事件
-async fn handle_network_event(
-    event: crate::event::model::NetworkEvent,
-    _app_handle: &tauri::AppHandle,
-) {
+async fn handle_network_event(event: crate::event::model::NetworkEvent, _app_handle: &tauri::AppHandle) {
     match event {
         crate::event::model::NetworkEvent::PacketReceived { packet, addr } => {
             info!("收到数据包: {} from {}", packet, addr);
@@ -108,10 +101,7 @@ async fn handle_network_event(
 }
 
 /// 处理 UI 事件
-async fn handle_ui_event(
-    event: crate::event::model::UiEvent,
-    _app_handle: &tauri::AppHandle,
-) {
+async fn handle_ui_event(event: crate::event::model::UiEvent, _app_handle: &tauri::AppHandle) {
     match event {
         _ => {}
     }
@@ -134,13 +124,19 @@ async fn main() {
             ipc::chat::send_text_message_handler,
             ipc::chat::get_session_list_handler,
             ipc::chat::mark_messages_read_handler,
+            ipc::chat::mark_message_read_and_send_receipt,
+            ipc::chat::retry_send_message,
             // 通讯录相关
             ipc::contact::get_contact_list_handler,
             ipc::contact::get_online_users_handler,
             // 文件相关
-            ipc::file::upload_file_handler,
+            ipc::file::send_file_request_handler,
+            ipc::file::accept_file_request_handler,
+            ipc::file::reject_file_request_handler,
             ipc::file::get_file_handler,
             ipc::file::cancel_upload_handler,
+            ipc::file::get_pending_transfers_handler,
+            ipc::file::resume_transfer_handler,
             // 群组相关
             ipc::group::create_group_handler,
             ipc::group::get_group_info_handler,

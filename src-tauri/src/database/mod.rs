@@ -1,13 +1,12 @@
 // src-tauri/src/database/mod.rs
 //
 /// 数据库访问层模块
-
 pub mod model;
 // pub mod migration; // TODO: Fix migration API issues
 pub mod handler;
 
-use sea_orm::{Database, DbConn, ConnectionTrait, Statement};
 use crate::error::{AppError, AppResult};
+use sea_orm::{ConnectionTrait, Database, DbConn, Statement};
 
 /// 初始化数据库连接
 pub async fn init_database() -> AppResult<DbConn> {
@@ -15,9 +14,7 @@ pub async fn init_database() -> AppResult<DbConn> {
 
     tracing::info!("正在连接数据库: {}", db_url);
 
-    let db = Database::connect(db_url)
-        .await
-        .map_err(|e| AppError::Database(e))?;
+    let db = Database::connect(db_url).await.map_err(|e| AppError::Database(e))?;
 
     // 创建数据库表
     create_tables(&db).await?;
@@ -46,7 +43,8 @@ async fn create_tables(db: &DbConn) -> AppResult<()> {
             create_time TEXT NOT NULL,
             update_time TEXT NOT NULL
         )
-        "#.to_string(),
+        "#
+        .to_string(),
     ))
     .await
     .map_err(|e| AppError::Database(e))?;
@@ -66,7 +64,8 @@ async fn create_tables(db: &DbConn) -> AppResult<()> {
             FOREIGN KEY (owner_uid) REFERENCES user(uid) ON DELETE CASCADE ON UPDATE CASCADE,
             FOREIGN KEY (contact_uid) REFERENCES user(uid) ON DELETE CASCADE ON UPDATE CASCADE
         )
-        "#.to_string(),
+        "#
+        .to_string(),
     ))
     .await
     .map_err(|e| AppError::Database(e))?;
@@ -85,7 +84,8 @@ async fn create_tables(db: &DbConn) -> AppResult<()> {
             update_time TEXT NOT NULL,
             FOREIGN KEY (creator_uid) REFERENCES user(uid) ON DELETE CASCADE ON UPDATE CASCADE
         )
-        "#.to_string(),
+        "#
+        .to_string(),
     ))
     .await
     .map_err(|e| AppError::Database(e))?;
@@ -104,7 +104,8 @@ async fn create_tables(db: &DbConn) -> AppResult<()> {
             FOREIGN KEY (member_uid) REFERENCES user(uid) ON DELETE CASCADE ON UPDATE CASCADE,
             UNIQUE(gid, member_uid)
         )
-        "#.to_string(),
+        "#
+        .to_string(),
     ))
     .await
     .map_err(|e| AppError::Database(e))?;
@@ -126,7 +127,8 @@ async fn create_tables(db: &DbConn) -> AppResult<()> {
             update_time TEXT NOT NULL,
             FOREIGN KEY (sender_uid) REFERENCES user(uid) ON DELETE CASCADE ON UPDATE CASCADE
         )
-        "#.to_string(),
+        "#
+        .to_string(),
     ))
     .await
     .map_err(|e| AppError::Database(e))?;
@@ -147,7 +149,8 @@ async fn create_tables(db: &DbConn) -> AppResult<()> {
             FOREIGN KEY (owner_uid) REFERENCES user(uid) ON DELETE CASCADE ON UPDATE CASCADE,
             FOREIGN KEY (last_msg_id) REFERENCES chat_message(mid) ON DELETE SET NULL ON UPDATE CASCADE
         )
-        "#.to_string(),
+        "#
+        .to_string(),
     ))
     .await
     .map_err(|e| AppError::Database(e))?;
@@ -167,7 +170,36 @@ async fn create_tables(db: &DbConn) -> AppResult<()> {
             create_time TEXT NOT NULL,
             FOREIGN KEY (uploader_uid) REFERENCES user(uid) ON DELETE CASCADE ON UPDATE CASCADE
         )
-        "#.to_string(),
+        "#
+        .to_string(),
+    ))
+    .await
+    .map_err(|e| AppError::Database(e))?;
+
+    // 创建文件传输状态表
+    db.execute(Statement::from_string(
+        sea_orm::DatabaseBackend::Sqlite,
+        r#"
+        CREATE TABLE IF NOT EXISTS transfer_state (
+            tid INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_id INTEGER NOT NULL,
+            session_type INTEGER NOT NULL,
+            target_id INTEGER NOT NULL,
+            direction INTEGER NOT NULL,
+            transferred INTEGER NOT NULL DEFAULT 0,
+            file_size INTEGER NOT NULL,
+            status INTEGER NOT NULL DEFAULT 0,
+            packet_no TEXT NOT NULL,
+            target_ip TEXT NOT NULL,
+            target_port INTEGER NOT NULL,
+            checksum TEXT NOT NULL,
+            error_message TEXT,
+            update_time TEXT NOT NULL,
+            create_time TEXT NOT NULL,
+            FOREIGN KEY (file_id) REFERENCES file_storage(fid) ON DELETE CASCADE ON UPDATE CASCADE
+        )
+        "#
+        .to_string(),
     ))
     .await
     .map_err(|e| AppError::Database(e))?;

@@ -2,14 +2,16 @@
 //
 //! 数据库 CRUD 处理器模块
 
-pub mod user;
-pub mod contact;
-pub mod group;
 pub mod chat;
+pub mod contact;
 pub mod file;
+pub mod group;
+pub mod transfer_state;
+pub mod user;
 
-pub use user::UserHandler;
-pub use contact::ContactHandler;
-pub use group::{GroupHandler, GroupMemberHandler};
 pub use chat::{ChatMessageHandler, ChatSessionHandler};
-pub use file::{FileStorageHandler, FileStats};
+pub use contact::ContactHandler;
+pub use file::{FileStats, FileStorageHandler};
+pub use group::{GroupHandler, GroupMemberHandler};
+pub use transfer_state::TransferStateHandler;
+pub use user::UserHandler;

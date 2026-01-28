@@ -1,7 +1,6 @@
 // src-tauri/src/error.rs
 //
 /// 统一错误定义
-
 use thiserror::Error;
 
 /// 应用错误类型
