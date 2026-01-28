@@ -3,12 +3,13 @@
 /// 主布局组件 - 三栏布局（仿微信）
 /// 左侧：会话列表 | 中间：通讯录 | 右侧：聊天窗口
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SessionList from '../SessionList/SessionList';
 import ContactList from '../Contact/ContactList';
 import ChatWindow from '../ChatWindow/ChatWindow';
 import { useUser } from '../../hooks/useUser';
 import { useContact } from '../../hooks/useContact';
+import { useChat } from '../../hooks/useChat';
 import type { UserInfo } from '../../types';
 import './MainLayout.less';
 
@@ -25,6 +26,24 @@ const MainLayout: React.FC = () => {
     viewMode: 'normal'
   });
 
+  // 使用 useChat hook 管理聊天状态
+  const {
+    messages,
+    loadInitialMessages,
+    loadMoreMessages,
+    resetPagination,
+    pagination,
+  } = useChat();
+
+  // 当选中用户变化时，加载初始消息
+  useEffect(() => {
+    if (layoutState.selectedUser) {
+      loadInitialMessages(0, layoutState.selectedUser.uid);
+    } else {
+      resetPagination();
+    }
+  }, [layoutState.selectedUser?.uid, loadInitialMessages, resetPagination]);
+
   const handleUserSelect = (user: UserInfo) => {
     setLayoutState({
       selectedUser: user,
@@ -37,6 +56,12 @@ const MainLayout: React.FC = () => {
       selectedUser: null,
       viewMode: 'normal'
     });
+  };
+
+  const handleLoadMore = () => {
+    if (layoutState.selectedUser) {
+      loadMoreMessages(0, layoutState.selectedUser.uid);
+    }
   };
 
   // 移动端：返回按钮
@@ -82,7 +107,12 @@ const MainLayout: React.FC = () => {
         <ChatWindow
           targetId={layoutState.selectedUser?.uid}
           targetUser={layoutState.selectedUser || undefined}
-          sessionType="single"
+          sessionType={0}
+          messages={messages}
+          currentUserId={currentUser?.uid}
+          hasMore={pagination.hasMore}
+          isLoading={pagination.isLoading}
+          onLoadMore={handleLoadMore}
         />
       </div>
     </div>

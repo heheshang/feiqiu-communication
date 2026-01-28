@@ -5,7 +5,7 @@
 use tauri::State;
 use sea_orm::DbConn;
 use crate::database::handler::{ChatMessageHandler, ChatSessionHandler};
-use crate::types::{SessionType, ChatMessage, ChatSession};
+use crate::types::{SessionType, ChatMessage, ChatSession, MessageType, MessageStatus};
 
 /// 获取聊天历史记录（分页）
 #[tauri::command]
@@ -41,10 +41,21 @@ pub async fn get_chat_history_handler(
                 },
                 target_id: m.target_id,
                 sender_uid: m.sender_uid,
-                msg_type: m.msg_type,
+                msg_type: match m.msg_type {
+                    0 => MessageType::Text,
+                    1 => MessageType::File,
+                    2 => MessageType::Emoji,
+                    _ => MessageType::Text,
+                },
                 content: m.content,
                 send_time: m.send_time,
-                status: m.status,
+                status: match m.status {
+                    -1 => MessageStatus::Failed,
+                    0 => MessageStatus::Sending,
+                    1 => MessageStatus::Sent,
+                    2 => MessageStatus::Read,
+                    _ => MessageStatus::Sending,
+                },
             }
         })
         .collect();

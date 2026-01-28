@@ -7,18 +7,28 @@ import React from 'react';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import './ChatWindow.less';
-import type { UserInfo } from '../../types';
+import type { UserInfo, SessionType, ChatMessage } from '../../types';
 
 interface ChatWindowProps {
   targetId?: number;
   targetUser?: UserInfo;
-  sessionType?: 'single' | 'group';
+  sessionType?: SessionType;
+  messages?: ChatMessage[];
+  currentUserId?: number;
+  hasMore?: boolean;
+  isLoading?: boolean;
+  onLoadMore?: () => void;
 }
 
 const ChatWindow: React.FC<ChatWindowProps> = ({
   targetId,
   targetUser,
-  sessionType = 'single'
+  sessionType = 0,
+  messages = [],
+  currentUserId = 0,
+  hasMore = true,
+  isLoading = false,
+  onLoadMore,
 }) => {
   // 如果没有选中用户，显示空状态
   if (!targetUser) {
@@ -64,7 +74,16 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       </div>
 
       {/* 消息列表 */}
-      <MessageList targetId={targetId} targetUser={targetUser} />
+      <MessageList
+        targetId={targetId}
+        targetUser={targetUser}
+        messages={messages}
+        currentUserId={currentUserId}
+        sessionType={sessionType}
+        hasMore={hasMore}
+        isLoading={isLoading}
+        onLoadMore={onLoadMore}
+      />
 
       {/* 输入框 */}
       <MessageInput targetId={targetId} sessionType={sessionType} />
