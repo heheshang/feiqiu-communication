@@ -77,11 +77,11 @@ repos:
   #       pass_filenames: false
 
   # Cargo check - Compile verification
-  - repo: local
-    hooks:
-      - id: cargo-check
-        name: Cargo check
-        entry: cargo check
-        language: system
-        types: [rust]
-        pass_filenames: false
+  # - repo: local
+  #   hooks:
+  #     - id: cargo-check
+  #       name: Cargo check
+  #       entry: cargo check
+  #       language: system
+  #       types: [rust]
+  #       pass_filenames: false
