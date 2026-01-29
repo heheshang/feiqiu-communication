@@ -89,11 +89,11 @@ pub async fn send_text_message_handler(
         .map_err(|e| e.to_string())?;
 
     // Send via UDP network
-    use crate::network::feiq::model::FeiqPacket;
+    use crate::network::feiq::model::ProtocolPacket;
     use crate::network::udp::sender;
 
     // Create message packet
-    let packet = FeiqPacket::make_message_packet(&content, true);
+    let packet = ProtocolPacket::make_message_packet(&content, true);
 
     // Check if this is a group message
     if session_type == 1 {
@@ -193,10 +193,10 @@ pub async fn mark_message_read_and_send_receipt(
     ChatMessageHandler::update_status(db, mid, 2).await.map_err(|e| e.to_string())?;
 
     // Send read receipt via UDP
-    use crate::network::feiq::model::FeiqPacket;
+    use crate::network::feiq::model::ProtocolPacket;
     use crate::network::udp::sender;
 
-    let read_packet = FeiqPacket::make_read_packet(&msg_no);
+    let read_packet = ProtocolPacket::make_read_packet(&msg_no);
 
     // Send to the original sender
     let addr = format!("{}:{}", target_ip, 2425);
@@ -243,7 +243,7 @@ pub async fn retry_send_message(
     ChatMessageHandler::update_status(db, mid, 0).await.map_err(|e| e.to_string())?;
 
     // 重新发送消息
-    use crate::network::feiq::model::FeiqPacket;
+    use crate::network::feiq::model::ProtocolPacket;
     use crate::network::udp::sender;
 
     // Get target user's IP from database
@@ -251,7 +251,7 @@ pub async fn retry_send_message(
         .await
         .map_err(|e| format!("查找目标用户失败: {}", e))?;
 
-    let packet = FeiqPacket::make_message_packet(&message.content, true);
+    let packet = ProtocolPacket::make_message_packet(&message.content, true);
     let addr = format!("{}:{}", target_user.feiq_ip, target_user.feiq_port);
 
     // 发送消息

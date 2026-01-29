@@ -3,6 +3,7 @@
 /// UDP 接收器 - 使用全局共享的 UDP 套接字
 use crate::event::bus::EVENT_SENDER;
 use crate::event::model::{AppEvent, NetworkEvent};
+use crate::network::feiq::model::ProtocolPacket;
 use crate::network::feiq::parser::{decode_gbk, parse_feiq_packet};
 use tracing::{debug, error, info, warn};
 

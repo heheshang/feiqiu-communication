@@ -3,9 +3,8 @@
 /// 飞秋协议解析器 (使用 combine)
 ///
 /// 注意：飞秋协议使用 GBK 编码，而非 UTF-8
-use crate::network::feiq::model::{
-    format_mac_addr, timestamp_to_local, FeiQExtInfo, FeiQPacket, FeiqPacket, ProtocolType,
-};
+use crate::network::feiq::model::{FeiQExtInfo, FeiQPacket, ProtocolPacket, ProtocolType};
+use crate::network::feiq::utils::{format_mac_addr, timestamp_to_local};
 use encoding::DecoderTrap;
 use std::str::Utf8Error;
 
@@ -67,8 +66,8 @@ impl From<ParseError> for String {
 /// let feiq = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH:6291459:ssk";
 /// let packet = parse_feiq_packet(feiq).unwrap();
 /// ```
-pub fn parse_feiq_packet(s: &str) -> Result<FeiqPacket, ParseError> {
-    let protocol_type = FeiqPacket::detect_protocol(s);
+pub fn parse_feiq_packet(s: &str) -> Result<ProtocolPacket, ParseError> {
+    let protocol_type = ProtocolPacket::detect_protocol(s);
 
     match protocol_type {
         ProtocolType::FeiQ => parse_feiq_packet_feiq(s),
@@ -79,12 +78,12 @@ pub fn parse_feiq_packet(s: &str) -> Result<FeiqPacket, ParseError> {
 /// 解析 FeiQ 格式数据包（详细版本）
 ///
 /// 格式: `版本号#长度#MAC地址#端口#标志1#标志2#命令#类型:时间戳:包ID:主机名:用户ID:内容`
-fn parse_feiq_packet_feiq(s: &str) -> Result<FeiqPacket, ParseError> {
+fn parse_feiq_packet_feiq(s: &str) -> Result<ProtocolPacket, ParseError> {
     // 使用详细的 FeiQ 解析器
     let detail = parse_feiq_packet_detail(s)?;
 
-    // 转换为通用的 FeiqPacket
-    Ok(FeiqPacket::from_feiq_detail(detail))
+    // 转换为通用的 ProtocolPacket
+    Ok(ProtocolPacket::from_feiq_detail(detail))
 }
 
 /// 解析飞秋数据包字符串的核心函数（详细版本）
@@ -211,7 +210,7 @@ pub fn parse_feiq_packet_detail(packet_str: &str) -> Result<FeiQPacket, ParseErr
 ///
 /// 注意: 发送者字段可能包含 IP:port，如 "user@host/192.168.1.1:2425"
 /// 当接收者为空时，格式为: version:command:sender:receiver:msg_no:extension
-fn parse_feiq_packet_ipmsg(s: &str) -> Result<FeiqPacket, ParseError> {
+fn parse_feiq_packet_ipmsg(s: &str) -> Result<ProtocolPacket, ParseError> {
     // 找到所有冒号的位置
     let mut colon_positions: Vec<usize> = vec![];
     for (i, c) in s.char_indices() {
@@ -254,7 +253,7 @@ fn parse_feiq_packet_ipmsg(s: &str) -> Result<FeiqPacket, ParseError> {
         None
     };
 
-    Ok(FeiqPacket {
+    Ok(ProtocolPacket {
         protocol_type: ProtocolType::IPMsg,
         version,
         command,
@@ -277,7 +276,7 @@ fn parse_feiq_packet_ipmsg(s: &str) -> Result<FeiqPacket, ParseError> {
 ///
 /// 用于处理从 UDP socket 接收的原始字节数据
 #[allow(dead_code)]
-pub fn parse_feiq_packet_bytes(bytes: &[u8]) -> Result<FeiqPacket, ParseError> {
+pub fn parse_feiq_packet_bytes(bytes: &[u8]) -> Result<ProtocolPacket, ParseError> {
     // 使用 GBK 解码
     let s = decode_gbk(bytes)?;
     parse_feiq_packet(&s)
@@ -411,7 +410,7 @@ mod tests {
     #[test]
     fn test_detect_protocol_ipmsg() {
         assert_eq!(
-            FeiqPacket::detect_protocol("1.0:32:sender:host:receiver:12345:Hello"),
+            ProtocolPacket::detect_protocol("1.0:32:sender:host:receiver:12345:Hello"),
             ProtocolType::IPMsg
         );
     }
@@ -419,7 +418,9 @@ mod tests {
     #[test]
     fn test_detect_protocol_feiq() {
         assert_eq!(
-            FeiqPacket::detect_protocol("1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:HOST:123:msg"),
+            ProtocolPacket::detect_protocol(
+                "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:HOST:123:msg"
+            ),
             ProtocolType::FeiQ
         );
     }

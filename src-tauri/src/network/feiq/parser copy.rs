@@ -1,8 +1,7 @@
 // src-tauri/src/network/feiq/parser.rs
 //
 /// 飞秋协议解析器 (使用 combine)
-
-use crate::network::feiq::model::{FeiqPacket, ProtocolType};
+use crate::network::feiq::model::{ProtocolPacket, ProtocolType};
 use std::str::Utf8Error;
 
 /// 解析错误类型
@@ -60,8 +59,8 @@ impl From<ParseError> for String {
 /// let feiq = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:SHIKUN-SH:6291459:ssk";
 /// let packet = parse_feiq_packet(feiq).unwrap();
 /// ```
-pub fn parse_feiq_packet(s: &str) -> Result<FeiqPacket, ParseError> {
-    let protocol_type = FeiqPacket::detect_protocol(s);
+pub fn parse_feiq_packet(s: &str) -> Result<ProtocolPacket, ParseError> {
+    let protocol_type = ProtocolPacket::detect_protocol(s);
 
     match protocol_type {
         ProtocolType::FeiQ => parse_feiq_packet_feiq(s),
@@ -72,12 +71,12 @@ pub fn parse_feiq_packet(s: &str) -> Result<FeiqPacket, ParseError> {
 /// 解析 FeiQ 格式数据包
 ///
 /// 格式: `版本号#长度#MAC地址#端口#标志1#标志2#命令#类型:时间戳:包ID:主机名:用户ID:内容`
-fn parse_feiq_packet_feiq(s: &str) -> Result<FeiqPacket, ParseError> {
+fn parse_feiq_packet_feiq(s: &str) -> Result<ProtocolPacket, ParseError> {
     // 分割头部和数据部分
     let parts: Vec<&str> = s.splitn(2, ':').collect();
     if parts.len() != 2 {
         return Err(ParseError::InvalidFormat(
-            "FeiQ packet must have header and data sections separated by ':'".to_string()
+            "FeiQ packet must have header and data sections separated by ':'".to_string(),
         ));
     }
 
@@ -87,9 +86,10 @@ fn parse_feiq_packet_feiq(s: &str) -> Result<FeiqPacket, ParseError> {
     // 解析头部 (以 # 分隔)
     let header_fields: Vec<&str> = header.split('#').collect();
     if header_fields.len() < 8 {
-        return Err(ParseError::InvalidFormat(
-            format!("FeiQ header must have at least 8 fields, found {}", header_fields.len())
-        ));
+        return Err(ParseError::InvalidFormat(format!(
+            "FeiQ header must have at least 8 fields, found {}",
+            header_fields.len()
+        )));
     }
 
     let version = header_fields[0].to_string();
@@ -117,12 +117,14 @@ fn parse_feiq_packet_feiq(s: &str) -> Result<FeiqPacket, ParseError> {
     // 解析数据部分 (以 : 分隔)
     let data_fields: Vec<&str> = data.split(':').collect();
     if data_fields.len() < 5 {
-        return Err(ParseError::InvalidFormat(
-            format!("FeiQ data must have at least 5 fields, found {}", data_fields.len())
-        ));
+        return Err(ParseError::InvalidFormat(format!(
+            "FeiQ data must have at least 5 fields, found {}",
+            data_fields.len()
+        )));
     }
 
-    let timestamp = data_fields[0].parse::<u64>()
+    let timestamp = data_fields[0]
+        .parse::<u64>()
         .map_err(|_| ParseError::ParseError("Invalid timestamp".to_string()))?;
 
     let msg_no = data_fields[1].to_string();
@@ -138,7 +140,7 @@ fn parse_feiq_packet_feiq(s: &str) -> Result<FeiqPacket, ParseError> {
         None
     };
 
-    Ok(FeiqPacket {
+    Ok(ProtocolPacket {
         protocol_type: ProtocolType::FeiQ,
         version,
         command,
@@ -162,7 +164,7 @@ fn parse_feiq_packet_feiq(s: &str) -> Result<FeiqPacket, ParseError> {
 ///
 /// 注意: 发送者字段可能包含 IP:port，如 "user@host/192.168.1.1:2425"
 /// 当接收者为空时，格式为: version:command:sender:receiver:msg_no:extension
-fn parse_feiq_packet_ipmsg(s: &str) -> Result<FeiqPacket, ParseError> {
+fn parse_feiq_packet_ipmsg(s: &str) -> Result<ProtocolPacket, ParseError> {
     // 找到所有冒号的位置
     let mut colon_positions: Vec<usize> = vec![];
     for (i, c) in s.char_indices() {
@@ -172,9 +174,10 @@ fn parse_feiq_packet_ipmsg(s: &str) -> Result<FeiqPacket, ParseError> {
     }
 
     if colon_positions.len() < 5 {
-        return Err(ParseError::InvalidFormat(
-            format!("IPMsg packet must have at least 5 colons separating fields, found {}", colon_positions.len())
-        ));
+        return Err(ParseError::InvalidFormat(format!(
+            "IPMsg packet must have at least 5 colons separating fields, found {}",
+            colon_positions.len()
+        )));
     }
 
     // 提取前 5 个基本字段
@@ -204,7 +207,7 @@ fn parse_feiq_packet_ipmsg(s: &str) -> Result<FeiqPacket, ParseError> {
         None
     };
 
-    Ok(FeiqPacket {
+    Ok(ProtocolPacket {
         protocol_type: ProtocolType::IPMsg,
         version,
         command,
@@ -226,7 +229,7 @@ fn parse_feiq_packet_ipmsg(s: &str) -> Result<FeiqPacket, ParseError> {
 ///
 /// 用于处理从 UDP socket 接收的原始字节数据
 #[allow(dead_code)]
-pub fn parse_feiq_packet_bytes(bytes: &[u8]) -> Result<FeiqPacket, ParseError> {
+pub fn parse_feiq_packet_bytes(bytes: &[u8]) -> Result<ProtocolPacket, ParseError> {
     // 转换为 UTF-8 字符串
     let s = std::str::from_utf8(bytes)?;
     parse_feiq_packet(s)
@@ -312,13 +315,18 @@ mod tests {
 
     #[test]
     fn test_detect_protocol_ipmsg() {
-        assert_eq!(FeiqPacket::detect_protocol("1.0:32:sender:host:receiver:12345:Hello"), ProtocolType::IPMsg);
+        assert_eq!(
+            ProtocolPacket::detect_protocol("1.0:32:sender:host:receiver:12345:Hello"),
+            ProtocolType::IPMsg
+        );
     }
 
     #[test]
     fn test_detect_protocol_feiq() {
         assert_eq!(
-            FeiqPacket::detect_protocol("1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:HOST:123:msg"),
+            ProtocolPacket::detect_protocol(
+                "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:HOST:123:msg"
+            ),
             ProtocolType::FeiQ
         );
     }

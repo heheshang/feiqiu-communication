@@ -12,7 +12,7 @@ use crate::event::bus::EVENT_RECEIVER;
 use crate::event::model::{AppEvent, NetworkEvent};
 use crate::network::feiq::{
     constants::*,
-    model::{FeiQPacket, FeiqPacket},
+    model::{FeiQPacket, ProtocolPacket},
 };
 use crate::network::udp::sender::send_packet_data;
 use crate::types::UserInfo;
@@ -126,7 +126,7 @@ async fn broadcast_entry() -> AppResult<()> {
     info!("广播上线通知...");
 
     // 发送 IPMsg 格式广播
-    let packet = FeiqPacket::make_entry_packet();
+    let packet = ProtocolPacket::make_entry_packet();
     let packet_str = packet.to_string();
 
     // 广播到 255.255.255.255:2425
@@ -159,7 +159,7 @@ async fn send_ansentry(addr: &str, use_feiq_format: bool) -> AppResult<()> {
         send_packet_data(addr, &packet_str).await?;
     } else {
         // 发送 IPMsg 格式响应
-        let packet = FeiqPacket::make_ansentry_packet();
+        let packet = ProtocolPacket::make_ansentry_packet();
         let packet_str = packet.to_string();
         send_packet_data(addr, &packet_str).await?;
     }
@@ -199,7 +199,7 @@ async fn handle_network_event(event: NetworkEvent) {
 /// 处理收到的数据包
 async fn handle_packet_received(packet_json: String, addr: String) {
     // 反序列化数据包
-    let packet: FeiqPacket = match serde_json::from_str(&packet_json) {
+    let packet: ProtocolPacket = match serde_json::from_str(&packet_json) {
         Ok(p) => p,
         Err(e) => {
             error!("数据包反序列化失败: {}", e);

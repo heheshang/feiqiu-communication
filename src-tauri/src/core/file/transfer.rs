@@ -3,7 +3,7 @@
 //! 文件分块传输逻辑
 
 use crate::error::{AppError, AppResult};
-use crate::network::feiq::model::FeiqPacket;
+use crate::network::feiq::model::ProtocolPacket;
 use crate::network::udp::sender;
 use sha2::{Digest, Sha256};
 use std::fs::File;
@@ -119,7 +119,7 @@ impl FileSender {
         let data_base64 = base64::engine::general_purpose::STANDARD.encode(chunk);
         let extension = format!("{}:{}:{}:{}", self.packet_no, self.file_id, offset, data_base64);
 
-        let packet = FeiqPacket {
+        let packet = ProtocolPacket {
             command: crate::network::feiq::constants::IPMSG_SENDMSG | crate::network::feiq::constants::IPMSG_UTF8OPT,
             extension: Some(extension),
             ..Default::default()

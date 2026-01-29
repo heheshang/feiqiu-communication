@@ -10,7 +10,7 @@
 use crate::database::handler::ChatMessageHandler;
 use crate::event::bus::EVENT_RECEIVER;
 use crate::event::model::{AppEvent, NetworkEvent, UiEvent};
-use crate::network::feiq::{constants::*, model::FeiqPacket};
+use crate::network::feiq::{constants::*, model::ProtocolPacket};
 use crate::network::udp::sender;
 use sea_orm::DbConn;
 use std::sync::Arc;
@@ -60,7 +60,7 @@ impl ReceiptHandler {
     /// 处理接收到的数据包
     async fn handle_packet_received(db: Arc<DbConn>, packet_json: String, addr: String) {
         // 反序列化数据包
-        let packet: FeiqPacket = match serde_json::from_str(&packet_json) {
+        let packet: ProtocolPacket = match serde_json::from_str(&packet_json) {
             Ok(p) => p,
             Err(e) => {
                 error!("数据包反序列化失败: {}", e);
@@ -86,7 +86,7 @@ impl ReceiptHandler {
     /// 处理已读回执（ANSREADMSG）
     ///
     /// 当对方阅读了我们发送的消息后，会发送 ANSREADMSG 回执
-    async fn handle_ansreadmsg(db: Arc<DbConn>, packet: FeiqPacket, _addr: String) {
+    async fn handle_ansreadmsg(db: Arc<DbConn>, packet: ProtocolPacket, _addr: String) {
         info!("收到已读回执");
 
         // 从附加信息中提取消息编号
@@ -135,7 +135,7 @@ impl ReceiptHandler {
     ///
     /// 对方阅读了我们发送的消息后，会发送 READMSG 请求
     /// 我们需要回复 ANSREADMSG 确认
-    async fn handle_readmsg(db: Arc<DbConn>, packet: FeiqPacket, addr: String) {
+    async fn handle_readmsg(db: Arc<DbConn>, packet: ProtocolPacket, addr: String) {
         info!("收到消息已读请求");
 
         // 从附加信息中提取消息编号
@@ -192,7 +192,7 @@ impl ReceiptHandler {
         })?;
 
         // 构造 ANSREADMSG 包
-        let packet = FeiqPacket::make_read_packet(&msg_no);
+        let packet = ProtocolPacket::make_read_packet(&msg_no);
         let packet_str = packet.to_string();
 
         // 发送到目标地址
@@ -207,7 +207,7 @@ impl ReceiptHandler {
 
     /// 发送已读确认（ANSREADMSG）
     async fn send_ansreadmsg(addr: &str, msg_no: &str) {
-        let packet = FeiqPacket::make_ansread_packet(msg_no);
+        let packet = ProtocolPacket::make_ansread_packet(msg_no);
         let packet_str = packet.to_string();
 
         if let Err(e) = sender::send_packet_data(addr, &packet_str).await {

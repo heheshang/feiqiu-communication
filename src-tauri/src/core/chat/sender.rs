@@ -10,7 +10,7 @@
 /// - 与群组广播集成
 use crate::database::handler::{ChatMessageHandler, ChatSessionHandler, UserHandler};
 use crate::error::{AppError, AppResult};
-use crate::network::feiq::model::FeiqPacket;
+use crate::network::feiq::model::ProtocolPacket;
 use crate::network::udp::sender;
 use sea_orm::DbConn;
 use tracing::{error, info, warn};
@@ -78,7 +78,7 @@ impl MessageSender {
         }
 
         // 5. 构造消息包
-        let packet = FeiqPacket::make_message_packet(&content, true);
+        let packet = ProtocolPacket::make_message_packet(&content, true);
         let addr = format!("{}:{}", target_user.feiq_ip, target_user.feiq_port);
 
         // 6. 发送 UDP 消息
@@ -137,7 +137,7 @@ impl MessageSender {
         ChatSessionHandler::update_last_message(db, session.sid, mid).await?;
 
         // 4. 构造消息包
-        let packet = FeiqPacket::make_message_packet(&content, true);
+        let packet = ProtocolPacket::make_message_packet(&content, true);
 
         // 5. 使用 GroupBroadcaster 广播消息
         use crate::core::group::GroupBroadcaster;
@@ -178,7 +178,7 @@ impl MessageSender {
         if message.session_type == 0 {
             // 单聊
             let target_user = UserHandler::find_by_id(db, message.target_id).await?;
-            let packet = FeiqPacket::make_message_packet(&message.content, true);
+            let packet = ProtocolPacket::make_message_packet(&message.content, true);
             let addr = format!("{}:{}", target_user.feiq_ip, target_user.feiq_port);
 
             sender::send_packet(&addr, &packet)
@@ -189,7 +189,7 @@ impl MessageSender {
             ChatMessageHandler::update_status(db, mid, 1).await?;
         } else {
             // 群聊
-            let packet = FeiqPacket::make_message_packet(&message.content, true);
+            let packet = ProtocolPacket::make_message_packet(&message.content, true);
             use crate::core::group::GroupBroadcaster;
             GroupBroadcaster::broadcast_message(db, message.target_id, &packet, message.sender_uid).await?;
 

@@ -17,11 +17,16 @@ mod network;
 mod types;
 mod utils;
 
+use core::chat::receipt::ReceiptHandler;
+use core::chat::receiver::MessageReceiver;
 use core::contact::start_discovery;
 use database::init_database;
 use event::bus::EVENT_RECEIVER;
 use event::model::AppEvent;
-use network::udp::start_udp_receiver;
+use network::feiq::model::ProtocolPacket;
+use network::udp::{init_udp_socket, start_udp_receiver};
+use sea_orm::DbConn;
+use std::sync::Arc;
 use tracing::{error, info};
 
 // ============================================================
@@ -35,20 +40,138 @@ async fn get_version() -> String {
 }
 
 /// 初始化应用
-#[tauri::command]
-async fn init_app(app_handle: tauri::AppHandle) -> Result<(), String> {
-    // 初始化日志
-    tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
+async fn init_app(app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    // 初始化日志系统
+    init_logging();
 
     info!("飞秋通讯启动中...");
 
-    // 初始化数据库
-    let db = init_database().await.map_err(|e| format!("数据库初始化失败: {}", e))?;
+    // 获取应用数据目录
+    let app_data_dir = app_handle.path().app_data_dir()?;
+    info!("应用数据目录: {:?}", app_data_dir);
+
+    // 确保目录存在
+    std::fs::create_dir_all(&app_data_dir)
+        .map_err(|e| format!("创建应用数据目录失败: {} (路径: {:?})", e, app_data_dir))?;
+
+    // 验证目录是否真的存在
+    if !app_data_dir.exists() {
+        return Err(format!("应用数据目录创建后仍不存在: {:?}", app_data_dir).into());
+    }
+
+    // 构建数据库路径
+    let db_path = app_data_dir.join("feiqiu.db");
+    info!("数据库文件路径: {:?}", db_path);
+
+    // 预先创建数据库文件（如果不存在）
+    // 这有助于诊断权限问题
+    if !db_path.exists() {
+        info!("创建数据库文件: {}", db_path.display());
+        if let Err(e) = std::fs::File::create(&db_path) {
+            return Err(format!("无法创建数据库文件: {} (路径: {:?})", e, db_path).into());
+        }
+        info!("数据库文件创建成功");
+    } else {
+        info!("数据库文件已存在: {}", db_path.display());
+    }
+
+    // 初始化数据库（使用完整路径）
+    // SQLite 会自动创建数据库文件，但我们需要确保父目录存在且可写
+    let db_str = db_path.to_str().ok_or_else(|| "数据库路径包含无效字符")?;
+    let db = init_database(Some(db_str)).await?;
+
+    // 确保当前用户存在（如果不存在则创建）
+    ensure_current_user_exists(&db).await?;
+
+    // 将数据库连接包装在 Arc 中以便共享
+    let db = Arc::new(db);
 
     // 存储数据库连接到应用状态
-    app_handle.manage(db);
+    app_handle.manage(db.clone());
+
+    // 启动后台服务
+    start_background_services(app_handle.clone(), db).await;
+
+    // 广播上线通知
+    broadcast_online_presence().await;
+
+    info!("飞秋通讯启动完成");
+    Ok(())
+}
+
+/// 初始化日志系统
+fn init_logging() {
+    use tracing_subscriber::fmt;
+    use tracing_subscriber::EnvFilter;
+
+    // 配置日志级别和格式
+    fmt()
+        .with_max_level(tracing::Level::INFO)
+        .with_target(false)
+        .with_thread_ids(true)
+        .with_level(true)
+        .with_env_filter(EnvFilter::from_default_env().add_directive("feiqiu_communication=info".parse().unwrap()))
+        .init();
+}
+
+/// 确保当前用户存在
+async fn ensure_current_user_exists(db: &DbConn) -> Result<(), String> {
+    use crate::database::handler::UserHandler;
+
+    // 获取本地网络信息
+    let (local_ip, local_port) = get_local_network_info()
+        .await
+        .map_err(|e| format!("获取本地网络信息失败: {}", e))?;
+
+    let machine_id = format!("{}:{}", local_ip, local_port);
+
+    // 检查用户是否已存在
+    match UserHandler::find_by_ip_port(db, &local_ip, local_port).await {
+        Ok(Some(_user)) => {
+            info!("用户已存在: {}", local_ip);
+            Ok(())
+        }
+        Ok(None) => {
+            // 用户不存在，创建新用户
+            info!("创建新用户: {}", local_ip);
+
+            let nickname = get_computer_name().await.unwrap_or_else(|_| "用户".to_string());
+
+            let new_user = crate::database::model::user::Model {
+                uid: 0, // 数据库会自动生成
+                feiq_ip: local_ip.clone(),
+                feiq_port: local_port,
+                feiq_machine_id: machine_id.clone(),
+                nickname,
+                avatar: None,
+                status: 1, // 在线
+                create_time: chrono::Utc::now().naive_utc(),
+                update_time: chrono::Utc::now().naive_utc(),
+            };
+
+            UserHandler::create(db, new_user)
+                .await
+                .map_err(|e| format!("创建用户失败: {}", e))?;
+
+            info!("用户创建成功: {} ({})", local_ip, machine_id);
+            Ok(())
+        }
+        Err(e) => {
+            error!("查询用户失败: {}, 继续使用临时用户", e);
+            Ok(()) // 不阻塞启动，使用临时用户
+        }
+    }
+}
+
+/// 启动所有后台服务
+async fn start_background_services(app_handle: tauri::AppHandle, db: Arc<DbConn>) {
+    // 初始化全局 UDP 套接字（必须在其他 UDP 操作之前）
+    if let Err(e) = init_udp_socket().await {
+        error!("初始化 UDP socket 失败: {}", e);
+    }
 
     // 启动用户发现服务
+    let _app_handle_clone = app_handle.clone();
     tokio::spawn(async move {
         if let Err(e) = start_discovery().await {
             error!("用户发现服务启动失败: {}", e);
@@ -56,6 +179,7 @@ async fn init_app(app_handle: tauri::AppHandle) -> Result<(), String> {
     });
 
     // 启动 UDP 接收器（后台任务）
+    // 注意：UDP 接收器现在使用全局共享的 UDP 套接字
     let _app_handle_clone = app_handle.clone();
     tokio::spawn(async move {
         if let Err(e) = start_udp_receiver().await {
@@ -69,8 +193,56 @@ async fn init_app(app_handle: tauri::AppHandle) -> Result<(), String> {
         event_loop(app_handle_clone).await;
     });
 
-    info!("飞秋通讯启动完成");
-    Ok(())
+    // 启动消息接收处理器
+    let db_clone = db.clone();
+    tokio::spawn(async move {
+        MessageReceiver::new(db_clone).start();
+    });
+
+    // 启动已读回执处理器
+    let db_clone = db.clone();
+    tokio::spawn(async move {
+        ReceiptHandler::new(db_clone).start();
+    });
+}
+
+/// 广播上线通知
+async fn broadcast_online_presence() {
+    info!("广播上线通知...");
+
+    let packet = ProtocolPacket::make_entry_packet();
+
+    // 使用新的全局 UDP socket 广播
+    if let Err(e) = crate::network::udp::socket::broadcast_packet(&packet).await {
+        error!("广播上线失败: {}", e);
+    } else {
+        info!("上线通知已发送");
+    }
+}
+
+/// 获取本地网络信息
+async fn get_local_network_info() -> Result<(String, u16), String> {
+    use local_ip_address::local_ip;
+
+    let ip = local_ip().map_err(|e| format!("获取本地 IP 失败: {}", e))?;
+
+    Ok((ip.to_string(), 2425))
+}
+
+/// 获取计算机名称
+async fn get_computer_name() -> Result<String, String> {
+    // 尝试从环境变量获取
+    if let Ok(name) = std::env::var("COMPUTERNAME") {
+        return Ok(name);
+    }
+    if let Ok(name) = std::env::var("HOSTNAME") {
+        return Ok(name);
+    }
+
+    // 使用 hostname crate 作为后备
+    hostname::get()
+        .map(|h| h.to_string_lossy().to_string())
+        .map_err(|_| "用户".to_string())
 }
 
 /// 事件循环：处理全局事件
@@ -136,7 +308,6 @@ async fn main() {
         // 注册命令
         .invoke_handler(tauri::generate_handler![
             get_version,
-            init_app,
             // 用户相关
             ipc::user::get_current_user_handler,
             ipc::user::update_current_user_handler,
@@ -169,6 +340,14 @@ async fn main() {
         ])
         // 应用启动事件
         .setup(|app| {
+            // 初始化应用
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = init_app(&handle).await {
+                    eprintln!("初始化应用失败: {}", e);
+                }
+            });
+
             // 确保在开发时可以打开 DevTools
             #[cfg(debug_assertions)]
             {

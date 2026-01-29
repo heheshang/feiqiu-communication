@@ -12,7 +12,7 @@
 use crate::database::handler::{ChatMessageHandler, ChatSessionHandler, UserHandler};
 use crate::event::bus::EVENT_RECEIVER;
 use crate::event::model::{AppEvent, NetworkEvent, UiEvent};
-use crate::network::feiq::{constants::*, model::FeiqPacket};
+use crate::network::feiq::{constants::*, model::ProtocolPacket};
 use sea_orm::DbConn;
 use std::sync::Arc;
 use tracing::{error, info, warn};
@@ -61,7 +61,7 @@ impl MessageReceiver {
     /// 处理接收到的数据包
     async fn handle_packet_received(db: Arc<DbConn>, packet_json: String, addr: String) {
         // 反序列化数据包
-        let packet: FeiqPacket = match serde_json::from_str(&packet_json) {
+        let packet: ProtocolPacket = match serde_json::from_str(&packet_json) {
             Ok(p) => p,
             Err(e) => {
                 error!("数据包反序列化失败: {}", e);
@@ -211,7 +211,7 @@ impl MessageReceiver {
     async fn send_recv_confirmation(addr: &str, msg_no: &str) {
         use crate::network::udp::sender;
 
-        let recv_packet = FeiqPacket::make_recv_packet(msg_no);
+        let recv_packet = ProtocolPacket::make_recv_packet(msg_no);
         let packet_str = recv_packet.to_string();
 
         if let Err(e) = sender::send_packet_data(addr, &packet_str).await {

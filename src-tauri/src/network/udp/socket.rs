@@ -79,7 +79,7 @@ pub async fn send_packet_data(addr: &str, data: &str) -> AppResult<()> {
 /// # 参数
 /// * `addr` - 目标地址
 /// * `packet` - FeiQ 数据包
-pub async fn send_packet(addr: &str, packet: &crate::network::feiq::model::FeiqPacket) -> AppResult<()> {
+pub async fn send_packet(addr: &str, packet: &crate::network::feiq::model::ProtocolPacket) -> AppResult<()> {
     let data = packet.to_string();
 
     // 记录数据包详情
@@ -105,6 +105,6 @@ pub async fn send_packet(addr: &str, packet: &crate::network::feiq::model::FeiqP
 ///
 /// # 参数
 /// * `packet` - 要广播的 FeiQ 数据包
-pub async fn broadcast_packet(packet: &crate::network::feiq::model::FeiqPacket) -> AppResult<()> {
+pub async fn broadcast_packet(packet: &crate::network::feiq::model::ProtocolPacket) -> AppResult<()> {
     send_packet("255.255.255.255:2425", packet).await
 }

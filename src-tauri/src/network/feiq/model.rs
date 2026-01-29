@@ -2,11 +2,12 @@
 //
 //! 飞秋协议数据包模型
 
-use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
 // 导入常量
 use crate::network::feiq::constants::{IPMSG_FILEATTACHOPT, IPMSG_SENDCHECKOPT, IPMSG_UTF8OPT};
+// 导入工具函数
+use crate::network::feiq::utils::{format_mac_addr, timestamp_to_local};
 
 // ============================================================
 // 文件附件相关
@@ -149,7 +150,7 @@ pub struct FeiQPacket {
 ///
 /// FeiQ 格式: `版本号#长度#MAC地址#端口#标志1#标志2#命令#类型:时间戳:包ID:主机名:用户ID:内容`
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct FeiqPacket {
+pub struct ProtocolPacket {
     /// 协议类型
     #[serde(skip)]
     pub protocol_type: ProtocolType,
@@ -205,7 +206,7 @@ pub struct FeiqPacket {
     pub feiq_detail: Option<FeiQPacket>,
 }
 
-impl Default for FeiqPacket {
+impl Default for ProtocolPacket {
     fn default() -> Self {
         Self {
             protocol_type: ProtocolType::IPMsg,
@@ -227,7 +228,11 @@ impl Default for FeiqPacket {
     }
 }
 
-impl FeiqPacket {
+// ============================================================
+// 工具函数已移至 utils.rs
+// ============================================================
+
+impl ProtocolPacket {
     /// 从原始数据检测协议类型
     pub fn detect_protocol(data: &str) -> ProtocolType {
         // FeiQ 格式: 包含 # 分隔符
@@ -282,7 +287,7 @@ impl FeiqPacket {
         receiver: String,
         msg_no: String,
         extension: Option<String>,
-    ) -> Self {
+    ) -> ProtocolPacket {
         Self {
             protocol_type: ProtocolType::IPMsg,
             version,
@@ -295,8 +300,8 @@ impl FeiqPacket {
         }
     }
 
-    /// 从详细的 FeiQ 数据包结构创建 FeiqPacket
-    pub fn from_feiq_detail(detail: FeiQPacket) -> Self {
+    /// 从详细的 FeiQ 数据包结构创建 ProtocolPacket
+    pub fn from_feiq_detail(detail: FeiQPacket) -> ProtocolPacket {
         Self {
             protocol_type: ProtocolType::FeiQ,
             version: detail.pkg_type.clone(),
@@ -339,29 +344,6 @@ impl FeiqPacket {
     }
 }
 
-/// 格式化12位原始MAC地址（如5C60BA7361C6 → 5C-60-BA-73-61-C6）
-pub fn format_mac_addr(raw_mac: &str) -> Result<String> {
-    if raw_mac.len() != 12 {
-        return Err(anyhow!("MAC地址长度错误，需为12位十六进制字符串"));
-    }
-    // 每2个字符拆分，用-连接
-    let chunks: Vec<&str> = raw_mac
-        .as_bytes()
-        .chunks(2)
-        .map(|chunk| std::str::from_utf8(chunk).unwrap())
-        .collect();
-    Ok(chunks.join("-"))
-}
-
-/// 将 Unix 时间戳转换为本地时间字符串
-pub fn timestamp_to_local(timestamp: i64) -> String {
-    use chrono::{TimeZone, Utc};
-    Utc.timestamp_opt(timestamp, 0)
-        .single()
-        .map(|dt| dt.with_timezone(&chrono::Local).format("%Y-%m-%d %H:%M:%S").to_string())
-        .unwrap_or_else(|| "Invalid timestamp".to_string())
-}
-
 // ============================================================
 // 测试
 // ============================================================
@@ -372,7 +354,7 @@ mod tests {
 
     #[test]
     fn test_default_packet() {
-        let packet = FeiqPacket::default();
+        let packet = ProtocolPacket::default();
         assert_eq!(packet.version, "1.0");
         assert_eq!(packet.command, 0);
         assert_eq!(packet.protocol_type, ProtocolType::IPMsg);
@@ -380,7 +362,7 @@ mod tests {
 
     #[test]
     fn test_base_command() {
-        let packet = FeiqPacket {
+        let packet = ProtocolPacket {
             command: 0x00800120, // SENDMSG | UTF8OPT | SENDCHECKOPT
             ..Default::default()
         };
@@ -389,7 +371,7 @@ mod tests {
 
     #[test]
     fn test_has_option() {
-        let packet = FeiqPacket {
+        let packet = ProtocolPacket {
             command: 0x00800120,
             ..Default::default()
         };
@@ -401,18 +383,18 @@ mod tests {
     #[test]
     fn test_detect_protocol_ipmsg() {
         let data = "1.0:32:sender:host:receiver:12345:Hello";
-        assert_eq!(FeiqPacket::detect_protocol(data), ProtocolType::IPMsg);
+        assert_eq!(ProtocolPacket::detect_protocol(data), ProtocolType::IPMsg);
     }
 
     #[test]
     fn test_detect_protocol_feiq() {
         let data = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:SHIKUN-SH:6291459:ssk";
-        assert_eq!(FeiqPacket::detect_protocol(data), ProtocolType::FeiQ);
+        assert_eq!(ProtocolPacket::detect_protocol(data), ProtocolType::FeiQ);
     }
 
     #[test]
     fn test_new_ipmsg() {
-        let packet = FeiqPacket::new_ipmsg(
+        let packet = ProtocolPacket::new_ipmsg(
             "1.0".to_string(),
             32,
             "user@PC/192.168.1.100:2425".to_string(),
@@ -423,26 +405,5 @@ mod tests {
         assert_eq!(packet.protocol_type, ProtocolType::IPMsg);
         assert_eq!(packet.version, "1.0");
         assert_eq!(packet.command, 32);
-    }
-
-    #[test]
-    fn test_format_mac_addr() {
-        let mac = "5C60BA7361C6";
-        let formatted = format_mac_addr(mac).unwrap();
-        assert_eq!(formatted, "5C-60-BA-73-61-C6");
-    }
-
-    #[test]
-    fn test_format_mac_addr_invalid_length() {
-        let mac = "5C60BA73";
-        assert!(format_mac_addr(mac).is_err());
-    }
-
-    #[test]
-    fn test_timestamp_to_local() {
-        let timestamp = 1765442982; // 2025-08-12 10:09:42 UTC
-        let local = timestamp_to_local(timestamp);
-        // 不做精确断言，因为时区不同
-        assert!(local.contains("2025"));
     }
 }

@@ -3,7 +3,8 @@
 /// 飞秋协议封装器
 use crate::network::feiq::{
     constants::*,
-    model::{format_mac_addr, timestamp_to_local, FeiQExtInfo, FeiQPacket, FeiqPacket, FileAttachment},
+    model::{FeiQExtInfo, FeiQPacket, FileAttachment, ProtocolPacket},
+    utils::{format_mac_addr, timestamp_to_local},
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -45,28 +46,28 @@ fn generate_packet_id() -> String {
     format!("T{:010}", timestamp % 10000000000)
 }
 
-impl FeiqPacket {
+impl ProtocolPacket {
     /// 创建在线广播包 (BR_ENTRY)
     #[allow(dead_code)]
-    pub fn make_entry_packet() -> Self {
+    pub fn make_entry_packet() -> ProtocolPacket {
         Self::make_packet(IPMSG_BR_ENTRY, None)
     }
 
     /// 创建在线响应包 (ANSENTRY)
     #[allow(dead_code)]
-    pub fn make_ansentry_packet() -> Self {
+    pub fn make_ansentry_packet() -> ProtocolPacket {
         Self::make_packet(IPMSG_ANSENTRY, None)
     }
 
     /// 创建离线广播包 (BR_EXIT)
     #[allow(dead_code)]
-    pub fn make_exit_packet() -> Self {
+    pub fn make_exit_packet() -> ProtocolPacket {
         Self::make_packet(IPMSG_BR_EXIT, None)
     }
 
     /// 创建消息包 (SENDMSG)
     #[allow(dead_code)]
-    pub fn make_message_packet(content: &str, need_check: bool) -> Self {
+    pub fn make_message_packet(content: &str, need_check: bool) -> ProtocolPacket {
         let mut command = IPMSG_SENDMSG | IPMSG_UTF8OPT;
         if need_check {
             command |= IPMSG_SENDCHECKOPT;
@@ -76,19 +77,19 @@ impl FeiqPacket {
 
     /// 创建接收确认包 (RECVMSG)
     #[allow(dead_code)]
-    pub fn make_recv_packet(msg_no: &str) -> Self {
+    pub fn make_recv_packet(msg_no: &str) -> ProtocolPacket {
         Self::make_packet(IPMSG_RECVMSG, Some(msg_no.to_string()))
     }
 
     /// 创建已读回执包 (READMSG)
     #[allow(dead_code)]
-    pub fn make_read_packet(msg_no: &str) -> Self {
+    pub fn make_read_packet(msg_no: &str) -> ProtocolPacket {
         Self::make_packet(IPMSG_READMSG, Some(msg_no.to_string()))
     }
 
     /// 创建已读应答包 (ANSREADMSG)
     #[allow(dead_code)]
-    pub fn make_ansread_packet(msg_no: &str) -> Self {
+    pub fn make_ansread_packet(msg_no: &str) -> ProtocolPacket {
         Self::make_packet(IPMSG_ANSREADMSG, Some(msg_no.to_string()))
     }
 
@@ -98,7 +99,7 @@ impl FeiqPacket {
 
     /// 创建文件附件消息包 (SENDMSG | FILEATTACHOPT)
     #[allow(dead_code)]
-    pub fn make_file_attach_packet(files: &[FileAttachment], receiver: &str) -> Self {
+    pub fn make_file_attach_packet(files: &[FileAttachment], receiver: &str) -> ProtocolPacket {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("System time should be after Unix epoch")
@@ -111,7 +112,7 @@ impl FeiqPacket {
         let (username, hostname, ip, port) = get_system_user_info();
         let sender = format!("{}@{}/{}:{}", username, hostname, ip, port);
 
-        FeiqPacket {
+        ProtocolPacket {
             version: "1.0".to_string(),
             command: IPMSG_SENDMSG | IPMSG_UTF8OPT | IPMSG_FILEATTACHOPT,
             sender,
@@ -125,20 +126,20 @@ impl FeiqPacket {
 
     /// 创建文件数据请求包 (GETFILEDATA)
     #[allow(dead_code)]
-    pub fn make_get_file_data_packet(packet_no: &str, file_id: u64, offset: u64) -> Self {
+    pub fn make_get_file_data_packet(packet_no: &str, file_id: u64, offset: u64) -> ProtocolPacket {
         let extension = Some(format!("{}:{}:{}", packet_no, file_id, offset));
         Self::make_packet(IPMSG_GETFILEDATA, extension)
     }
 
     /// 创建文件释放包 (RELEASEFILES)
     #[allow(dead_code)]
-    pub fn make_release_files_packet(packet_no: &str) -> Self {
+    pub fn make_release_files_packet(packet_no: &str) -> ProtocolPacket {
         Self::make_packet(IPMSG_RELEASEFILES, Some(packet_no.to_string()))
     }
 
     /// 创建基础数据包 (IPMsg 格式)
     #[allow(dead_code)]
-    fn make_packet(command: u32, extension: Option<String>) -> Self {
+    fn make_packet(command: u32, extension: Option<String>) -> ProtocolPacket {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("System time should be after Unix epoch")
@@ -147,7 +148,7 @@ impl FeiqPacket {
         let (username, hostname, ip, port) = get_system_user_info();
         let sender = format!("{}@{}/{}:{}", username, hostname, ip, port);
 
-        FeiqPacket {
+        ProtocolPacket {
             version: "1.0".to_string(),
             command,
             sender,
@@ -268,14 +269,14 @@ mod tests {
 
     #[test]
     fn test_make_entry_packet() {
-        let packet = FeiqPacket::make_entry_packet();
+        let packet = ProtocolPacket::make_entry_packet();
         assert_eq!(packet.version, "1.0");
         assert_eq!(packet.base_command(), IPMSG_BR_ENTRY);
     }
 
     #[test]
     fn test_make_message_packet() {
-        let packet = FeiqPacket::make_message_packet("Hello", true);
+        let packet = ProtocolPacket::make_message_packet("Hello", true);
         assert_eq!(packet.base_command(), IPMSG_SENDMSG);
         assert!(packet.has_option(IPMSG_UTF8OPT));
         assert!(packet.has_option(IPMSG_SENDCHECKOPT));
@@ -284,7 +285,7 @@ mod tests {
 
     #[test]
     fn test_to_string() {
-        let packet = FeiqPacket {
+        let packet = ProtocolPacket {
             version: "1.0".to_string(),
             command: 32,
             sender: "sender".to_string(),

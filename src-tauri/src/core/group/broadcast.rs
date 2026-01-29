@@ -4,7 +4,7 @@
 use crate::database::handler::group::GroupMemberHandler;
 use crate::database::handler::user::UserHandler;
 use crate::error::AppResult;
-use crate::network::feiq::model::FeiqPacket;
+use crate::network::feiq::model::ProtocolPacket;
 use crate::network::udp::sender;
 use sea_orm::DbConn;
 
@@ -13,7 +13,12 @@ pub struct GroupBroadcaster;
 
 impl GroupBroadcaster {
     /// 向群组所有成员广播消息
-    pub async fn broadcast_message(db: &DbConn, gid: i64, packet: &FeiqPacket, sender_uid: i64) -> AppResult<usize> {
+    pub async fn broadcast_message(
+        db: &DbConn,
+        gid: i64,
+        packet: &ProtocolPacket,
+        sender_uid: i64,
+    ) -> AppResult<usize> {
         // 获取群组所有成员
         let members = GroupMemberHandler::list_by_group(db, gid).await?;
 

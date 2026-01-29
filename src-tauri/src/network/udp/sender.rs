@@ -12,7 +12,7 @@
 ///
 /// 日志在 `socket.rs` 的 `send_packet_data()` 和 `send_packet()` 函数中输出。
 use crate::error::AppResult;
-use crate::network::feiq::model::FeiqPacket;
+use crate::network::feiq::model::ProtocolPacket;
 
 /// 发送 UDP 数据包到指定地址（字符串形式）
 ///
@@ -38,7 +38,7 @@ pub async fn send_packet_data(addr: &str, data: &str) -> AppResult<()> {
 /// - 协议类型、版本、命令字
 /// - 发送者、接收者、消息编号
 /// - 完整数据包内容
-pub async fn send_packet(addr: &str, packet: &FeiqPacket) -> AppResult<()> {
+pub async fn send_packet(addr: &str, packet: &ProtocolPacket) -> AppResult<()> {
     super::socket::send_packet(addr, packet).await
 }
 
@@ -52,6 +52,6 @@ pub async fn send_packet(addr: &str, packet: &FeiqPacket) -> AppResult<()> {
 ///
 /// # 日志
 /// 详细的发送日志会通过 `send_packet()` 记录
-pub async fn broadcast_packet(packet: &FeiqPacket) -> AppResult<()> {
+pub async fn broadcast_packet(packet: &ProtocolPacket) -> AppResult<()> {
     super::socket::broadcast_packet(packet).await
 }
