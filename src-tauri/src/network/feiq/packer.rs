@@ -7,6 +7,31 @@ use crate::network::feiq::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
+/// 获取当前用户信息
+///
+/// 返回格式: (username, hostname, ip_address, port)
+fn get_system_user_info() -> (String, String, String, String) {
+    // 获取用户名
+    let username = std::env::var("USERNAME")
+        .or_else(|_| std::env::var("USER"))
+        .unwrap_or_else(|_| "User".to_string());
+
+    // 获取主机名
+    let hostname = hostname::get()
+        .map(|h| h.to_string_lossy().to_string())
+        .unwrap_or_else(|_| "PC-001".to_string());
+
+    // 获取本地 IP 地址
+    let ip = local_ip_address::local_ip()
+        .map(|ip| ip.to_string())
+        .unwrap_or_else(|_| "192.168.1.100".to_string());
+
+    // 使用默认端口
+    let port = "2425";
+
+    (username, hostname, ip, port.to_string())
+}
+
 impl FeiqPacket {
     /// 创建在线广播包 (BR_ENTRY)
     #[allow(dead_code)]
@@ -61,13 +86,17 @@ impl FeiqPacket {
     /// 创建文件附件消息包 (SENDMSG | FILEATTACHOPT)
     #[allow(dead_code)]
     pub fn make_file_attach_packet(files: &[FileAttachment], receiver: &str) -> Self {
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("System time should be after Unix epoch")
+            .as_secs();
 
         // 构建文件附件头: 多个文件用 \x07 分隔
         let file_headers: Vec<String> = files.iter().map(|f| f.to_ipmsg_header()).collect();
         let extension = Some(file_headers.join("\x07"));
 
-        let sender = format!("{}@{}/{}:{}", "User", "PC-001", "192.168.1.100", "2425");
+        let (username, hostname, ip, port) = get_system_user_info();
+        let sender = format!("{}@{}/{}:{}", username, hostname, ip, port);
 
         FeiqPacket {
             version: "1.0".to_string(),
@@ -76,7 +105,7 @@ impl FeiqPacket {
             receiver: receiver.to_string(),
             msg_no: timestamp.to_string(),
             extension,
-            ip: String::new(),
+            ip,
             ..Default::default()
         }
     }
@@ -97,16 +126,13 @@ impl FeiqPacket {
     /// 创建基础数据包 (IPMsg 格式)
     #[allow(dead_code)]
     fn make_packet(command: u32, extension: Option<String>) -> Self {
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("System time should be after Unix epoch")
+            .as_secs();
 
-        // TODO: 获取真实的用户名和机器名
-        let sender = format!(
-            "{}@{}/{}:{}",
-            "User",          // 用户名
-            "PC-001",        // 机器名
-            "192.168.1.100", // IP
-            "2425"           // 端口
-        );
+        let (username, hostname, ip, port) = get_system_user_info();
+        let sender = format!("{}@{}/{}:{}", username, hostname, ip, port);
 
         FeiqPacket {
             version: "1.0".to_string(),
@@ -115,7 +141,7 @@ impl FeiqPacket {
             receiver: String::new(),
             msg_no: timestamp.to_string(),
             extension,
-            ip: String::new(),
+            ip,
             ..Default::default()
         }
     }

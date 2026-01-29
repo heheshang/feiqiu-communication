@@ -123,8 +123,15 @@ impl MessageReceiver {
                 info!("消息已保存到数据库: mid={}, sender={}", message.mid, sender_nickname);
 
                 // 获取或创建会话
-                // 这里需要获取当前登录用户的 uid，暂时使用默认值
-                let current_user_uid = 1; // TODO: 从用户会话获取
+                // 获取当前登录用户的 uid
+                let current_user_uid = match UserHandler::get_current_user_id(&db).await {
+                    Ok(uid) => uid,
+                    Err(_) => {
+                        // 如果没有当前用户，尝试创建或使用默认值
+                        warn!("未找到当前用户，使用默认用户 ID 1");
+                        1
+                    }
+                };
 
                 if let Ok(session) =
                     ChatSessionHandler::get_or_create(&db, current_user_uid, session_type, target_id).await
@@ -168,24 +175,9 @@ impl MessageReceiver {
 
     /// 解析发送者信息
     fn parse_sender_info(addr: &str, sender: &str) -> Result<(String, u16, String), String> {
-        // 从 addr 解析 IP 和端口
-        let addr_parts: Vec<&str> = addr.split(':').collect();
-        let ip = addr_parts
-            .first()
-            .ok_or_else(|| format!("Invalid addr format: {}", addr))?
-            .to_string();
-        let port: u16 = addr_parts
-            .get(1)
-            .and_then(|p| p.parse().ok())
-            .ok_or_else(|| format!("Invalid port in addr: {}", addr))?;
-
-        // 解析 nickname（提取 @ 之前的部分）
-        let nickname = if let Some(at_pos) = sender.find('@') {
-            sender[..at_pos].to_string()
-        } else {
-            sender.to_string()
-        };
-
+        // Use the public version from contact::discovery
+        // The signature there is (sender, addr) -> (nickname, ip, port, machine_id)
+        let (nickname, ip, port, _machine_id) = crate::core::contact::discovery::parse_sender_info(sender, addr)?;
         Ok((ip, port, nickname))
     }
 
@@ -235,17 +227,17 @@ impl MessageReceiver {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::core::contact::discovery::parse_sender_info;
 
     #[test]
     fn test_parse_sender_info() {
-        let addr = "192.168.1.100:2425";
         let sender = "testuser@hostname";
+        let addr = "192.168.1.100:2425";
 
-        let result = parse_sender_info(addr, sender);
+        let result = parse_sender_info(sender, addr);
         assert!(result.is_ok());
 
-        let (ip, port, nickname) = result.unwrap();
+        let (nickname, ip, port, _machine_id) = result.unwrap();
         assert_eq!(ip, "192.168.1.100");
         assert_eq!(port, 2425);
         assert_eq!(nickname, "testuser");
@@ -253,13 +245,13 @@ mod tests {
 
     #[test]
     fn test_parse_sender_info_simple() {
-        let addr = "192.168.1.100:2425";
         let sender = "simpleuser";
+        let addr = "192.168.1.100:2425";
 
-        let result = parse_sender_info(addr, sender);
+        let result = parse_sender_info(sender, addr);
         assert!(result.is_ok());
 
-        let (ip, port, nickname) = result.unwrap();
+        let (nickname, ip, port, _machine_id) = result.unwrap();
         assert_eq!(ip, "192.168.1.100");
         assert_eq!(port, 2425);
         assert_eq!(nickname, "simpleuser");

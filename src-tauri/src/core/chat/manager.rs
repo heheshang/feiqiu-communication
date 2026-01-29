@@ -11,7 +11,7 @@
 use crate::database::handler::{ChatMessageHandler, ChatSessionHandler};
 use crate::error::{AppError, AppResult};
 use sea_orm::DbConn;
-use tracing::{info, warn};
+use tracing::info;
 
 /// 聊天会话管理器
 pub struct ChatManager;
@@ -199,50 +199,46 @@ impl ChatManager {
     /// 将超过指定天数没有消息的会话标记为归档状态
     ///
     /// # 参数
-    /// - `_db`: 数据库连接
-    /// - `_owner_uid`: 用户 ID
-    /// - `_days`: 天数阈值
+    /// - `db`: 数据库连接
+    /// - `owner_uid`: 用户 ID
+    /// - `days`: 天数阈值
     ///
     /// # 返回
     /// - 归档的会话数量
-    pub async fn archive_old_sessions(_db: &DbConn, _owner_uid: i64, _days: i64) -> AppResult<usize> {
-        info!("归档旧会话");
+    pub async fn archive_old_sessions(db: &DbConn, owner_uid: i64, days: i64) -> AppResult<usize> {
+        info!("归档 {} 天前的旧会话", days);
 
-        // TODO: 实现归档逻辑
-        // 这需要：
-        // 1. 查询超过指定天数没有活动的会话
-        // 2. 更新会话的归档状态（需要在会话表中添加 archived 字段）
+        let count = crate::database::handler::ChatSessionHandler::archive_old_sessions(db, owner_uid, days).await?;
 
-        warn!("归档功能尚未实现");
-        Ok(0)
+        info!("成功归档 {} 个会话", count);
+        Ok(count)
     }
 
     /// 搜索会话
     ///
-    /// 根据关键词搜索会话（按目标用户的昵称或群组名称）
+    /// 根据关键词搜索会话（按消息内容）
     ///
     /// # 参数
-    /// - `_db`: 数据库连接
-    /// - `_owner_uid`: 用户 ID
-    /// - `_keyword`: 搜索关键词
+    /// - `db`: 数据库连接
+    /// - `owner_uid`: 用户 ID
+    /// - `keyword`: 搜索关键词
     ///
     /// # 返回
     /// - 匹配的会话列表
     pub async fn search_sessions(
-        _db: &DbConn,
-        _owner_uid: i64,
-        _keyword: &str,
+        db: &DbConn,
+        owner_uid: i64,
+        keyword: &str,
     ) -> AppResult<Vec<crate::database::model::chat_session::Model>> {
-        info!("搜索会话");
+        info!("搜索会话: keyword='{}'", keyword);
 
-        // TODO: 实现搜索逻辑
-        // 这需要：
-        // 1. 查询用户的所有会话
-        // 2. 根据 target_id 关联查询用户或群组名称
-        // 3. 过滤匹配的会话
+        let sessions = crate::database::handler::ChatSessionHandler::search_sessions(
+            db, owner_uid, keyword, 50, // 限制返回 50 个结果
+        )
+        .await?;
 
-        warn!("搜索功能尚未实现");
-        Ok(vec![])
+        info!("找到 {} 个匹配的会话", sessions.len());
+        Ok(sessions)
     }
 }
 

@@ -2,8 +2,7 @@
 //
 //! 文件传输恢复逻辑
 
-use crate::core::file::transfer::{FileReceiver, FileSender};
-use crate::database::handler::transfer_state::TransferStateHandler;
+use crate::database::handler::{transfer_state::TransferStateHandler, FileStorageHandler};
 use crate::error::AppResult;
 use sea_orm::DbConn;
 
@@ -13,10 +12,19 @@ pub async fn resume_transfers(db: &DbConn) -> AppResult<Vec<ResumeInfo>> {
     let mut resume_infos = Vec::new();
 
     for state in pending {
+        // 从 file_storage 表查询文件路径
+        let file_path = match FileStorageHandler::find_by_id(db, state.file_id).await {
+            Ok(file) => file.file_path,
+            Err(_) => {
+                tracing::warn!("文件 {} 不存在于 file_storage 表", state.file_id);
+                String::new()
+            }
+        };
+
         let info = ResumeInfo {
             tid: state.tid,
             file_id: state.file_id,
-            file_path: String::new(), // TODO: 从 file_storage 查询
+            file_path,
             offset: state.transferred as u64,
             total: state.file_size as u64,
             target_addr: format!("{}:{}", state.target_ip, state.target_port),

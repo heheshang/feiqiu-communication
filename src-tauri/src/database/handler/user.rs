@@ -52,6 +52,28 @@ impl UserHandler {
         Ok(user)
     }
 
+    /// 获取当前用户（本地用户）
+    ///
+    /// 返回数据库中的第一个用户作为当前用户
+    /// 通常只有一个本地用户记录
+    pub async fn get_current_user(db: &DbConn) -> AppResult<user::Model> {
+        let user = User::find()
+            .one(db)
+            .await
+            .map_err(|e| AppError::Database(e))?
+            .ok_or_else(|| AppError::NotFound("未找到当前用户".to_string()))?;
+
+        Ok(user)
+    }
+
+    /// 获取当前用户 ID
+    ///
+    /// 便捷方法，返回当前用户的 uid
+    pub async fn get_current_user_id(db: &DbConn) -> AppResult<i64> {
+        let user = Self::get_current_user(db).await?;
+        Ok(user.uid)
+    }
+
     /// 更新用户信息
     pub async fn update(db: &DbConn, uid: i64, user_data: user::Model) -> AppResult<user::Model> {
         let existing_user = Self::find_by_id(db, uid).await?;

@@ -5,5 +5,3 @@ pub mod chat;
 pub mod contact;
 pub mod file;
 pub mod group;
-
-pub use group::GroupBroadcaster;

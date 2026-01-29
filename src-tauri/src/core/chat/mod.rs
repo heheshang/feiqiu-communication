@@ -17,9 +17,3 @@ pub mod manager;
 pub mod receipt;
 pub mod receiver;
 pub mod sender;
-
-// 重新导出主要类型
-pub use manager::ChatManager;
-pub use receipt::ReceiptHandler;
-pub use receiver::MessageReceiver;
-pub use sender::MessageSender;

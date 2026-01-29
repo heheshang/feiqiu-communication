@@ -7,8 +7,9 @@
 /// - 监听其他用户的 BR_ENTRY 并回复 ANSENTRY
 /// - 维护在线用户列表
 /// - 处理用户离线事件
+use crate::error::AppResult;
 use crate::event::bus::EVENT_RECEIVER;
-use crate::event::model::{AppEvent, NetworkEvent, UiEvent};
+use crate::event::model::{AppEvent, NetworkEvent};
 use crate::network::feiq::{constants::*, model::FeiqPacket};
 use crate::network::udp::sender::send_packet_data;
 use crate::types::UserInfo;
@@ -35,7 +36,12 @@ pub fn get_online_users() -> &'static OnlineUsers {
 /// 获取在线用户列表的副本
 pub fn get_online_users_list() -> Vec<UserInfo> {
     let users = get_online_users();
-    users.lock().unwrap().values().cloned().collect()
+    users
+        .lock()
+        .expect("Online users mutex should not be poisoned")
+        .values()
+        .cloned()
+        .collect()
 }
 
 /// 添加或更新在线用户
@@ -43,7 +49,7 @@ pub fn add_online_user(user: UserInfo) {
     let users = get_online_users();
     let machine_id = format!("{}:{}", user.feiq_ip, user.feiq_port);
 
-    let mut users_guard = users.lock().unwrap();
+    let mut users_guard = users.lock().expect("Online users mutex should not be poisoned");
     let is_new = !users_guard.contains_key(&machine_id);
 
     users_guard.insert(machine_id.clone(), user.clone());
@@ -58,7 +64,7 @@ pub fn add_online_user(user: UserInfo) {
 /// 移除在线用户
 pub fn remove_online_user(ip: &str) {
     let users = get_online_users();
-    let mut users_guard = users.lock().unwrap();
+    let mut users_guard = users.lock().expect("Online users mutex should not be poisoned");
 
     // 查找并移除匹配 IP 的用户
     let keys_to_remove: Vec<String> = users_guard
@@ -77,7 +83,7 @@ pub fn remove_online_user(ip: &str) {
 /// 根据 IP 查找用户
 pub fn find_user_by_ip(ip: &str) -> Option<UserInfo> {
     let users = get_online_users();
-    let users_guard = users.lock().unwrap();
+    let users_guard = users.lock().expect("Online users mutex should not be poisoned");
 
     for (machine_id, user) in users_guard.iter() {
         if machine_id.starts_with(&format!("{}:", ip)) {
@@ -96,7 +102,7 @@ pub fn find_user_by_ip(ip: &str) -> Option<UserInfo> {
 /// 3. 收到 BR_ENTRY 时回复 ANSENTRY
 /// 4. 收到 ANSENTRY 时添加到在线列表
 /// 5. 收到 BR_EXIT 时从在线列表移除
-pub async fn start_discovery() -> anyhow::Result<()> {
+pub async fn start_discovery() -> AppResult<()> {
     info!("用户发现服务启动中...");
 
     // 1. 广播上线
@@ -113,7 +119,7 @@ pub async fn start_discovery() -> anyhow::Result<()> {
 }
 
 /// 广播上线通知
-async fn broadcast_entry() -> anyhow::Result<()> {
+async fn broadcast_entry() -> AppResult<()> {
     info!("广播上线通知...");
 
     let packet = FeiqPacket::make_entry_packet();
@@ -127,7 +133,7 @@ async fn broadcast_entry() -> anyhow::Result<()> {
 }
 
 /// 发送在线响应
-async fn send_ansentry(addr: &str) -> anyhow::Result<()> {
+async fn send_ansentry(addr: &str) -> AppResult<()> {
     info!("回复 ANSENTRY to {}", addr);
 
     let packet = FeiqPacket::make_ansentry_packet();
@@ -280,7 +286,7 @@ async fn handle_packet_received(packet_json: String, addr: String) {
 /// # 返回
 /// - `Ok((nickname, ip, port, machine_id))`: 解析成功
 /// - `Err`: 解析失败
-fn parse_sender_info(sender: &str, addr: &str) -> Result<(String, String, u16, String), String> {
+pub fn parse_sender_info(sender: &str, addr: &str) -> Result<(String, String, u16, String), String> {
     // 从 addr 解析 IP 和端口
     let addr_parts: Vec<&str> = addr.split(':').collect();
     let ip = addr_parts

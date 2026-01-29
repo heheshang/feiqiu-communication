@@ -1,17 +1,20 @@
 // src-tauri/src/network/udp/receiver.rs
 //
+/// UDP 接收器
+use crate::error::{AppError, AppResult};
 use crate::event::bus::EVENT_SENDER;
 use crate::event::model::{AppEvent, NetworkEvent};
 use crate::network::feiq::parser::parse_feiq_packet;
-/// UDP 接收器
 use tokio::net::UdpSocket;
 use tracing::{error, info};
 
 /// 启动 UDP 接收器
 ///
 /// 绑定 0.0.0.0:2425 端口，接收飞秋协议数据包
-pub async fn start_udp_receiver() -> anyhow::Result<()> {
-    let socket = UdpSocket::bind("0.0.0.0:2425").await?;
+pub async fn start_udp_receiver() -> AppResult<()> {
+    let socket = UdpSocket::bind("0.0.0.0:2425")
+        .await
+        .map_err(|e| AppError::Network(format!("Failed to bind UDP socket to port 2425: {}", e)))?;
     info!("UDP 接收器已启动，监听端口 2425");
 
     let mut buf = [0u8; 2048];

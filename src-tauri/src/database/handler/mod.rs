@@ -11,7 +11,6 @@ pub mod user;
 
 pub use chat::{ChatMessageHandler, ChatSessionHandler};
 pub use contact::ContactHandler;
-pub use file::{FileStats, FileStorageHandler};
-pub use group::{GroupHandler, GroupMemberHandler};
+pub use file::FileStorageHandler;
 pub use transfer_state::TransferStateHandler;
 pub use user::UserHandler;

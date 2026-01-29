@@ -42,10 +42,9 @@ pub async fn get_group_info_handler(gid: i64, db: State<'_, DbConn>) -> Result<G
     let group = GroupHandler::find_by_id(db.inner(), gid).await.map_err(|e| e.to_string())?;
 
     // 获取成员数量
-    let members = GroupMemberHandler::list_by_group(db.inner(), gid)
+    let _members = GroupMemberHandler::list_by_group(db.inner(), gid)
         .await
         .map_err(|e| e.to_string())?;
-    let member_count = members.len() as i64;
 
     Ok(GroupInfo {
         gid: group.gid,

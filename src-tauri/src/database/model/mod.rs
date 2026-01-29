@@ -20,5 +20,4 @@ pub use contact::Entity as Contact;
 pub use file_storage::Entity as FileStorage;
 pub use group::Entity as Group;
 pub use group_member::Entity as GroupMember;
-pub use transfer_state::Entity as TransferState;
 pub use user::Entity as User;
