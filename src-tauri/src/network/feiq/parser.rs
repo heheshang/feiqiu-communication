@@ -1,8 +1,14 @@
 // src-tauri/src/network/feiq/parser.rs
 //
 /// 飞秋协议解析器 (使用 combine)
+///
+/// 注意：飞秋协议使用 GBK 编码，而非 UTF-8
 use crate::network::feiq::model::{FeiqPacket, ProtocolType};
+use encoding::DecoderTrap;
 use std::str::Utf8Error;
+
+/// GBK 编码器引用 (用于解码飞秋协议消息)
+const GBK_ENCODING: encoding::EncodingRef = encoding::all::GBK;
 
 /// 解析错误类型
 #[derive(Debug, thiserror::Error)]
@@ -233,6 +239,21 @@ pub fn parse_feiq_packet_bytes(bytes: &[u8]) -> Result<FeiqPacket, ParseError> {
     // 转换为 UTF-8 字符串
     let s = std::str::from_utf8(bytes)?;
     parse_feiq_packet(s)
+}
+
+/// 使用 GBK 编码解码字节数据
+///
+/// 飞秋协议使用 GBK 编码，此函数用于正确解码从网络接收的字节数据
+///
+/// # 参数
+/// * `bytes` - 原始字节数据
+///
+/// # 返回
+/// 解码后的字符串
+pub fn decode_gbk(bytes: &[u8]) -> Result<String, ParseError> {
+    GBK_ENCODING
+        .decode(bytes, DecoderTrap::Strict)
+        .map_err(|e| ParseError::InvalidFormat(format!("GBK decode error: {}", e)))
 }
 
 // ============================================================
