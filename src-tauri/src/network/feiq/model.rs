@@ -2,6 +2,7 @@
 //
 //! 飞秋协议数据包模型
 
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
 // 导入常量
@@ -80,6 +81,68 @@ pub enum ProtocolType {
     FeiQ,
 }
 
+// ============================================================
+// 飞秋扩展信息（FeiQ 协议专用）
+// ============================================================
+
+/// 飞秋数据包扩展信息（F8字段拆分后的子字段）
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct FeiQExtInfo {
+    /// 消息子类型码（如9=上线/保活广播）
+    #[serde(default)]
+    pub msg_sub_type: u8,
+    /// 发送时间戳（秒级）
+    #[serde(default)]
+    pub timestamp: i64,
+    /// 发送时间戳转换为本地时间（格式：YYYY-MM-DD HH:MM:SS）
+    #[serde(default)]
+    pub timestamp_local: String,
+    /// 发送方唯一ID（如T0170006）
+    #[serde(default)]
+    pub unique_id: String,
+    /// 发送方主机名（如SHIKUN-SH）
+    #[serde(default)]
+    pub hostname: String,
+    /// 发送方飞秋昵称（如6291459）
+    #[serde(default)]
+    pub nickname: String,
+    /// 附加备注/签名（如ssk）
+    #[serde(default)]
+    pub remark: String,
+}
+
+/// 飞秋完整数据包结构体（主字段拆分）
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct FeiQPacket {
+    /// 包类型标识（如1_lbt6_0=局域网广播包）
+    #[serde(default)]
+    pub pkg_type: String,
+    /// 功能标识位（如128=客户端在线广播）
+    #[serde(default)]
+    pub func_flag: u16,
+    /// 原始MAC地址（如5C60BA7361C6）
+    #[serde(default)]
+    pub mac_addr_raw: String,
+    /// 格式化后的MAC地址（如5C-60-BA-73-61-C6）
+    #[serde(default)]
+    pub mac_addr_formatted: String,
+    /// 发送方UDP端口（如1944）
+    #[serde(default)]
+    pub udp_port: u16,
+    /// 文件传输ID（0=非文件传输）
+    #[serde(default)]
+    pub file_transfer_id: u32,
+    /// 附加标志位（0=无特殊扩展）
+    #[serde(default)]
+    pub extra_flag: u32,
+    /// 飞秋客户端版本号（如4001）
+    #[serde(default)]
+    pub client_version: u32,
+    /// 扩展信息段（F8字段解析结果）
+    #[serde(default)]
+    pub ext_info: FeiQExtInfo,
+}
+
 /// 飞秋协议数据包（支持 IPMsg 和 FeiQ 两种格式）
 ///
 /// IPMsg 格式: `版本号:命令字:发送者信息:接收者信息:消息编号:附加信息`
@@ -136,6 +199,10 @@ pub struct FeiqPacket {
     /// 发送者端口（FeiQ 专用）
     #[serde(skip)]
     pub port: Option<u16>,
+
+    /// 飞秋协议详细解析结果（仅当 protocol_type = FeiQ 时有效）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub feiq_detail: Option<FeiQPacket>,
 }
 
 impl Default for FeiqPacket {
@@ -155,6 +222,7 @@ impl Default for FeiqPacket {
             extension: None,
             ip: String::new(),
             port: None,
+            feiq_detail: None,
         }
     }
 }
@@ -227,36 +295,71 @@ impl FeiqPacket {
         }
     }
 
-    /// 创建 FeiQ 格式数据包
-    pub fn new_feiq(
-        version: String,
-        command: u32,
-        msg_type: u32,
-        hostname: String,
-        mac_addr: String,
-        port: u16,
-        timestamp: u64,
-        user_id: String,
-        msg_no: String,
-        extension: Option<String>,
-    ) -> Self {
+    /// 从详细的 FeiQ 数据包结构创建 FeiqPacket
+    pub fn from_feiq_detail(detail: FeiQPacket) -> Self {
         Self {
             protocol_type: ProtocolType::FeiQ,
-            version,
-            command,
-            msg_type: Some(msg_type),
-            sender: format!("{}@{}", hostname, mac_addr),
-            hostname: Some(hostname),
-            mac_addr: Some(mac_addr),
+            version: detail.pkg_type.clone(),
+            command: detail.client_version,
+            msg_type: Some(detail.ext_info.msg_sub_type as u32),
+            sender: format!("{}@{}", detail.ext_info.hostname, detail.mac_addr_raw),
+            hostname: Some(detail.ext_info.hostname.clone()),
+            mac_addr: Some(detail.mac_addr_raw.clone()),
             receiver: String::new(),
-            msg_no,
-            timestamp: Some(timestamp),
-            user_id: Some(user_id),
-            extension,
-            port: Some(port),
+            msg_no: detail.ext_info.unique_id.clone(),
+            timestamp: Some(detail.ext_info.timestamp as u64),
+            user_id: Some(detail.ext_info.nickname.clone()),
+            extension: Some(detail.ext_info.remark.clone()),
+            port: Some(detail.udp_port),
+            feiq_detail: Some(detail),
             ..Default::default()
         }
     }
+
+    /// 获取格式化的 MAC 地址（如果可用）
+    pub fn formatted_mac(&self) -> Option<String> {
+        if let Some(ref detail) = self.feiq_detail {
+            Some(detail.mac_addr_formatted.clone())
+        } else if let Some(ref mac) = self.mac_addr {
+            Some(format_mac_addr(mac).unwrap_or_else(|_| mac.clone()))
+        } else {
+            None
+        }
+    }
+
+    /// 获取本地时间戳字符串（如果可用）
+    pub fn local_timestamp(&self) -> Option<String> {
+        if let Some(ref detail) = self.feiq_detail {
+            Some(detail.ext_info.timestamp_local.clone())
+        } else if let Some(ts) = self.timestamp {
+            Some(timestamp_to_local(ts as i64))
+        } else {
+            None
+        }
+    }
+}
+
+/// 格式化12位原始MAC地址（如5C60BA7361C6 → 5C-60-BA-73-61-C6）
+pub fn format_mac_addr(raw_mac: &str) -> Result<String> {
+    if raw_mac.len() != 12 {
+        return Err(anyhow!("MAC地址长度错误，需为12位十六进制字符串"));
+    }
+    // 每2个字符拆分，用-连接
+    let chunks: Vec<&str> = raw_mac
+        .as_bytes()
+        .chunks(2)
+        .map(|chunk| std::str::from_utf8(chunk).unwrap())
+        .collect();
+    Ok(chunks.join("-"))
+}
+
+/// 将 Unix 时间戳转换为本地时间字符串
+pub fn timestamp_to_local(timestamp: i64) -> String {
+    use chrono::{TimeZone, Utc};
+    Utc.timestamp_opt(timestamp, 0)
+        .single()
+        .map(|dt| dt.with_timezone(&chrono::Local).format("%Y-%m-%d %H:%M:%S").to_string())
+        .unwrap_or_else(|| "Invalid timestamp".to_string())
 }
 
 // ============================================================
@@ -323,24 +426,23 @@ mod tests {
     }
 
     #[test]
-    fn test_new_feiq() {
-        let packet = FeiqPacket::new_feiq(
-            "1_lbt6_0".to_string(),
-            0x4001,
-            9,
-            "SHIKUN-SH".to_string(),
-            "5C60BA7361C6".to_string(),
-            6452,
-            1765442982,
-            "6291459".to_string(),
-            "T0220165".to_string(),
-            Some("ssk".to_string()),
-        );
-        assert_eq!(packet.protocol_type, ProtocolType::FeiQ);
-        assert_eq!(packet.version, "1_lbt6_0");
-        assert_eq!(packet.command, 0x4001);
-        assert_eq!(packet.msg_type, Some(9));
-        assert_eq!(packet.hostname, Some("SHIKUN-SH".to_string()));
-        assert_eq!(packet.mac_addr, Some("5C60BA7361C6".to_string()));
+    fn test_format_mac_addr() {
+        let mac = "5C60BA7361C6";
+        let formatted = format_mac_addr(mac).unwrap();
+        assert_eq!(formatted, "5C-60-BA-73-61-C6");
+    }
+
+    #[test]
+    fn test_format_mac_addr_invalid_length() {
+        let mac = "5C60BA73";
+        assert!(format_mac_addr(mac).is_err());
+    }
+
+    #[test]
+    fn test_timestamp_to_local() {
+        let timestamp = 1765442982; // 2025-08-12 10:09:42 UTC
+        let local = timestamp_to_local(timestamp);
+        // 不做精确断言，因为时区不同
+        assert!(local.contains("2025"));
     }
 }

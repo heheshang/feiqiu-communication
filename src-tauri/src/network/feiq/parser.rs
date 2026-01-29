@@ -3,7 +3,9 @@
 /// 飞秋协议解析器 (使用 combine)
 ///
 /// 注意：飞秋协议使用 GBK 编码，而非 UTF-8
-use crate::network::feiq::model::{FeiqPacket, ProtocolType};
+use crate::network::feiq::model::{
+    format_mac_addr, timestamp_to_local, FeiQExtInfo, FeiQPacket, FeiqPacket, ProtocolType,
+};
 use encoding::DecoderTrap;
 use std::str::Utf8Error;
 
@@ -62,7 +64,7 @@ impl From<ParseError> for String {
 /// let packet = parse_feiq_packet(ipmsg).unwrap();
 ///
 /// // FeiQ 格式
-/// let feiq = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:SHIKUN-SH:6291459:ssk";
+/// let feiq = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH:6291459:ssk";
 /// let packet = parse_feiq_packet(feiq).unwrap();
 /// ```
 pub fn parse_feiq_packet(s: &str) -> Result<FeiqPacket, ParseError> {
@@ -74,93 +76,95 @@ pub fn parse_feiq_packet(s: &str) -> Result<FeiqPacket, ParseError> {
     }
 }
 
-/// 解析 FeiQ 格式数据包
+/// 解析 FeiQ 格式数据包（详细版本）
 ///
 /// 格式: `版本号#长度#MAC地址#端口#标志1#标志2#命令#类型:时间戳:包ID:主机名:用户ID:内容`
 fn parse_feiq_packet_feiq(s: &str) -> Result<FeiqPacket, ParseError> {
-    // 分割头部和数据部分
-    let parts: Vec<&str> = s.splitn(2, ':').collect();
-    if parts.len() != 2 {
-        return Err(ParseError::InvalidFormat(
-            "FeiQ packet must have header and data sections separated by ':'".to_string(),
-        ));
-    }
+    // 使用详细的 FeiQ 解析器
+    let detail = parse_feiq_packet_detail(s)?;
 
-    let header = parts[0];
-    let data = parts[1];
+    // 转换为通用的 FeiqPacket
+    Ok(FeiqPacket::from_feiq_detail(detail))
+}
 
-    // 解析头部 (以 # 分隔)
-    let header_fields: Vec<&str> = header.split('#').collect();
-    if header_fields.len() < 8 {
+/// 解析飞秋数据包字符串的核心函数（详细版本）
+///
+/// 输入：飞秋UDP数据包原始字符串（如"1_lbt6_0#128#5C60BA7361C6#..."）
+/// 输出：解析后的FeiQPacket结构体（带错误处理）
+pub fn parse_feiq_packet_detail(packet_str: &str) -> Result<FeiQPacket, ParseError> {
+    // 1. 拆分主字段（#分隔）
+    let main_fields: Vec<&str> = packet_str.split('#').collect();
+    if main_fields.len() != 8 {
         return Err(ParseError::InvalidFormat(format!(
-            "FeiQ header must have at least 8 fields, found {}",
-            header_fields.len()
+            "飞秋数据包主字段数量错误，需为8个（当前：{}）",
+            main_fields.len()
         )));
     }
 
-    let version = header_fields[0].to_string();
-    let _length = header_fields[1]; // 可以用于验证
-    let mac_addr = header_fields[2].to_string();
+    // 2. 解析主字段基础信息
+    let pkg_type = main_fields[0].to_string();
+    let func_flag = main_fields[1]
+        .parse::<u16>()
+        .map_err(|e| ParseError::InvalidFormat(format!("功能标识位解析失败：{}", e)))?;
+    let mac_addr_raw = main_fields[2].to_string();
+    let mac_addr_formatted =
+        format_mac_addr(&mac_addr_raw).map_err(|e| ParseError::InvalidFormat(format!("MAC地址格式化失败：{}", e)))?;
+    let udp_port = main_fields[3]
+        .parse::<u16>()
+        .map_err(|e| ParseError::InvalidFormat(format!("UDP端口解析失败：{}", e)))?;
+    let file_transfer_id = main_fields[4]
+        .parse::<u32>()
+        .map_err(|e| ParseError::InvalidFormat(format!("文件传输ID解析失败：{}", e)))?;
+    let extra_flag = main_fields[5]
+        .parse::<u32>()
+        .map_err(|e| ParseError::InvalidFormat(format!("附加标志位解析失败：{}", e)))?;
+    let client_version = main_fields[6]
+        .parse::<u32>()
+        .map_err(|e| ParseError::InvalidFormat(format!("客户端版本号解析失败：{}", e)))?;
 
-    // 端口号是十六进制
-    let port = u16::from_str_radix(header_fields[3], 16)
-        .or_else(|_| u16::from_str_radix(header_fields[3], 10))
-        .unwrap_or(2425);
-
-    let _flag1 = header_fields[4]; // 保留字段
-    let _flag2 = header_fields[5]; // 保留字段
-
-    // 命令字
-    let command = u32::from_str_radix(header_fields[6], 16)
-        .or_else(|_| u32::from_str_radix(header_fields[6], 10))
-        .map_err(|_| ParseError::InvalidCommand(header_fields[6].to_string()))?;
-
-    // 消息类型
-    let msg_type = u32::from_str_radix(header_fields[7], 16)
-        .or_else(|_| u32::from_str_radix(header_fields[7], 10))
-        .unwrap_or(0);
-
-    // 解析数据部分 (以 : 分隔)
-    let data_fields: Vec<&str> = data.split(':').collect();
-    if data_fields.len() < 5 {
+    // 3. 拆分扩展信息段（:分隔）
+    let ext_fields: Vec<&str> = main_fields[7].split(':').collect();
+    // 在线广播包固定6个子字段，可根据其他包类型扩展
+    if ext_fields.len() != 6 {
         return Err(ParseError::InvalidFormat(format!(
-            "FeiQ data must have at least 5 fields, found {}",
-            data_fields.len()
+            "飞秋扩展字段数量错误，在线广播包需为6个（当前：{}）",
+            ext_fields.len()
         )));
     }
 
-    let timestamp = data_fields[0]
-        .parse::<u64>()
-        .map_err(|_| ParseError::ParseError("Invalid timestamp".to_string()))?;
+    // 4. 解析扩展信息段
+    let msg_sub_type = ext_fields[0]
+        .parse::<u8>()
+        .map_err(|e| ParseError::InvalidFormat(format!("消息子类型码解析失败：{}", e)))?;
+    let timestamp = ext_fields[1]
+        .parse::<i64>()
+        .map_err(|e| ParseError::InvalidFormat(format!("时间戳解析失败：{}", e)))?;
+    // 转换时间戳为本地时间字符串
+    let timestamp_local = timestamp_to_local(timestamp);
+    let unique_id = ext_fields[2].to_string();
+    let hostname = ext_fields[3].to_string();
+    let nickname = ext_fields[4].to_string();
+    let remark = ext_fields[5].to_string();
 
-    let msg_no = data_fields[1].to_string();
-    let hostname = data_fields[2].to_string();
-    let user_id = data_fields[3].to_string();
-
-    // 剩余部分合并为扩展信息
-    let extension = if data_fields.len() > 5 {
-        Some(data_fields[4..].join(":"))
-    } else if !data_fields[4].is_empty() {
-        Some(data_fields[4].to_string())
-    } else {
-        None
-    };
-
-    Ok(FeiqPacket {
-        protocol_type: ProtocolType::FeiQ,
-        version,
-        command,
-        msg_type: Some(msg_type),
-        sender: format!("{}@{}", hostname, mac_addr),
-        hostname: Some(hostname),
-        mac_addr: Some(mac_addr),
-        receiver: String::new(),
-        msg_no,
-        timestamp: Some(timestamp),
-        user_id: Some(user_id),
-        extension,
-        ip: String::new(),
-        port: Some(port),
+    // 5. 封装最终结构体
+    Ok(FeiQPacket {
+        pkg_type,
+        func_flag,
+        mac_addr_raw,
+        mac_addr_formatted,
+        udp_port,
+        file_transfer_id,
+        extra_flag,
+        client_version,
+        ext_info: FeiQExtInfo {
+            msg_sub_type,
+            timestamp,
+            timestamp_local,
+            unique_id,
+            hostname,
+            nickname,
+            remark,
+        },
     })
 }
 
@@ -228,6 +232,7 @@ fn parse_feiq_packet_ipmsg(s: &str) -> Result<FeiqPacket, ParseError> {
         extension,
         ip: String::new(),
         port: None,
+        feiq_detail: None,
     })
 }
 
@@ -236,9 +241,9 @@ fn parse_feiq_packet_ipmsg(s: &str) -> Result<FeiqPacket, ParseError> {
 /// 用于处理从 UDP socket 接收的原始字节数据
 #[allow(dead_code)]
 pub fn parse_feiq_packet_bytes(bytes: &[u8]) -> Result<FeiqPacket, ParseError> {
-    // 转换为 UTF-8 字符串
-    let s = std::str::from_utf8(bytes)?;
-    parse_feiq_packet(s)
+    // 使用 GBK 解码
+    let s = decode_gbk(bytes)?;
+    parse_feiq_packet(&s)
 }
 
 /// 使用 GBK 编码解码字节数据
@@ -309,29 +314,41 @@ mod tests {
 
     #[test]
     fn test_parse_feiq_basic() {
-        let input = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:SHIKUN-SH:6291459:ssk";
+        let input = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH:6291459:ssk";
         let packet = parse_feiq_packet(input).unwrap();
 
         assert_eq!(packet.protocol_type, ProtocolType::FeiQ);
         assert_eq!(packet.version, "1_lbt6_0");
-        assert_eq!(packet.command, 0x4001);
+        assert_eq!(packet.command, 4001);
         assert_eq!(packet.msg_type, Some(9));
-        assert_eq!(packet.mac_addr, Some("5C60BA7361C6".to_string()));
-        assert_eq!(packet.hostname, Some("SHIKUN-SH".to_string()));
-        assert_eq!(packet.timestamp, Some(1765442982));
-        assert_eq!(packet.user_id, Some("6291459".to_string()));
-        assert_eq!(packet.msg_no, "T0220165");
-        assert_eq!(packet.extension, Some("ssk".to_string()));
+
+        // 检查详细信息
+        assert!(packet.feiq_detail.is_some());
+        let detail = packet.feiq_detail.as_ref().unwrap();
+        assert_eq!(detail.pkg_type, "1_lbt6_0");
+        assert_eq!(detail.func_flag, 128);
+        assert_eq!(detail.mac_addr_formatted, "5C-60-BA-73-61-C6");
+        assert_eq!(detail.udp_port, 6468); // 0x1944
+        assert_eq!(detail.ext_info.msg_sub_type, 9);
+        assert_eq!(detail.ext_info.hostname, "SHIKUN-SH");
+        assert_eq!(detail.ext_info.nickname, "6291459");
+        assert_eq!(detail.ext_info.remark, "ssk");
     }
 
     #[test]
-    fn test_parse_feiq_with_port() {
-        let input = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0220165:HOSTNAME:12345:Hello";
-        let packet = parse_feiq_packet(input).unwrap();
+    fn test_parse_feiq_detail() {
+        let input = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH:6291459:ssk";
+        let detail = parse_feiq_packet_detail(input).unwrap();
 
-        assert_eq!(packet.protocol_type, ProtocolType::FeiQ);
-        assert_eq!(packet.port, Some(6468)); // 0x1944 = 6468 decimal
-        assert_eq!(packet.extension, Some("Hello".to_string()));
+        assert_eq!(detail.pkg_type, "1_lbt6_0");
+        assert_eq!(detail.func_flag, 128);
+        assert_eq!(detail.mac_addr_formatted, "5C-60-BA-73-61-C6");
+        assert_eq!(detail.udp_port, 6468);
+        assert_eq!(detail.ext_info.timestamp_local, "2025-11-29 18:49:42");
+        assert_eq!(detail.ext_info.unique_id, "T0170006");
+        assert_eq!(detail.ext_info.hostname, "SHIKUN-SH");
+        assert_eq!(detail.ext_info.nickname, "6291459");
+        assert_eq!(detail.ext_info.remark, "ssk");
     }
 
     #[test]
@@ -360,5 +377,22 @@ mod tests {
         assert_eq!(packet.command, IPMSG_BR_ENTRY);
         assert_eq!(packet.sender, "user@PC-001.port2425");
         assert_eq!(packet.receiver, "");
+    }
+
+    #[test]
+    fn test_formated_mac() {
+        let input = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH:6291459:ssk";
+        let packet = parse_feiq_packet(input).unwrap();
+
+        assert_eq!(packet.formatted_mac(), Some("5C-60-BA-73-61-C6".to_string()));
+    }
+
+    #[test]
+    fn test_local_timestamp() {
+        let input = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH:6291459:ssk";
+        let packet = parse_feiq_packet(input).unwrap();
+
+        let local_ts = packet.local_timestamp().unwrap();
+        assert!(local_ts.contains("2025"));
     }
 }
