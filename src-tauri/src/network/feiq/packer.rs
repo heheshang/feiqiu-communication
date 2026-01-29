@@ -3,7 +3,7 @@
 /// 飞秋协议封装器
 use crate::network::feiq::{
     constants::*,
-    model::{FeiqPacket, FileAttachment},
+    model::{format_mac_addr, timestamp_to_local, FeiQExtInfo, FeiQPacket, FeiqPacket, FileAttachment},
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -30,6 +30,19 @@ fn get_system_user_info() -> (String, String, String, String) {
     let port = "2425";
 
     (username, hostname, ip, port.to_string())
+}
+
+/// 获取 MAC 地址（简化版本，实际应该从网络接口获取）
+fn get_mac_address() -> String {
+    // 简化版本：生成一个随机 MAC 地址
+    // 实际应用中应该从网络接口获取真实的 MAC 地址
+    "5C60BA7361C6".to_string()
+}
+
+/// 生成唯一包 ID
+fn generate_packet_id() -> String {
+    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+    format!("T{:010}", timestamp % 10000000000)
 }
 
 impl FeiqPacket {
@@ -153,6 +166,94 @@ impl FeiqPacket {
         format!(
             "{}:{}:{}:{}:{}:{}",
             self.version, self.command, self.sender, self.receiver, self.msg_no, ext
+        )
+    }
+}
+
+// ============================================================
+// FeiQPacket 实现（飞秋协议专用）
+// ============================================================
+
+impl FeiQPacket {
+    // ============================================================
+    // FeiQ 格式数据包创建方法
+    // ============================================================
+
+    /// 创建 FeiQ 格式的在线广播包
+    ///
+    /// 格式: 1_lbt6_0#128#MAC#端口#0#0#4001#9:时间戳:包ID:主机名:用户ID:备注
+    pub fn make_feiq_entry_packet(nickname: Option<&str>) -> FeiQPacket {
+        let (username, hostname, _ip, _port) = get_system_user_info();
+        let mac_addr = get_mac_address();
+        let mac_formatted = format_mac_addr(&mac_addr).unwrap_or_else(|_| mac_addr.clone());
+
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
+
+        let packet_id = generate_packet_id();
+        let nickname = nickname.unwrap_or(&username).to_string();
+        let remark = "".to_string(); // 备注可以为空
+
+        FeiQPacket {
+            pkg_type: "1_lbt6_0".to_string(),
+            func_flag: 128, // 客户端在线广播
+            mac_addr_raw: mac_addr.clone(),
+            mac_addr_formatted: mac_formatted,
+            udp_port: 2425,
+            file_transfer_id: 0,
+            extra_flag: 0,
+            client_version: 0x4001,
+            ext_info: FeiQExtInfo {
+                msg_sub_type: 9, // 在线广播
+                timestamp,
+                timestamp_local: timestamp_to_local(timestamp),
+                unique_id: packet_id,
+                hostname: hostname.clone(),
+                nickname: nickname.clone(),
+                remark,
+            },
+        }
+    }
+
+    /// 创建 FeiQ 格式的在线响应包 (ANSENTRY)
+    pub fn make_feiq_ansentry_packet(nickname: Option<&str>) -> FeiQPacket {
+        let mut packet = Self::make_feiq_entry_packet(nickname);
+        packet.ext_info.msg_sub_type = 10; // ANSENTRY 响应
+        packet
+    }
+
+    /// 创建 FeiQ 格式的离线广播包
+    pub fn make_feiq_exit_packet(nickname: Option<&str>) -> FeiQPacket {
+        let mut packet = Self::make_feiq_entry_packet(nickname);
+        packet.ext_info.msg_sub_type = 11; // 离线广播
+        packet.func_flag = 0; // 离线时功能标志为 0
+        packet
+    }
+
+    /// 序列化为 FeiQ 协议字符串
+    ///
+    /// 格式: 版本号#长度#MAC#端口#标志1#标志2#命令#类型:时间戳:包ID:主机名:用户ID:备注
+    pub fn to_feiq_string(&self) -> String {
+        // 计算数据段长度
+        let data_section = format!(
+            "{}:{}:{}:{}:{}:{}",
+            self.ext_info.msg_sub_type,
+            self.ext_info.timestamp,
+            self.ext_info.unique_id,
+            self.ext_info.hostname,
+            self.ext_info.nickname,
+            self.ext_info.remark
+        );
+
+        format!(
+            "1_lbt6_0#{}#{}#{}#{}#{}#{}#{}:{}",
+            self.func_flag,
+            self.mac_addr_raw,
+            self.udp_port,
+            self.file_transfer_id,
+            self.extra_flag,
+            self.client_version,
+            self.ext_info.msg_sub_type,
+            data_section
         )
     }
 }

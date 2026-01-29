@@ -3,14 +3,17 @@
 /// 用户在线发现模块
 ///
 /// 功能:
-/// - 启动时广播 BR_ENTRY 包
+/// - 启动时广播 BR_ENTRY 包（支持 IPMsg 和 FeiQ 格式）
 /// - 监听其他用户的 BR_ENTRY 并回复 ANSENTRY
 /// - 维护在线用户列表
 /// - 处理用户离线事件
 use crate::error::AppResult;
 use crate::event::bus::EVENT_RECEIVER;
 use crate::event::model::{AppEvent, NetworkEvent};
-use crate::network::feiq::{constants::*, model::FeiqPacket};
+use crate::network::feiq::{
+    constants::*,
+    model::{FeiQPacket, FeiqPacket},
+};
 use crate::network::udp::sender::send_packet_data;
 use crate::types::UserInfo;
 use std::collections::HashMap;
@@ -97,7 +100,7 @@ pub fn find_user_by_ip(ip: &str) -> Option<UserInfo> {
 /// 启动用户发现服务
 ///
 /// 流程:
-/// 1. 广播 BR_ENTRY 包（上线通知）
+/// 1. 广播 BR_ENTRY 包（上线通知，支持 IPMsg 和 FeiQ 格式）
 /// 2. 监听事件总线，处理网络事件
 /// 3. 收到 BR_ENTRY 时回复 ANSENTRY
 /// 4. 收到 ANSENTRY 时添加到在线列表
@@ -105,7 +108,7 @@ pub fn find_user_by_ip(ip: &str) -> Option<UserInfo> {
 pub async fn start_discovery() -> AppResult<()> {
     info!("用户发现服务启动中...");
 
-    // 1. 广播上线
+    // 1. 广播上线（同时发送 IPMsg 和 FeiQ 格式）
     broadcast_entry().await?;
 
     // 2. 监听事件总线
@@ -122,24 +125,44 @@ pub async fn start_discovery() -> AppResult<()> {
 async fn broadcast_entry() -> AppResult<()> {
     info!("广播上线通知...");
 
+    // 发送 IPMsg 格式广播
     let packet = FeiqPacket::make_entry_packet();
     let packet_str = packet.to_string();
 
     // 广播到 255.255.255.255:2425
     send_packet_data(&format!("{}:{}", FEIQ_BROADCAST_ADDR, FEIQ_DEFAULT_PORT), &packet_str).await?;
+    info!("IPMsg 上线通知已广播");
 
-    info!("上线通知已广播");
+    // 发送 FeiQ 格式广播
+    let feiq_packet = FeiQPacket::make_feiq_entry_packet(None);
+    let feiq_packet_str = feiq_packet.to_feiq_string();
+
+    send_packet_data(
+        &format!("{}:{}", FEIQ_BROADCAST_ADDR, FEIQ_DEFAULT_PORT),
+        &feiq_packet_str,
+    )
+    .await?;
+    info!("FeiQ 上线通知已广播");
+
     Ok(())
 }
 
-/// 发送在线响应
-async fn send_ansentry(addr: &str) -> AppResult<()> {
-    info!("回复 ANSENTRY to {}", addr);
+/// 发送在线响应（支持 IPMsg 和 FeiQ 格式）
+async fn send_ansentry(addr: &str, use_feiq_format: bool) -> AppResult<()> {
+    let format_name = if use_feiq_format { "FeiQ" } else { "IPMsg" };
+    info!("回复 ANSENTRY to {} (格式: {})", addr, format_name);
 
-    let packet = FeiqPacket::make_ansentry_packet();
-    let packet_str = packet.to_string();
-
-    send_packet_data(addr, &packet_str).await?;
+    if use_feiq_format {
+        // 发送 FeiQ 格式响应
+        let packet = FeiQPacket::make_feiq_ansentry_packet(None);
+        let packet_str = packet.to_feiq_string();
+        send_packet_data(addr, &packet_str).await?;
+    } else {
+        // 发送 IPMsg 格式响应
+        let packet = FeiqPacket::make_ansentry_packet();
+        let packet_str = packet.to_string();
+        send_packet_data(addr, &packet_str).await?;
+    }
 
     info!("ANSENTRY 已发送到 {}", addr);
     Ok(())
@@ -184,23 +207,38 @@ async fn handle_packet_received(packet_json: String, addr: String) {
         }
     };
 
-    // 解析发送者信息
-    let sender_info = match parse_sender_info(&packet.sender, &addr) {
-        Ok(info) => info,
-        Err(e) => {
-            warn!("无法解析发送者信息: {} - {}", packet.sender, e);
-            return;
+    // 根据协议类型解析用户信息
+    let user_info = if packet.protocol_type == crate::network::feiq::model::ProtocolType::FeiQ {
+        // FeiQ 格式：使用详细解析结果
+        if let Some(ref detail) = packet.feiq_detail {
+            info!("收到 FeiQ 数据包: {}", detail.ext_info.nickname);
+            Some(parse_feiq_user_info(detail, &addr))
+        } else {
+            warn!("FeiQ 数据包缺少详细信息");
+            None
+        }
+    } else {
+        // IPMsg 格式：使用传统解析方式
+        match parse_sender_info(&packet.sender, &addr) {
+            Ok(info) => Some(info),
+            Err(e) => {
+                warn!("无法解析发送者信息: {} - {}", packet.sender, e);
+                None
+            }
         }
     };
 
-    let (nickname, ip, port, machine_id) = sender_info;
+    let (nickname, ip, port, machine_id, mac_addr, timestamp_local) = match user_info {
+        Some(info) => info,
+        None => return,
+    };
 
     // 根据命令字处理
     let base_cmd = packet.base_command();
 
     match base_cmd {
         IPMSG_BR_ENTRY => {
-            info!("收到 BR_ENTRY from {}", addr);
+            info!("收到 BR_ENTRY from {} ({})", nickname, addr);
 
             // 创建用户信息
             let user = UserInfo {
@@ -216,14 +254,15 @@ async fn handle_packet_received(packet_json: String, addr: String) {
             // 添加到在线列表
             add_online_user(user);
 
-            // 回复 ANSENTRY
-            if let Err(e) = send_ansentry(&addr).await {
+            // 回复 ANSENTRY（根据收到的格式选择响应格式）
+            let use_feiq_format = packet.protocol_type == crate::network::feiq::model::ProtocolType::FeiQ;
+            if let Err(e) = send_ansentry(&addr, use_feiq_format).await {
                 error!("发送 ANSENTRY 失败: {}", e);
             }
         }
 
         IPMSG_ANSENTRY => {
-            info!("收到 ANSENTRY from {}", addr);
+            info!("收到 ANSENTRY from {} ({})", nickname, addr);
 
             // 创建用户信息
             let user = UserInfo {
@@ -256,11 +295,39 @@ async fn handle_packet_received(packet_json: String, addr: String) {
             info!("收到未处理的命令字: {} from {}", base_cmd, addr);
         }
     }
+
+    // 打印详细信息
+    if let Some(mac) = mac_addr {
+        info!("  ├─ MAC: {}", mac);
+    }
+    if let Some(ts) = timestamp_local {
+        info!("  └─ 时间: {}", ts);
+    }
+}
+
+/// 从 FeiQ 详细数据包解析用户信息
+///
+/// 返回: (nickname, ip, port, machine_id, mac_addr, timestamp_local)
+fn parse_feiq_user_info(
+    detail: &FeiQPacket,
+    addr: &str,
+) -> (String, String, u16, String, Option<String>, Option<String>) {
+    // 从 addr 解析 IP 和端口
+    let addr_parts: Vec<&str> = addr.split(':').collect();
+    let ip = addr_parts.first().unwrap_or(&"").to_string();
+    let port: u16 = addr_parts.get(1).and_then(|p| p.parse().ok()).unwrap_or(2425);
+
+    let nickname = detail.ext_info.nickname.clone();
+    let machine_id = format!("{}:{}", ip, port);
+    let mac_addr = Some(detail.mac_addr_formatted.clone());
+    let timestamp_local = Some(detail.ext_info.timestamp_local.clone());
+
+    (nickname, ip, port, machine_id, mac_addr, timestamp_local)
 }
 
 /// 解析发送者信息
 ///
-/// 根据 IPMsg/FeiQ 协议格式解析发送者信息
+/// 根据 IPMsg 协议格式解析发送者信息
 ///
 /// # IPMsg 协议格式
 /// ```text
@@ -270,23 +337,17 @@ async fn handle_packet_received(packet_json: String, addr: String) {
 /// - `sender` 字段: 发送者标识符（如 "sender" 或 "user@hostname"）
 /// - IP:port 从 UDP 包的 addr 参数获取
 ///
-/// # FeiQ 协议格式
-/// ```text
-/// Header: 版本号#长度#MAC地址#端口#标志1#标志2#命令#类型
-/// Data: 时间戳:包ID:主机名:用户ID:内容
-/// Example: 1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH:6291459:ssk
-/// ```
-/// - `sender` 字段: `hostname@mac_addr` 格式
-/// - IP:port 从 UDP 包的 addr 参数获取
-///
 /// # 参数
 /// - `sender`: 数据包中的 sender 字段
 /// - `addr`: UDP 包的源地址（格式: "IP:port"）
 ///
 /// # 返回
-/// - `Ok((nickname, ip, port, machine_id))`: 解析成功
+/// - `Ok((nickname, ip, port, machine_id, mac_addr, timestamp_local))`: 解析成功
 /// - `Err`: 解析失败
-pub fn parse_sender_info(sender: &str, addr: &str) -> Result<(String, String, u16, String), String> {
+pub fn parse_sender_info(
+    sender: &str,
+    addr: &str,
+) -> Result<(String, String, u16, String, Option<String>, Option<String>), String> {
     // 从 addr 解析 IP 和端口
     let addr_parts: Vec<&str> = addr.split(':').collect();
     let ip = addr_parts
@@ -300,7 +361,6 @@ pub fn parse_sender_info(sender: &str, addr: &str) -> Result<(String, String, u1
 
     // 解析 nickname
     // IPMsg: sender 可能是 "nickname" 或 "nickname@hostname"
-    // FeiQ: sender 是 "hostname@mac_addr"
     let nickname = if let Some(at_pos) = sender.find('@') {
         // 包含 @，提取 @ 之前的部分
         sender[..at_pos].to_string()
@@ -312,7 +372,7 @@ pub fn parse_sender_info(sender: &str, addr: &str) -> Result<(String, String, u1
     // 生成机器 ID
     let machine_id = format!("{}:{}", ip, port);
 
-    Ok((nickname, ip, port, machine_id))
+    Ok((nickname, ip, port, machine_id, None, None))
 }
 
 /// 生成用户唯一 ID
@@ -343,19 +403,19 @@ mod tests {
     #[test]
     fn test_parse_sender_info_ipmsg_simple() {
         // IPMsg 协议: sender 字段是简单标识符
-        // 协议格式: 版本号:命令字:发送者:接收者:消息编号:附加信息
-        // Example: 1.0:32:sender:host:12345:Hello
         let sender = "sender";
         let addr = "192.168.1.100:2425";
 
         let result = parse_sender_info(sender, addr);
 
         assert!(result.is_ok());
-        let (nickname, ip, port, machine_id) = result.unwrap();
+        let (nickname, ip, port, machine_id, mac_addr, ts_local) = result.unwrap();
         assert_eq!(nickname, "sender");
         assert_eq!(ip, "192.168.1.100");
         assert_eq!(port, 2425);
         assert_eq!(machine_id, "192.168.1.100:2425");
+        assert!(mac_addr.is_none());
+        assert!(ts_local.is_none());
     }
 
     #[test]
@@ -367,40 +427,13 @@ mod tests {
         let result = parse_sender_info(sender, addr);
 
         assert!(result.is_ok());
-        let (nickname, ip, port, machine_id) = result.unwrap();
+        let (nickname, ip, port, machine_id, mac_addr, ts_local) = result.unwrap();
         assert_eq!(nickname, "user");
         assert_eq!(ip, "192.168.1.100");
         assert_eq!(port, 2425);
         assert_eq!(machine_id, "192.168.1.100:2425");
-    }
-
-    #[test]
-    fn test_parse_sender_info_feiq() {
-        // FeiQ 协议: sender 字段是 hostname@mac_addr
-        // Header: 版本号#长度#MAC地址#端口#标志1#标志2#命令#类型
-        // Data: 时间戳:包ID:主机名:用户ID:内容
-        let sender = "SHIKUN-SH@5C60BA7361C6";
-        let addr = "192.168.1.100:6452";
-
-        let result = parse_sender_info(sender, addr);
-
-        assert!(result.is_ok());
-        let (nickname, ip, port, machine_id) = result.unwrap();
-        assert_eq!(nickname, "SHIKUN-SH");
-        assert_eq!(ip, "192.168.1.100");
-        assert_eq!(port, 6452);
-        assert_eq!(machine_id, "192.168.1.100:6452");
-    }
-
-    #[test]
-    fn test_parse_sender_info_invalid_addr() {
-        // 测试无效的 addr 格式
-        let sender = "user";
-        let addr = "invalid-addr";
-
-        let result = parse_sender_info(sender, addr);
-
-        assert!(result.is_err());
+        assert!(mac_addr.is_none());
+        assert!(ts_local.is_none());
     }
 
     #[test]

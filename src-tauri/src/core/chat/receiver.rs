@@ -176,8 +176,9 @@ impl MessageReceiver {
     /// 解析发送者信息
     fn parse_sender_info(addr: &str, sender: &str) -> Result<(String, u16, String), String> {
         // Use the public version from contact::discovery
-        // The signature there is (sender, addr) -> (nickname, ip, port, machine_id)
-        let (nickname, ip, port, _machine_id) = crate::core::contact::discovery::parse_sender_info(sender, addr)?;
+        // The signature there is (sender, addr) -> (nickname, ip, port, machine_id, mac_addr, timestamp_local)
+        let (nickname, ip, port, _machine_id, _mac_addr, _timestamp_local) =
+            crate::core::contact::discovery::parse_sender_info(sender, addr)?;
         Ok((ip, port, nickname))
     }
 
@@ -237,7 +238,7 @@ mod tests {
         let result = parse_sender_info(sender, addr);
         assert!(result.is_ok());
 
-        let (nickname, ip, port, _machine_id) = result.unwrap();
+        let (nickname, ip, port, _machine_id, _mac_addr, _timestamp_local) = result.unwrap();
         assert_eq!(ip, "192.168.1.100");
         assert_eq!(port, 2425);
         assert_eq!(nickname, "testuser");
@@ -251,7 +252,7 @@ mod tests {
         let result = parse_sender_info(sender, addr);
         assert!(result.is_ok());
 
-        let (nickname, ip, port, _machine_id) = result.unwrap();
+        let (nickname, ip, port, _machine_id, _mac_addr, _timestamp_local) = result.unwrap();
         assert_eq!(ip, "192.168.1.100");
         assert_eq!(port, 2425);
         assert_eq!(nickname, "simpleuser");
