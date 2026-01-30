@@ -272,16 +272,42 @@ async fn event_loop(app_handle: tauri::AppHandle) {
 /// 处理网络事件
 async fn handle_network_event(event: crate::event::model::NetworkEvent, _app_handle: &tauri::AppHandle) {
     match event {
-        crate::event::model::NetworkEvent::PacketReceived { packet, addr } => {
-            info!("收到数据包: {} from {}", packet, addr);
-            // 数据包解析和处理由 discovery 模块的事件循环处理
-            // 这里只记录日志用于调试
-        }
-        crate::event::model::NetworkEvent::UserOnline { user } => {
-            info!("用户上线事件: {}", user);
+        crate::event::model::NetworkEvent::UserOnline { ip, port, nickname, hostname, mac_addr } => {
+            info!("用户上线事件: {} ({}:{})", nickname, ip, port);
+            if let Some(h) = hostname {
+                info!("  主机名: {}", h);
+            }
+            if let Some(m) = mac_addr {
+                info!("  MAC: {}", m);
+            }
         }
         crate::event::model::NetworkEvent::UserOffline { ip } => {
             info!("用户离线事件: {}", ip);
+        }
+        crate::event::model::NetworkEvent::UserPresenceResponse { ip, port, nickname, hostname } => {
+            info!("用户在线应答: {} ({}:{})", nickname, ip, port);
+            if let Some(h) = hostname {
+                info!("  主机名: {}", h);
+            }
+        }
+        crate::event::model::NetworkEvent::MessageReceived { sender_ip, sender_port, sender_nickname, content, msg_no, needs_receipt } => {
+            info!("收到消息: {} from {}:{}", msg_no, sender_ip, sender_port);
+            info!("  发送者: {}", sender_nickname);
+            info!("  内容: {}", content);
+            info!("  需要确认: {}", needs_receipt);
+        }
+        crate::event::model::NetworkEvent::MessageReceiptReceived { msg_no } => {
+            info!("收到消息确认: {}", msg_no);
+        }
+        crate::event::model::NetworkEvent::MessageRead { msg_no } => {
+            info!("消息已读: {}", msg_no);
+        }
+        crate::event::model::NetworkEvent::MessageDeleted { msg_no } => {
+            info!("消息已删除: {}", msg_no);
+        }
+        crate::event::model::NetworkEvent::FileRequestReceived { from_ip, files } => {
+            info!("收到文件请求: from {}", from_ip);
+            info!("  文件信息: {}", files);
         }
         crate::event::model::NetworkEvent::UserUpdated { user } => {
             info!("用户更新事件: {}", user);
@@ -337,6 +363,8 @@ async fn main() {
             ipc::group::remove_group_member_handler,
             ipc::group::update_member_role_handler,
             ipc::group::get_user_groups_handler,
+            ipc::group::update_group_info_handler,
+            ipc::group::delete_group_handler,
         ])
         // 应用启动事件
         .setup(|app| {

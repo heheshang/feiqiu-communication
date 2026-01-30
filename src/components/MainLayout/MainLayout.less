@@ -173,3 +173,76 @@
     }
   }
 }
+
+// ============================================================
+// 标签页切换 (Tab Switcher)
+// ============================================================
+
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid @border-color;
+  background-color: @bg-white;
+  margin: 0;
+  padding: 0;
+
+  .tab-button {
+    flex: 1;
+    padding: @spacing-md;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: @text-secondary;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: @hover-bg;
+      color: @text-primary;
+    }
+
+    &.active {
+      color: @primary-color;
+      border-bottom-color: @primary-color;
+    }
+  }
+}
+
+// ============================================================
+// 群组列表容器
+// ============================================================
+
+.groups-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.groups-header {
+  padding: @spacing-md;
+  border-bottom: 1px solid @border-color;
+  background-color: @bg-white;
+
+  .create-group-btn {
+    width: 100%;
+    padding: @spacing-sm @spacing-md;
+    background-color: @primary-color;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: @transition-fast;
+
+    &:hover {
+      opacity: 0.9;
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}

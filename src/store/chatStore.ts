@@ -13,23 +13,23 @@ interface ChatState {
   sendingMessages: Set<number>; // 正在发送的消息 ID 集合
 
   // 操作方法 - 会话
-  fetchSessions: (ownerUid: number) => Promise<void>;
+  fetchSessions: (fetchFn: () => Promise<ChatSession[]>) => Promise<void>;
   setSessions: (sessions: ChatSession[]) => void;
   setCurrentSession: (session: ChatSession | null) => void;
   updateSession: (sessionId: number, updates: Partial<ChatSession>) => void;
-  clearUnreadCount: (sessionId: number) => Promise<void>;
+  clearUnreadCount: (sessionId: number) => void;
 
   // 操作方法 - 消息
-  fetchMessages: (sessionType: SessionType, targetId: number, page?: number) => Promise<void>;
+  fetchMessages: (
+    sessionType: SessionType,
+    targetId: number,
+    fetchFn: () => Promise<ChatMessage[]>
+  ) => Promise<void>;
   addMessage: (sessionId: number, message: ChatMessage) => void;
   addMessages: (sessionId: number, messages: ChatMessage[]) => void;
   updateMessageStatus: (msgId: number, status: MessageStatus) => void;
-  markMessagesAsRead: (
-    sessionType: SessionType,
-    targetId: number,
-    ownerUid: number
-  ) => Promise<void>;
-  retrySendMessage: (message: ChatMessage, ownerUid: number) => Promise<void>;
+  markMessagesAsRead: () => void;
+  retrySendMessage: (message: ChatMessage, retrySendFn: () => Promise<void>) => Promise<void>;
 
   // 辅助方法
   getMessagesBySession: (sessionId: number) => ChatMessage[];
@@ -47,15 +47,11 @@ export const useChatStore = create<ChatState>()(
     sendingMessages: new Set(),
 
     // 获取会话列表
-    fetchSessions: async (ownerUid: number) => {
+    fetchSessions: async (fetchFn: () => Promise<ChatSession[]>) => {
       set({ isLoadingSessions: true });
 
       try {
-        const { useIPC } = await import('../hooks/useIPC');
-        const ipc = useIPC();
-
-        const sessions = await ipc.chat.getSessionList(ownerUid);
-
+        const sessions = await fetchFn();
         set({ sessions, isLoadingSessions: false });
       } catch (error) {
         console.error('Failed to fetch sessions:', error);
@@ -81,30 +77,16 @@ export const useChatStore = create<ChatState>()(
       })),
 
     // 清除未读消息数
-    clearUnreadCount: async (sessionId) => {
-      const { currentSession } = get();
-      if (!currentSession) return;
-
-      try {
-        const { useIPC } = await import('../hooks/useIPC');
-        const ipc = useIPC();
-
-        await ipc.chat.markMessagesRead(
-          currentSession.session_type,
-          currentSession.target_id,
-          currentSession.owner_uid
-        );
-
-        // 更新本地状态
-        get().updateSession(sessionId, { unread_count: 0 });
-      } catch (error) {
-        console.error('Failed to clear unread count:', error);
-        throw error;
-      }
+    clearUnreadCount: (sessionId) => {
+      get().updateSession(sessionId, { unread_count: 0 });
     },
 
     // 获取消息历史
-    fetchMessages: async (sessionType, targetId, page = 1) => {
+    fetchMessages: async (
+      sessionType: SessionType,
+      targetId: number,
+      fetchFn: () => Promise<ChatMessage[]>
+    ) => {
       const sessionId = `${sessionType}-${targetId}`;
 
       set((state) => ({
@@ -112,10 +94,7 @@ export const useChatStore = create<ChatState>()(
       }));
 
       try {
-        const { useIPC } = await import('../hooks/useIPC');
-        const ipc = useIPC();
-
-        const messages = await ipc.chat.getHistory(sessionType, targetId, page, 50);
+        const messages = await fetchFn();
 
         // 更新消息列表
         set((state) => {
@@ -192,35 +171,18 @@ export const useChatStore = create<ChatState>()(
       }),
 
     // 标记消息已读
-    markMessagesAsRead: async (sessionType, targetId, ownerUid) => {
-      try {
-        const { useIPC } = await import('../hooks/useIPC');
-        const ipc = useIPC();
-
-        await ipc.chat.markMessagesRead(sessionType, targetId, ownerUid);
-      } catch (error) {
-        console.error('Failed to mark messages as read:', error);
-        throw error;
-      }
+    markMessagesAsRead: () => {
+      // Store only manages state, IPC calls are handled by hooks
     },
 
     // 重试发送消息
-    retrySendMessage: async (message, ownerUid) => {
+    retrySendMessage: async (message: ChatMessage, retrySendFn: () => Promise<void>) => {
       set((state) => ({
         sendingMessages: new Set(state.sendingMessages).add(message.mid),
       }));
 
       try {
-        const { useIPC } = await import('../hooks/useIPC');
-        const ipc = useIPC();
-
-        await ipc.chat.retrySendMessage(
-          message.mid,
-          message.session_type,
-          message.target_id,
-          ownerUid
-        );
-
+        await retrySendFn();
         get().updateMessageStatus(message.mid, 1); // 已发送
       } catch (error) {
         console.error('Failed to retry send message:', error);

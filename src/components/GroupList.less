@@ -1,0 +1,102 @@
+// src/components/GroupList.less
+//
+/// 群组列表样式
+
+@import url('../styles/variables.less');
+@import url('../styles/mixins.less');
+
+.group-list {
+  height: 100%;
+  overflow-y: auto;
+  .custom-scrollbar();
+
+  h2 {
+    margin: 0;
+    padding: @spacing-lg;
+    font-size: 16px;
+    font-weight: 600;
+    color: @text-primary;
+    border-bottom: 1px solid @border-color;
+    background-color: @bg-white;
+  }
+
+  p {
+    padding: @spacing-xl @spacing-lg;
+    text-align: center;
+    color: @text-secondary;
+    font-size: 14px;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .group-item {
+    display: flex;
+    align-items: center;
+    padding: @spacing-md @spacing-lg;
+    cursor: pointer;
+    transition: @transition-fast;
+    border-bottom: 1px solid @border-color;
+
+    &:hover {
+      background-color: @hover-bg;
+    }
+
+    &.active {
+      background-color: @active-bg;
+    }
+
+    .group-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      background-color: lighten(@primary-color, 40%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: @spacing-md;
+      flex-shrink: 0;
+      color: darken(@primary-color, 10%);
+      font-weight: 600;
+      font-size: 16px;
+
+      img {
+        width: 100%;
+        height: 100%;
+        border-radius: 4px;
+        object-fit: cover;
+      }
+    }
+
+    .group-info {
+      flex: 1;
+      min-width: 0;
+
+      .group-name {
+        font-size: 14px;
+        font-weight: 500;
+        color: @text-primary;
+        margin-bottom: 2px;
+        .ellipsis();
+      }
+
+      .group-meta {
+        font-size: 12px;
+        color: @text-secondary;
+        .ellipsis();
+      }
+    }
+
+    .group-badge {
+      padding: 2px 6px;
+      background-color: @status-offline;
+      color: @text-white;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+  }
+}

@@ -22,5 +22,5 @@
     "declaration-property-value-no-unknown": null,
     "no-duplicate-selectors": null
   },
-  "ignoreFiles": ["node_modules/**", "dist/**"]
+  "ignoreFiles": ["node_modules/**", "dist/**", "coverage/**"]
 }

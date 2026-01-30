@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect } from 'react';
 import { useUserStore } from '../store';
+import { contactService } from '../services';
 import type { UserInfo, UserSearchParams } from '../types';
 
 export function useContact() {
@@ -82,11 +83,14 @@ export function useContact() {
 
   /** 刷新在线用户列表 */
   const refreshOnlineUsers = useCallback(async () => {
-    const { useIPC } = await import('./useIPC');
-    const ipc = useIPC();
+    const { currentUser } = useUserStore.getState();
+    if (!currentUser) {
+      console.error('No current user found');
+      return;
+    }
 
     try {
-      const users = await ipc.contact.getOnlineUsers();
+      const users = await contactService.getOnlineUsers(currentUser.uid);
       setOnlineUsers(users);
     } catch (error) {
       console.error('Failed to refresh online users:', error);

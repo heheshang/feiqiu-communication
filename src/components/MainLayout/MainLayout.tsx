@@ -7,6 +7,9 @@ import React, { useState, useEffect } from 'react';
 import { SessionList } from '../SessionList/SessionList';
 import ContactList from '../Contact/ContactList';
 import ChatWindow from '../ChatWindow/ChatWindow';
+import { GroupList } from '../GroupList';
+import { CreateGroupDialog } from '../CreateGroupDialog';
+import GroupChatWindow from '../GroupChatWindow';
 import { useUser } from '../../hooks/useUser';
 import { useContact } from '../../hooks/useContact';
 import { useChat } from '../../hooks/useChat';
@@ -18,6 +21,8 @@ interface LayoutState {
   selectedUser: UserInfo | null;
   selectedSessionId: number | null;
   viewMode: 'normal' | 'chat' | 'contact';
+  activeTab: 'chats' | 'groups';
+  selectedGroupId: number | null;
 }
 
 const MainLayout: React.FC = () => {
@@ -29,7 +34,11 @@ const MainLayout: React.FC = () => {
     selectedUser: null,
     selectedSessionId: null,
     viewMode: 'normal',
+    activeTab: 'chats',
+    selectedGroupId: null,
   });
+
+  const [createGroupDialogOpen, setCreateGroupDialogOpen] = useState(false);
 
   // 使用 useChat hook 管理聊天状态
   const { messages, loadSessionMessages, selectSession, retryMessage, sendFileMessage, sessions } =
@@ -71,6 +80,8 @@ const MainLayout: React.FC = () => {
       selectedUser: targetUser,
       selectedSessionId: sessionId,
       viewMode: 'chat',
+      activeTab: 'chats',
+      selectedGroupId: null,
     });
   };
 
@@ -79,6 +90,8 @@ const MainLayout: React.FC = () => {
       selectedUser: user,
       selectedSessionId: null,
       viewMode: 'chat',
+      activeTab: 'chats',
+      selectedGroupId: null,
     });
   };
 
@@ -87,6 +100,8 @@ const MainLayout: React.FC = () => {
       selectedUser: null,
       selectedSessionId: null,
       viewMode: 'normal',
+      activeTab: layoutState.activeTab,
+      selectedGroupId: null,
     });
   };
 
@@ -111,6 +126,38 @@ const MainLayout: React.FC = () => {
     }
   };
 
+  // 标签页切换处理
+  const handleTabChange = (tab: 'chats' | 'groups') => {
+    setLayoutState({
+      ...layoutState,
+      activeTab: tab,
+      selectedUser: null,
+      selectedSessionId: null,
+      selectedGroupId: null,
+      viewMode: 'normal',
+    });
+  };
+
+  // 群组选择处理
+  const handleGroupSelect = (groupId: number) => {
+    setLayoutState({
+      ...layoutState,
+      selectedGroupId: groupId,
+      selectedUser: null,
+      selectedSessionId: null,
+      viewMode: 'chat',
+    });
+  };
+
+  // 创建群组对话处理
+  const handleCreateGroupOpen = () => {
+    setCreateGroupDialogOpen(true);
+  };
+
+  const handleCreateGroupClose = () => {
+    setCreateGroupDialogOpen(false);
+  };
+
   // 移动端：返回按钮
   const showBackButton = layoutState.viewMode !== 'normal';
 
@@ -131,10 +178,39 @@ const MainLayout: React.FC = () => {
             </svg>
           </div>
         )}
-        <SessionList
-          selectedUserId={layoutState.selectedUser?.uid}
-          onSessionSelect={handleSessionSelect}
-        />
+
+        {/* 标签页切换 */}
+        <div className="sidebar-tabs">
+          <button
+            className={`tab-button ${layoutState.activeTab === 'chats' ? 'active' : ''}`}
+            onClick={() => handleTabChange('chats')}
+          >
+            Chats
+          </button>
+          <button
+            className={`tab-button ${layoutState.activeTab === 'groups' ? 'active' : ''}`}
+            onClick={() => handleTabChange('groups')}
+          >
+            Groups
+          </button>
+        </div>
+
+        {/* 条件渲染：会话列表或群组列表 */}
+        {layoutState.activeTab === 'chats' ? (
+          <SessionList
+            selectedUserId={layoutState.selectedUser?.uid}
+            onSessionSelect={handleSessionSelect}
+          />
+        ) : (
+          <div className="groups-container">
+            <div className="groups-header">
+              <button className="create-group-btn" onClick={handleCreateGroupOpen}>
+                + Create Group
+              </button>
+            </div>
+            <GroupList onSelectGroup={handleGroupSelect} />
+          </div>
+        )}
       </div>
 
       {/* 中间：通讯录 */}
@@ -157,16 +233,36 @@ const MainLayout: React.FC = () => {
 
       {/* 右侧：聊天窗口 */}
       <div className="layout-chat">
-        <ChatWindow
-          targetUser={layoutState.selectedUser || undefined}
-          sessionType={0}
-          messages={Object.values(messages).flat()}
-          currentUserId={currentUser?.uid}
-          onLoadMore={handleLoadMore}
-          onRetryMessage={handleRetryMessage}
-          onSendFile={handleSendFile}
-        />
+        {layoutState.activeTab === 'chats' ? (
+          <ChatWindow
+            targetUser={layoutState.selectedUser || undefined}
+            sessionType={0}
+            messages={Object.values(messages).flat()}
+            currentUserId={currentUser?.uid}
+            onLoadMore={handleLoadMore}
+            onRetryMessage={handleRetryMessage}
+            onSendFile={handleSendFile}
+          />
+        ) : (
+          <GroupChatWindow
+            gid={layoutState.selectedGroupId || undefined}
+            onGroupDeleted={() => {
+              // Clear the selected group when group is deleted or user leaves
+              setLayoutState((prev) => ({ ...prev, selectedGroupId: null }));
+            }}
+          />
+        )}
       </div>
+
+      {/* 创建群组对话框 */}
+      <CreateGroupDialog
+        isOpen={createGroupDialogOpen}
+        onClose={handleCreateGroupClose}
+        availableMembers={onlineUsers.map((u) => ({
+          id: u.uid.toString(),
+          name: u.nickname,
+        }))}
+      />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 // 状态管理 - 用户状态
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
+import { invoke } from '@tauri-apps/api/core';
 import type { UserInfo } from '../types';
 
 interface UserState {
@@ -58,10 +59,7 @@ export const useUserStore = create<UserState>()(
         // 获取当前用户信息
         fetchCurrentUser: async () => {
           try {
-            const { useIPC } = await import('../hooks/useIPC');
-            const ipc = useIPC();
-
-            const user = await ipc.user.getCurrentUser();
+            const user = await invoke<UserInfo>('get_current_user_handler');
             set({ currentUser: user });
           } catch (error) {
             console.error('Failed to fetch current user:', error);
@@ -77,14 +75,11 @@ export const useUserStore = create<UserState>()(
           }
 
           try {
-            const { useIPC } = await import('../hooks/useIPC');
-            const ipc = useIPC();
-
-            const updatedUser = await ipc.user.updateCurrentUser(
-              currentUser.uid,
-              updates.nickname,
-              updates.avatar
-            );
+            const updatedUser = await invoke<UserInfo>('update_current_user_handler', {
+              uid: currentUser.uid,
+              nickname: updates.nickname,
+              avatar: updates.avatar,
+            });
 
             set({ currentUser: updatedUser });
           } catch (error) {

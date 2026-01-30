@@ -5,6 +5,7 @@ import { useChatStore } from '../store';
 import { useUserStore } from '../store';
 import type { ChatMessage, ChatSession, SessionType } from '../types';
 import { MessageType } from '../types';
+import { chatService } from '../services';
 
 export function useChat() {
   const {
@@ -19,7 +20,6 @@ export function useChat() {
     addMessage,
     updateMessageStatus,
     clearUnreadCount,
-    markMessagesAsRead,
     retrySendMessage,
     getMessagesBySession,
     getSessionByTarget,
@@ -34,14 +34,18 @@ export function useChat() {
       return [];
     }
 
-    await fetchSessions(currentUser.uid);
+    await fetchSessions(async () => await chatService.getSessionList(currentUser.uid));
     return sessions;
   }, [currentUser, fetchSessions, sessions]);
 
   /** 加载会话消息 */
   const loadSessionMessages = useCallback(
     async (sessionType: SessionType, targetId: number, page = 1) => {
-      await fetchMessages(sessionType, targetId, page);
+      await fetchMessages(
+        sessionType,
+        targetId,
+        async () => await chatService.getHistory(sessionType, targetId, page)
+      );
     },
     [fetchMessages]
   );
@@ -72,11 +76,7 @@ export function useChat() {
         throw new Error('No current user found');
       }
 
-      // 使用新的 IPC API
-      const { useIPC } = await import('./useIPC');
-      const ipc = useIPC();
-
-      const mid = await ipc.chat.sendMessage(sessionType, targetId, content, currentUser.uid);
+      const mid = await chatService.sendMessage(sessionType, targetId, content, currentUser.uid);
 
       // 乐观更新：添加一个临时的发送中消息到列表
       const tempMessage: ChatMessage = {
@@ -135,12 +135,13 @@ export function useChat() {
       return;
     }
 
-    await markMessagesAsRead(
+    await chatService.markMessagesRead(
       currentSession.session_type,
       currentSession.target_id,
       currentUser.uid
     );
-  }, [currentSession, currentUser, markMessagesAsRead]);
+    clearUnreadCount(currentSession.sid);
+  }, [currentSession, currentUser]);
 
   /** 重试发送消息 */
   const retryMessage = useCallback(
@@ -149,7 +150,16 @@ export function useChat() {
         throw new Error('No current user found');
       }
 
-      await retrySendMessage(message, currentUser.uid);
+      await retrySendMessage(
+        message,
+        async () =>
+          await chatService.retrySendMessage(
+            message.mid,
+            message.session_type,
+            message.target_id,
+            currentUser.uid
+          )
+      );
     },
     [currentUser, retrySendMessage]
   );

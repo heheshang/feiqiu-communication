@@ -54,4 +54,18 @@ export const groupAPI = {
   getUserGroups: async (userUid: number) => {
     return await invoke<GroupInfo[]>('get_user_groups_handler', { userUid });
   },
+
+  /** 更新群组信息 */
+  updateGroupInfo: async (gid: number, groupName: string, desc: string) => {
+    return await invoke<void>('update_group_info_handler', {
+      gid,
+      groupName,
+      desc,
+    });
+  },
+
+  /** 删除群组 */
+  deleteGroup: async (gid: number) => {
+    return await invoke<void>('delete_group_handler', { gid });
+  },
 };
