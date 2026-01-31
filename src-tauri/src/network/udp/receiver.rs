@@ -8,43 +8,41 @@ use tracing::{debug, error, info, warn};
 
 /// 发布事件到总线（提取为可测试的函数）
 fn publish_event_from_packet(
-    packet: &crate::network::feiq::model::ProtocolPacket,
+    packet: &crate::network::feiq::model::FeiQPacket,
     addr: std::net::SocketAddr,
 ) -> Result<(), String> {
-    use crate::network::feiq::constants::*;
-
     let sender_ip = addr.ip().to_string();
     let sender_port = addr.port();
-    let sender_nickname = packet.sender.clone();
-    let hostname = packet.hostname.clone();
-    let mac_addr = packet.mac_addr.clone();
+    let sender_nickname = packet.ext_info.nickname.clone();
+    let hostname = packet.ext_info.hostname.clone();
+    let mac_addr = Some(packet.mac_addr_formatted.clone());
 
-    let base_cmd = packet.base_command();
-    let event = match base_cmd {
-        IPMSG_BR_ENTRY => {
+    let msg_sub_type = packet.ext_info.msg_sub_type;
+    let event = match msg_sub_type {
+        9 => {
             AppEvent::Network(NetworkEvent::UserOnline {
                 ip: sender_ip,
                 port: sender_port,
                 nickname: sender_nickname,
-                hostname,
+                hostname: Some(hostname),
                 mac_addr,
             })
         }
-        IPMSG_BR_EXIT => {
+        11 => {
             AppEvent::Network(NetworkEvent::UserOffline { ip: sender_ip })
         }
-        IPMSG_ANSENTRY => {
+        10 => {
             AppEvent::Network(NetworkEvent::UserPresenceResponse {
                 ip: sender_ip,
                 port: sender_port,
                 nickname: sender_nickname,
-                hostname,
+                hostname: Some(hostname),
             })
         }
-        IPMSG_SENDMSG => {
-            let content = packet.extension.clone().unwrap_or_default();
-            let msg_no = packet.msg_no.clone();
-            let needs_receipt = packet.has_option(IPMSG_SENDCHECKOPT);
+        0x20 => {
+            let content = packet.ext_info.remark.clone();
+            let msg_no = packet.ext_info.unique_id.clone();
+            let needs_receipt = true;
             AppEvent::Network(NetworkEvent::MessageReceived {
                 sender_ip,
                 sender_port,
@@ -54,21 +52,16 @@ fn publish_event_from_packet(
                 needs_receipt,
             })
         }
-        IPMSG_RECVMSG => {
-            let msg_no = packet.msg_no.clone();
+        0x21 => {
+            let msg_no = packet.ext_info.unique_id.clone();
             AppEvent::Network(NetworkEvent::MessageReceiptReceived { msg_no })
         }
-        IPMSG_READMSG => {
-            let msg_no = packet.msg_no.clone();
+        0x30 => {
+            let msg_no = packet.ext_info.unique_id.clone();
             AppEvent::Network(NetworkEvent::MessageRead { msg_no })
         }
-        IPMSG_DELMSG => {
-            let msg_no = packet.msg_no.clone();
-            AppEvent::Network(NetworkEvent::MessageDeleted { msg_no })
-        }
         _ => {
-            // Unknown command - log for debugging but don't publish event
-            warn!("Unknown command received: 0x{:04X}", base_cmd);
+            warn!("Unknown FeiQ msg_sub_type received: {}", msg_sub_type);
             return Ok(());
         }
     };
@@ -116,9 +109,11 @@ pub async fn start_udp_receiver() -> Result<(), Box<dyn std::error::Error>> {
                 match parse_feiq_packet(&decoded) {
                     Ok(packet) => {
                         info!("✅ [PARSE SUCCESS]");
-                        info!("  ├─ 协议类型: {:?}", packet.protocol_type);
-                        info!("  ├─ 命令字: 0x{:04X} ({})", packet.command, packet.command);
-                        info!("  ├─ 发送者: {}", packet.sender);
+                        info!("  ├─ 版本: {}", packet.pkg_type);
+                        info!("  ├─ 功能标志: {}", packet.func_flag);
+                        info!("  ├─ 消息子类型: {}", packet.ext_info.msg_sub_type);
+                        info!("  ├─ 主机名: {}", packet.ext_info.hostname);
+                        info!("  ├─ 昵称: {}", packet.ext_info.nickname);
 
                         // 发布事件
                         match publish_event_from_packet(&packet, addr) {
@@ -146,7 +141,7 @@ pub async fn start_udp_receiver() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::network::feiq::model::ProtocolPacket;
+    use crate::network::feiq::model::{FeiQPacket, FeiQExtInfo};
     use std::net::{IpAddr, SocketAddr};
 
     fn create_test_addr(ip: &str, port: u16) -> SocketAddr {
@@ -155,17 +150,25 @@ mod tests {
 
     #[test]
     fn test_user_online_event_fields() {
-        let packet = ProtocolPacket::new_ipmsg(
-            "1.0".to_string(),
-            0x00000001, // IPMSG_BR_ENTRY
-            "testuser".to_string(),
-            "".to_string(),
-            "12345".to_string(),
-            None,
-        );
-        let mut packet = packet;
-        packet.hostname = Some("DESKTOP-TEST".to_string());
-        packet.mac_addr = Some("AA:BB:CC:DD:EE:FF".to_string());
+        let packet = FeiQPacket {
+            pkg_type: "1_lbt6_0".to_string(),
+            func_flag: 128,
+            mac_addr_raw: "AABBCCDDEEFF".to_string(),
+            mac_addr_formatted: "AA:BB:CC:DD:EE:FF".to_string(),
+            udp_port: 2425,
+            file_transfer_id: 0,
+            extra_flag: 0,
+            client_version: 0x4001,
+            ext_info: FeiQExtInfo {
+                msg_sub_type: 9,
+                timestamp: 1234567890,
+                timestamp_local: "2023-12-01 12:00:00".to_string(),
+                unique_id: "T0123456789".to_string(),
+                hostname: "DESKTOP-TEST".to_string(),
+                nickname: "testuser".to_string(),
+                remark: "".to_string(),
+            },
+        };
 
         let addr = create_test_addr("192.168.1.100", 2425);
         let result = publish_event_from_packet(&packet, addr);
@@ -175,14 +178,25 @@ mod tests {
 
     #[test]
     fn test_user_offline_event_fields() {
-        let packet = ProtocolPacket::new_ipmsg(
-            "1.0".to_string(),
-            0x00000002, // IPMSG_BR_EXIT
-            "testuser".to_string(),
-            "".to_string(),
-            "12346".to_string(),
-            None,
-        );
+        let packet = FeiQPacket {
+            pkg_type: "1_lbt6_0".to_string(),
+            func_flag: 0,
+            mac_addr_raw: "AABBCCDDEEFF".to_string(),
+            mac_addr_formatted: "AA:BB:CC:DD:EE:FF".to_string(),
+            udp_port: 2425,
+            file_transfer_id: 0,
+            extra_flag: 0,
+            client_version: 0x4001,
+            ext_info: FeiQExtInfo {
+                msg_sub_type: 11,
+                timestamp: 1234567890,
+                timestamp_local: "2023-12-01 12:00:00".to_string(),
+                unique_id: "T0123456789".to_string(),
+                hostname: "DESKTOP-TEST".to_string(),
+                nickname: "testuser".to_string(),
+                remark: "".to_string(),
+            },
+        };
 
         let addr = create_test_addr("192.168.1.101", 2425);
         let result = publish_event_from_packet(&packet, addr);

@@ -5,7 +5,7 @@
 /// Detects the local subnet broadcast address (e.g., 192.168.1.255)
 /// to fix macOS UDP broadcast errors with 255.255.255.255
 use crate::error::{AppError, AppResult};
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::IpAddr;
 
 /// Detect subnet broadcast address
 ///

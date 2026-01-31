@@ -1,11 +1,8 @@
 // src-tauri/src/network/feiq/packer.rs
 //
 /// 飞秋协议封装器
-use crate::network::feiq::{
-    constants::*,
-    model::{FeiQExtInfo, FeiQPacket, FileAttachment},
-    utils::{format_mac_addr, timestamp_to_local},
-};
+use crate::network::feiq::model::{FeiQExtInfo, FeiQPacket};
+use crate::network::feiq::utils::{format_mac_addr, timestamp_to_local};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// 获取当前用户信息
