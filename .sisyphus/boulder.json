@@ -1,9 +1,15 @@
 {
   "active_plan": "/Users/ssk/Documents/project/personal/ai/feiqiu-communication/.sisyphus/plans/udp-socket-refactor.md",
   "started_at": "2026-01-31T00:18:32.641Z",
+  "completed_at": "2026-01-31T07:50:00.000Z",
+  "status": "complete",
   "session_ids": [
     "ses_3f16001a6ffeaOZLk4ZDLeNIVZ",
-    "ses_3f64aa908ffegkH4ugXx9L4IhY"
+    "ses_3f64aa908ffegkH4ugXx9L4IhY",
+    "ses_3ed0db417ffekIa5iqkPPKFqIm"
   ],
-  "plan_name": "udp-socket-refactor"
+  "plan_name": "udp-socket-refactor",
+  "completion_percentage": 100,
+  "tasks_completed": 25,
+  "tasks_total": 25
 }
