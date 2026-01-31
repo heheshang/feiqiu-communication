@@ -584,3 +584,4 @@ $ tauri dev
 [2m2026-01-31T03:25:46.963419Z[0m [32m INFO[0m ThreadId(22) 用户发现事件循环启动
 RemoteLayerTreeDrawingAreaProxyMac::scheduleDisplayLink(): page has no displayID
 RemoteLayerTreeDrawingAreaProxyMac::scheduleDisplayLink(): page has no displayID
+error: script "tauri" was terminated by signal SIGTERM (Polite quit request)

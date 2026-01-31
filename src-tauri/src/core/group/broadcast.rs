@@ -36,7 +36,7 @@ impl GroupBroadcaster {
                 if user.status == 1 {
                     // 发送消息到该成员的 IP:Port
                     let addr = format!("{}:{}", user.feiq_ip, user.feiq_port);
-                    if let Err(_) = sender::send_packet(&addr, packet).await {
+                    if sender::send_packet(&addr, packet).await.is_err() {
                         // 记录发送失败但继续发送给其他成员
                         tracing::warn!("Failed to send group message to {}", addr);
                     } else {

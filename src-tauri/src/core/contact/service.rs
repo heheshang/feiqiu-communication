@@ -140,7 +140,7 @@ impl ContactService {
                 uid: u.uid,
                 nickname: u.nickname,
                 feiq_ip: u.feiq_ip,
-                feiq_port: u.feiq_port as u16,
+                feiq_port: u.feiq_port,
                 feiq_machine_id: u.feiq_machine_id,
                 avatar: u.avatar,
                 status: u.status,
