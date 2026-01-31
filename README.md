@@ -38,6 +38,20 @@ A LAN instant messaging application built with Tauri 2.0 + Rust + React, impleme
 - **FeiQ**: Extended protocol with additional features
 - **UDP**: User Datagram Protocol for broadcast messaging
 
+## Documentation
+
+- 📖 **[用户指南 (User Guide)](docs/USER_GUIDE.md)** - Comprehensive user guide with tutorials and tips
+- 🔧 **[故障排除 (Troubleshooting)](docs/TROUBLESHOOTING.md)** - Solutions to common issues and problems
+- ❓ **[常见问题 (FAQ)](docs/FAQ.md)** - Frequently asked questions and answers
+
+## Quick Start
+
+1. **Install dependencies** (see [Prerequisites](#prerequisites) below)
+2. **Run development mode**: `bun run tauri dev`
+3. **Build for production**: `bun run tauri build`
+
+For detailed setup instructions, see the [Installation](#installation) section below.
+
 ## Installation
 
 ### Prerequisites
@@ -248,13 +262,11 @@ No environment variables required for basic operation. The application uses:
 Contributions are welcome! Please follow these guidelines:
 
 1. **Code Style**
-
    - Rust: Run `cargo fmt` before committing
    - TypeScript/JavaScript: Run `bun run format` before committing
    - Follow existing code patterns and architecture
 
 2. **Testing**
-
    - Add unit tests for new functionality
    - Run `cargo test` before committing
    - Test protocol compatibility with existing FeiQ/IPMsg clients

@@ -10,7 +10,7 @@
 use crate::database::handler::ChatMessageHandler;
 use crate::event::bus::EVENT_RECEIVER;
 use crate::event::model::{AppEvent, NetworkEvent, UiEvent};
-use crate::network::feiq::{constants::*, model::ProtocolPacket};
+use crate::network::feiq::model::FeiQPacket;
 use crate::network::udp::sender;
 use sea_orm::DbConn;
 use std::sync::Arc;
@@ -45,9 +45,13 @@ impl ReceiptHandler {
         loop {
             match receiver.recv() {
                 Ok(event) => {
-                    // 处理网络事件中的数据包接收
-                    if let AppEvent::Network(NetworkEvent::PacketReceived { packet, addr }) = event {
-                        Self::handle_packet_received(db.clone(), packet, addr).await;
+                    // 处理消息已读事件（IPMSG_READMSG）
+                    if let AppEvent::Network(NetworkEvent::MessageRead { msg_no }) = &event {
+                        Self::handle_readmsg(db.clone(), msg_no.clone()).await;
+                    }
+                    // 处理消息删除事件（IPMSG_DELMSG）
+                    else if let AppEvent::Network(NetworkEvent::MessageDeleted { msg_no }) = &event {
+                        Self::handle_delmsg(db.clone(), msg_no.clone()).await;
                     }
                 }
                 Err(e) => {
@@ -57,89 +61,12 @@ impl ReceiptHandler {
         }
     }
 
-    /// 处理接收到的数据包
-    async fn handle_packet_received(db: Arc<DbConn>, packet_json: String, addr: String) {
-        // 反序列化数据包
-        let packet: ProtocolPacket = match serde_json::from_str(&packet_json) {
-            Ok(p) => p,
-            Err(e) => {
-                error!("数据包反序列化失败: {}", e);
-                return;
-            }
-        };
-
-        let base_cmd = packet.base_command();
-
-        match base_cmd {
-            // 处理已读回执（ANSREADMSG）
-            IPMSG_ANSREADMSG => {
-                Self::handle_ansreadmsg(db, packet, addr).await;
-            }
-            // 处理消息已读请求（READMSG）
-            IPMSG_READMSG => {
-                Self::handle_readmsg(db, packet, addr).await;
-            }
-            _ => {}
-        }
-    }
-
-    /// 处理已读回执（ANSREADMSG）
-    ///
-    /// 当对方阅读了我们发送的消息后，会发送 ANSREADMSG 回执
-    async fn handle_ansreadmsg(db: Arc<DbConn>, packet: ProtocolPacket, _addr: String) {
-        info!("收到已读回执");
-
-        // 从附加信息中提取消息编号
-        let msg_no = packet.msg_no.clone();
-
-        if msg_no.is_empty() {
-            warn!("已读回执缺少消息编号");
-            return;
-        }
-
-        // 通过 msg_no 查找消息并更新状态
-        match ChatMessageHandler::find_by_msg_no(&db, &msg_no).await {
-            Ok(Some(message)) => {
-                // 更新消息状态为已读（2）
-                if let Err(e) = ChatMessageHandler::update_status(&db, message.mid, 2).await {
-                    error!("更新消息已读状态失败: {}", e);
-                } else {
-                    info!("消息已标记为已读: mid={}", message.mid);
-
-                    // 触发 UI 事件：更新消息状态
-                    let _ = crate::event::bus::EVENT_SENDER.send(AppEvent::Ui(UiEvent::UpdateMessageStatus {
-                        msg_id: message.mid,
-                        status: 2,
-                    }));
-                }
-            }
-            Ok(None) => {
-                // 如果找不到消息，可能是旧数据（msg_no 为空）
-                // 尝试将 msg_no 解析为消息 ID（向后兼容）
-                if let Ok(mid) = msg_no.parse::<i64>() {
-                    warn!("使用兼容模式查找消息: mid={}", mid);
-                    if let Err(e) = ChatMessageHandler::update_status(&db, mid, 2).await {
-                        error!("更新消息已读状态失败: {}", e);
-                    }
-                } else {
-                    warn!("找不到对应的消息: msg_no={}", msg_no);
-                }
-            }
-            Err(e) => {
-                error!("查找消息失败: {}", e);
-            }
-        }
-    }
-
     /// 处理消息已读请求（READMSG）
     ///
     /// 对方阅读了我们发送的消息后，会发送 READMSG 请求
     /// 我们需要回复 ANSREADMSG 确认
-    async fn handle_readmsg(db: Arc<DbConn>, packet: ProtocolPacket, addr: String) {
+    async fn handle_readmsg(db: Arc<DbConn>, msg_no: String) {
         info!("收到消息已读请求");
-
-        // 从附加信息中提取消息编号
-        let msg_no = packet.msg_no.clone();
 
         if msg_no.is_empty() {
             warn!("已读请求缺少消息编号");
@@ -163,7 +90,44 @@ impl ReceiptHandler {
                 }
 
                 // 发送 ANSREADMSG 确认
-                Self::send_ansreadmsg(&addr, &msg_no).await;
+                Self::send_ansreadmsg(&msg_no).await;
+            }
+            Ok(None) => {
+                warn!("找不到对应的消息: msg_no={}", msg_no);
+            }
+            Err(e) => {
+                error!("查找消息失败: {}", e);
+            }
+        }
+    }
+
+    /// 处理消息删除请求（DELMSG）
+    ///
+    /// 对方删除了消息后，会发送 DELMSG 请求
+    /// 我们需要在本地也删除该消息
+    async fn handle_delmsg(db: Arc<DbConn>, msg_no: String) {
+        info!("收到消息删除请求");
+
+        if msg_no.is_empty() {
+            warn!("删除请求缺少消息编号");
+            return;
+        }
+
+        // 通过 msg_no 查找消息并删除
+        match ChatMessageHandler::find_by_msg_no(&db, &msg_no).await {
+            Ok(Some(message)) => {
+                // 删除消息
+                if let Err(e) = ChatMessageHandler::delete(&db, message.mid).await {
+                    error!("删除消息失败: {}", e);
+                } else {
+                    info!("消息已删除: mid={}", message.mid);
+
+                    // 触发 UI 事件：删除消息
+                    let _ = crate::event::bus::EVENT_SENDER.send(AppEvent::Ui(UiEvent::UpdateMessageStatus {
+                        msg_id: message.mid,
+                        status: 3, // 3 表示已删除
+                    }));
+                }
             }
             Ok(None) => {
                 warn!("找不到对应的消息: msg_no={}", msg_no);
@@ -192,8 +156,8 @@ impl ReceiptHandler {
         })?;
 
         // 构造 ANSREADMSG 包
-        let packet = ProtocolPacket::make_read_packet(&msg_no);
-        let packet_str = packet.to_string();
+        let packet = FeiQPacket::make_feiq_read_packet(&msg_no);
+        let packet_str = packet.to_feiq_string();
 
         // 发送到目标地址
         let addr = format!("{}:{}", target_ip, 2425);
@@ -206,14 +170,22 @@ impl ReceiptHandler {
     }
 
     /// 发送已读确认（ANSREADMSG）
-    async fn send_ansreadmsg(addr: &str, msg_no: &str) {
-        let packet = ProtocolPacket::make_ansread_packet(msg_no);
-        let packet_str = packet.to_string();
+    async fn send_ansreadmsg(msg_no: &str) {
+        let packet = FeiQPacket::make_feiq_ansread_packet(msg_no);
+        let packet_str = packet.to_feiq_string();
 
+        // 获取本地用户信息以确定目标地址
+        // 注意：这里需要从事件中获取发送者地址，但当前实现中没有保存
+        // 暂时使用广播地址发送，或者需要修改事件结构来传递发送者地址
+        // TODO: 改进事件结构以传递发送者地址
+        
+        // 临时方案：使用广播地址
+        let addr = "255.255.255.255:2425";
+        
         if let Err(e) = sender::send_packet_data(addr, &packet_str).await {
             error!("发送 ANSREADMSG 确认失败: {}", e);
         } else {
-            info!("已发送 ANSREADMSG 确认 to {}", addr);
+            info!("已发送 ANSREADMSG 确认");
         }
     }
 

@@ -31,19 +31,50 @@ pub enum AppEvent {
 /// 网络相关事件
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NetworkEvent {
-    /// 收到 UDP 数据包
-    PacketReceived {
-        packet: String, // FeiqPacket JSON
-        addr: String,
-    },
-
-    /// 用户上线
+    /// 用户上线（IPMSG_BR_ENTRY）
     UserOnline {
-        user: String, // UserInfo JSON
+        ip: String,
+        port: u16,
+        nickname: String,
+        hostname: Option<String>,
+        mac_addr: Option<String>,
     },
 
-    /// 用户下线
+    /// 用户下线（IPMSG_BR_EXIT）
     UserOffline { ip: String },
+
+    /// 在线应答（IPMSG_ANSENTRY）
+    UserPresenceResponse {
+        ip: String,
+        port: u16,
+        nickname: String,
+        hostname: Option<String>,
+    },
+
+    /// 收到消息（IPMSG_SENDMSG）
+    MessageReceived {
+        sender_ip: String,
+        sender_port: u16,
+        sender_nickname: String,
+        content: String,
+        msg_no: String,
+        needs_receipt: bool,
+    },
+
+    /// 收到确认（IPMSG_RECVMSG）
+    MessageReceiptReceived { msg_no: String },
+
+    /// 消息已读（IPMSG_READMSG）
+    MessageRead { msg_no: String },
+
+    /// 消息删除（IPMSG_DELMSG）
+    MessageDeleted { msg_no: String },
+
+    /// 文件请求（IPMSG_FILEATTACHOPT）
+    FileRequestReceived {
+        from_ip: String,
+        files: String, // Vec<FileInfo> JSON
+    },
 
     /// 用户更新信息
     UserUpdated {
@@ -197,4 +228,136 @@ pub enum ChatEvent {
 
     /// 群组解散
     GroupDisbanded { group_id: i64 },
+}
+
+// ============================================================
+// 单元测试
+// ============================================================
+
+#[cfg(test)]
+mod event_tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_user_online_event_serialization() {
+        let event = NetworkEvent::UserOnline {
+            ip: "192.168.1.100".to_string(),
+            port: 2425,
+            nickname: "TestUser".to_string(),
+            hostname: Some("DESKTOP-ABC".to_string()),
+            mac_addr: Some("00:11:22:33:44:55".to_string()),
+        };
+
+        // 测试序列化
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("UserOnline"));
+        assert!(json.contains("192.168.1.100"));
+
+        // 测试反序列化
+        let deserialized: NetworkEvent = serde_json::from_str(&json).unwrap();
+        match deserialized {
+            NetworkEvent::UserOnline { ip, port, nickname, .. } => {
+                assert_eq!(ip, "192.168.1.100");
+                assert_eq!(port, 2425);
+                assert_eq!(nickname, "TestUser");
+            }
+            _ => panic!("Wrong event type"),
+        }
+    }
+
+    #[test]
+    fn test_message_received_event_serialization() {
+        let event = NetworkEvent::MessageReceived {
+            sender_ip: "192.168.1.100".to_string(),
+            sender_port: 2425,
+            sender_nickname: "TestUser".to_string(),
+            content: "Hello, World!".to_string(),
+            msg_no: "12345".to_string(),
+            needs_receipt: true,
+        };
+
+        // 测试序列化
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("MessageReceived"));
+        assert!(json.contains("Hello, World!"));
+
+        // 测试反序列化
+        let deserialized: NetworkEvent = serde_json::from_str(&json).unwrap();
+        match deserialized {
+            NetworkEvent::MessageReceived {
+                content, needs_receipt, ..
+            } => {
+                assert_eq!(content, "Hello, World!");
+                assert_eq!(needs_receipt, true);
+            }
+            _ => panic!("Wrong event type"),
+        }
+    }
+
+    #[test]
+    fn test_user_offline_event_serialization() {
+        let event = NetworkEvent::UserOffline {
+            ip: "192.168.1.100".to_string(),
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        let deserialized: NetworkEvent = serde_json::from_str(&json).unwrap();
+
+        match deserialized {
+            NetworkEvent::UserOffline { ip } => {
+                assert_eq!(ip, "192.168.1.100");
+            }
+            _ => panic!("Wrong event type"),
+        }
+    }
+
+    #[test]
+    fn test_all_network_events_are_serializable() {
+        // 测试所有NetworkEvent变体都可以序列化/反序列化
+        let events = vec![
+            NetworkEvent::UserOnline {
+                ip: "1.1.1.1".to_string(),
+                port: 1,
+                nickname: "A".to_string(),
+                hostname: None,
+                mac_addr: None,
+            },
+            NetworkEvent::UserOffline {
+                ip: "2.2.2.2".to_string(),
+            },
+            NetworkEvent::UserPresenceResponse {
+                ip: "3.3.3.3".to_string(),
+                port: 3,
+                nickname: "C".to_string(),
+                hostname: None,
+            },
+            NetworkEvent::MessageReceived {
+                sender_ip: "4.4.4.4".to_string(),
+                sender_port: 4,
+                sender_nickname: "D".to_string(),
+                content: "Test".to_string(),
+                msg_no: "0".to_string(),
+                needs_receipt: false,
+            },
+            NetworkEvent::MessageReceiptReceived {
+                msg_no: "0".to_string(),
+            },
+            NetworkEvent::MessageRead {
+                msg_no: "0".to_string(),
+            },
+            NetworkEvent::MessageDeleted {
+                msg_no: "0".to_string(),
+            },
+            NetworkEvent::FileRequestReceived {
+                from_ip: "5.5.5.5".to_string(),
+                files: "[]".to_string(),
+            },
+        ];
+
+        for event in events {
+            let json = serde_json::to_string(&event).unwrap();
+            let _deserialized: NetworkEvent = serde_json::from_str(&json).unwrap();
+        }
+    }
 }

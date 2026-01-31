@@ -1,0 +1,4 @@
+[test]
+# Configure Bun's test runner to use jsdom environment
+# This enables DOM APIs for React Testing Library
+preload = ["./src/test/setup.ts"]

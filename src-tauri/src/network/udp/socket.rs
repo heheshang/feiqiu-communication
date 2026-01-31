@@ -79,32 +79,33 @@ pub async fn send_packet_data(addr: &str, data: &str) -> AppResult<()> {
 /// # 参数
 /// * `addr` - 目标地址
 /// * `packet` - FeiQ 数据包
-pub async fn send_packet(addr: &str, packet: &crate::network::feiq::model::ProtocolPacket) -> AppResult<()> {
-    let data = packet.to_string();
+pub async fn send_packet(addr: &str, packet: &crate::network::feiq::model::FeiQPacket) -> AppResult<()> {
+    let data = packet.to_feiq_string();
 
     // 记录数据包详情
     info!("┌────────────────────────────────────────");
-    info!("│ [PACKET INFO]");
+    info!("│ [FEIQ PACKET INFO]");
     info!("│ ├─ 目标地址: {}", addr);
-    info!("│ ├─ 协议类型: {:?}", packet.protocol_type);
-    info!("│ ├─ 版本: {}", packet.version);
-    info!("│ ├─ 命令字: 0x{:04X} ({})", packet.command, packet.command);
-    info!("│ ├─ 发送者: {}", packet.sender);
-    info!("│ ├─ 接收者: {}", packet.receiver);
-    info!("│ ├─ 消息编号: {}", packet.msg_no);
-    if let Some(ext) = &packet.extension {
-        info!("│ ├─ 附加信息: {}", ext);
-    }
+    info!("│ ├─ 版本: {}", packet.pkg_type);
+    info!("│ ├─ 功能标志: {}", packet.func_flag);
+    info!("│ ├─ UDP 端口: {}", packet.udp_port);
+    info!("│ ├─ 客户端版本: 0x{:04X}", packet.client_version);
+    info!("│ ├─ 消息子类型: {}", packet.ext_info.msg_sub_type);
+    info!("│ ├─ 主机名: {}", packet.ext_info.hostname);
+    info!("│ ├─ 昵称: {}", packet.ext_info.nickname);
     info!("│ ├─ 完整数据包: {}", data);
     info!("└────────────────────────────────────────");
 
     send_packet_data(addr, &data).await
 }
 
-/// 广播 FeiQ 数据包
+/// 广播 FeiQ 数据包到子网广播地址
 ///
 /// # 参数
 /// * `packet` - 要广播的 FeiQ 数据包
-pub async fn broadcast_packet(packet: &crate::network::feiq::model::ProtocolPacket) -> AppResult<()> {
-    send_packet("255.255.255.255:2425", packet).await
+pub async fn broadcast_packet(packet: &crate::network::feiq::model::FeiQPacket) -> AppResult<()> {
+    use crate::network::utils::subnet::detect_subnet_broadcast;
+    let broadcast_addr = detect_subnet_broadcast().await?;
+    let addr = format!("{}:2425", broadcast_addr);
+    send_packet(&addr, packet).await
 }

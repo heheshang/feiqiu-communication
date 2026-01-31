@@ -2,7 +2,7 @@
 //
 /// 用户相关 IPC 接口
 use crate::database::handler::UserHandler;
-use crate::types::UserInfo;
+use crate::types::{MapErrToFrontend, UserInfo};
 use sea_orm::DbConn;
 use tauri::State;
 use tracing::{error, info};
@@ -56,9 +56,7 @@ pub async fn get_current_user_handler(state: State<'_, DbConn>) -> Result<UserIn
                 update_time: chrono::Utc::now().naive_utc(),
             };
 
-            let created_user = UserHandler::create(db, new_user)
-                .await
-                .map_err(|e| format!("创建用户失败: {}", e))?;
+            let created_user = UserHandler::create(db, new_user).await.map_err_to_frontend()?;
 
             Ok(UserInfo {
                 uid: created_user.uid,
@@ -97,9 +95,7 @@ pub async fn update_current_user_handler(
     let db = state.inner();
 
     // 获取现有用户
-    let mut user = UserHandler::find_by_id(db, uid)
-        .await
-        .map_err(|e| format!("查找用户失败: {}", e))?;
+    let mut user = UserHandler::find_by_id(db, uid).await.map_err_to_frontend()?;
 
     // 更新字段
     if let Some(nick) = nickname {
@@ -110,9 +106,7 @@ pub async fn update_current_user_handler(
     }
 
     // 保存更新
-    let updated_user = UserHandler::update(db, uid, user)
-        .await
-        .map_err(|e| format!("更新用户失败: {}", e))?;
+    let updated_user = UserHandler::update(db, uid, user).await.map_err_to_frontend()?;
 
     Ok(UserInfo {
         uid: updated_user.uid,

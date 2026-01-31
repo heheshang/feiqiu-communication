@@ -3,7 +3,7 @@
 //! 文件分块传输逻辑
 
 use crate::error::{AppError, AppResult};
-use crate::network::feiq::model::ProtocolPacket;
+use crate::network::feiq::model::FeiQPacket;
 use crate::network::udp::sender;
 use sha2::{Digest, Sha256};
 use std::fs::File;
@@ -114,23 +114,24 @@ impl FileSender {
 
     /// 发送单个数据块
     async fn send_chunk(&self, chunk: &[u8], offset: u64) -> AppResult<()> {
+        // TODO: FeiQ file transfer not implemented yet
         // 构建数据包: "packet_no:file_id:offset:data"
-        use base64::Engine;
-        let data_base64 = base64::engine::general_purpose::STANDARD.encode(chunk);
-        let extension = format!("{}:{}:{}:{}", self.packet_no, self.file_id, offset, data_base64);
+        // use base64::Engine;
+        // let data_base64 = base64::engine::general_purpose::STANDARD.encode(chunk);
+        // let extension = format!("{}:{}:{}:{}", self.packet_no, self.file_id, offset, data_base64);
 
-        let packet = ProtocolPacket {
-            command: crate::network::feiq::constants::IPMSG_SENDMSG | crate::network::feiq::constants::IPMSG_UTF8OPT,
-            extension: Some(extension),
-            ..Default::default()
-        };
+        // let packet = FeiQPacket {
+        //     command: crate::network::feiq::constants::IPMSG_SENDMSG | crate::network::feiq::constants::IPMSG_UTF8OPT,
+        //     extension: Some(extension),
+        //     ..Default::default()
+        // };
 
-        timeout(TRANSFER_TIMEOUT, sender::send_packet(&self.target_addr, &packet))
-            .await
-            .map_err(|_| AppError::Network("Transfer timeout".to_string()))?
-            .map_err(|e| AppError::Network(e.to_string()))?;
+        // timeout(TRANSFER_TIMEOUT, sender::send_packet(&self.target_addr, &packet))
+        //     .await
+        //     .map_err(|_| AppError::Network("Transfer timeout".to_string()))?
+        //     .map_err(|e| AppError::Network(e.to_string()))?;
 
-        Ok(())
+        Err(AppError::Business("FeiQ file transfer not implemented yet".to_string()))
     }
 
     /// 计算文件 SHA256 校验和
@@ -155,16 +156,16 @@ impl FileSender {
 /// 文件接收器
 pub struct FileReceiver {
     save_path: String,
-    file_id: u64,
-    expected_size: u64,
+    _file_id: u64,
+    _expected_size: u64,
 }
 
 impl FileReceiver {
     pub fn new(save_path: String, file_id: u64, expected_size: u64) -> Self {
         Self {
             save_path,
-            file_id,
-            expected_size,
+            _file_id: file_id,
+            _expected_size: expected_size,
         }
     }
 

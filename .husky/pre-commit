@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# TypeScript check
+echo "📝 TypeScript checking..."
+bunx tsc --noEmit || exit 1
+
+# Lint
+echo "🎨 Linting..."
+bun run lint:all || exit 1
+
+# Format check
+echo "✨ Checking formatting..."
+bun run format || exit 1
+
+# Frontend tests
+echo "🧪 Running frontend tests..."
+bun test || exit 1
+
+# Rust tests
+echo "🦀 Running Rust tests..."
+cd src-tauri && cargo test --lib || exit 1
+cd ..
+
+echo "✅ All checks passed!"

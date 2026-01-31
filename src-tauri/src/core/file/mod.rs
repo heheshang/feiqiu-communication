@@ -4,4 +4,7 @@
 
 pub mod request;
 pub mod resume;
+pub mod service;
 pub mod transfer;
+
+pub use service::FileService;

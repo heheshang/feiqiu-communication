@@ -1,0 +1,614 @@
+$ tauri dev
+     Running BeforeDevCommand (`npm run dev`)
+
+> feiqiu-communication@0.1.0 dev
+> vite
+
+
+  VITE v5.4.21  ready in 284 ms
+
+  ➜  Local:   http://localhost:1420/
+  ➜  Network: use --host to expose
+     Running DevCommand (`cargo  run --no-default-features --features all --color always --`)
+        Info Watching /Users/ssk/Documents/project/personal/ai/feiqiu-communication/src-tauri for changes...
+        Info Watching /Users/ssk/Documents/project/personal/ai/feiqiu-communication/src-tauri for changes...
+[1m[33mwarning[0m[1m: unused import: `AppError`[0m
+  [1m[94m--> [0msrc-tauri/src/core/contact/service.rs:10:20
+   [1m[94m|[0m
+[1m[94m10[0m [1m[94m|[0m use crate::error::{AppError, AppResult};
+   [1m[94m|[0m                    [1m[33m^^^^^^^^[0m
+   [1m[94m|[0m
+   [1m[94m= [0m[1mnote[0m: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+[1m[33mwarning[0m[1m: unused variable: `db`[0m
+   [1m[94m--> [0msrc-tauri/src/core/file/service.rs:140:9
+    [1m[94m|[0m
+[1m[94m140[0m [1m[94m|[0m         db: &DbConn,
+    [1m[94m|[0m         [1m[33m^^[0m [1m[33mhelp: if this is intentional, prefix it with an underscore: `_db`[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+[1m[33mwarning[0m[1m: unused variable: `db`[0m
+   [1m[94m--> [0msrc-tauri/src/core/file/service.rs:170:30
+    [1m[94m|[0m
+[1m[94m170[0m [1m[94m|[0m     pub async fn reject_file(db: &DbConn, packet_no: String, target_ip: String) -> AppResult<()> {
+    [1m[94m|[0m                              [1m[33m^^[0m [1m[33mhelp: if this is intentional, prefix it with an underscore: `_db`[0m
+
+[1m[33mwarning[0m[1m: unused variable: `transferred`[0m
+   [1m[94m--> [0msrc-tauri/src/core/file/service.rs:257:74
+    [1m[94m|[0m
+[1m[94m257[0m [1m[94m|[0m     pub async fn update_transfer_progress(db: &DbConn, transfer_id: i64, transferred: i64) -> AppResult<()> {
+    [1m[94m|[0m                                                                          [1m[33m^^^^^^^^^^^[0m [1m[33mhelp: if this is intentional, prefix it with an underscore: `_transferred`[0m
+
+[1m[33mwarning[0m[1m: fields `file_id` and `expected_size` are never read[0m
+   [1m[94m--> [0msrc-tauri/src/core/file/transfer.rs:158:5
+    [1m[94m|[0m
+[1m[94m156[0m [1m[94m|[0m pub struct FileReceiver {
+    [1m[94m|[0m            [1m[94m------------[0m [1m[94mfields in this struct[0m
+[1m[94m157[0m [1m[94m|[0m     save_path: String,
+[1m[94m158[0m [1m[94m|[0m     file_id: u64,
+    [1m[94m|[0m     [1m[33m^^^^^^^[0m
+[1m[94m159[0m [1m[94m|[0m     expected_size: u64,
+    [1m[94m|[0m     [1m[33m^^^^^^^^^^^^^[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+[1m[33mwarning[0m: `feiqiu-communication` (lib) generated 5 warnings (run `cargo fix --lib -p feiqiu-communication` to apply 4 suggestions)
+[1m[33mwarning[0m[1m: unused import: `file::FileService`[0m
+  [1m[94m--> [0msrc-tauri/src/core/mod.rs:12:9
+   [1m[94m|[0m
+[1m[94m12[0m [1m[94m|[0m pub use file::FileService;
+   [1m[94m|[0m         [1m[33m^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: unused import: `group::GroupService`[0m
+  [1m[94m--> [0msrc-tauri/src/core/mod.rs:13:9
+   [1m[94m|[0m
+[1m[94m13[0m [1m[94m|[0m pub use group::GroupService;
+   [1m[94m|[0m         [1m[33m^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: struct `ChatManager` is never constructed[0m
+  [1m[94m--> [0msrc-tauri/src/core/chat/manager.rs:17:12
+   [1m[94m|[0m
+[1m[94m17[0m [1m[94m|[0m pub struct ChatManager;
+   [1m[94m|[0m            [1m[33m^^^^^^^^^^^[0m
+   [1m[94m|[0m
+   [1m[94m= [0m[1mnote[0m: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+[1m[33mwarning[0m[1m: multiple associated functions are never used[0m
+   [1m[94m--> [0msrc-tauri/src/core/chat/manager.rs:28:18
+    [1m[94m|[0m
+ [1m[94m19[0m [1m[94m|[0m impl ChatManager {
+    [1m[94m|[0m [1m[94m----------------[0m [1m[94massociated functions in this implementation[0m
+[1m[94m...[0m
+ [1m[94m28[0m [1m[94m|[0m     pub async fn get_session_list(
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+ [1m[94m52[0m [1m[94m|[0m     pub async fn increment_unread_count(
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+ [1m[94m95[0m [1m[94m|[0m     pub async fn clear_unread_count(db: &DbConn, owner_uid: i64, session_type: i8, target_id: i64) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m132[0m [1m[94m|[0m     pub async fn delete_session(db: &DbConn, sid: i64) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m156[0m [1m[94m|[0m     pub async fn get_last_message(
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m174[0m [1m[94m|[0m     pub async fn get_session_stats(db: &DbConn, owner_uid: i64) -> AppResult<SessionStats> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m208[0m [1m[94m|[0m     pub async fn archive_old_sessions(db: &DbConn, owner_uid: i64, days: i64) -> AppResult<usize> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m228[0m [1m[94m|[0m     pub async fn search_sessions(
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: struct `SessionStats` is never constructed[0m
+   [1m[94m--> [0msrc-tauri/src/core/chat/manager.rs:247:12
+    [1m[94m|[0m
+[1m[94m247[0m [1m[94m|[0m pub struct SessionStats {
+    [1m[94m|[0m            [1m[33m^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated functions `send_read_receipt`, `mark_message_read_locally`, and `mark_session_messages_read` are never used[0m
+   [1m[94m--> [0msrc-tauri/src/core/chat/receipt.rs:144:18
+    [1m[94m|[0m
+ [1m[94m24[0m [1m[94m|[0m impl ReceiptHandler {
+    [1m[94m|[0m [1m[94m-------------------[0m [1m[94massociated functions in this implementation[0m
+[1m[94m...[0m
+[1m[94m144[0m [1m[94m|[0m     pub async fn send_read_receipt(db: &DbConn, mid: i64, target_ip: &str) -> Result<(), String> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m196[0m [1m[94m|[0m     pub async fn mark_message_read_locally(db: &DbConn, mid: i64) -> Result<(), String> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m213[0m [1m[94m|[0m     pub async fn mark_session_messages_read(
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: struct `MessageSender` is never constructed[0m
+  [1m[94m--> [0msrc-tauri/src/core/chat/sender.rs:19:12
+   [1m[94m|[0m
+[1m[94m19[0m [1m[94m|[0m pub struct MessageSender;
+   [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated functions `send_single_message`, `send_group_message`, `retry_send_message`, and `retry_failed_messages` are never used[0m
+   [1m[94m--> [0msrc-tauri/src/core/chat/sender.rs:33:18
+    [1m[94m|[0m
+ [1m[94m21[0m [1m[94m|[0m impl MessageSender {
+    [1m[94m|[0m [1m[94m------------------[0m [1m[94massociated functions in this implementation[0m
+[1m[94m...[0m
+ [1m[94m33[0m [1m[94m|[0m     pub async fn send_single_message(db: &DbConn, sender_uid: i64, target_id: i64, content: String) -> AppResult<i64> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m115[0m [1m[94m|[0m     pub async fn send_group_message(
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m163[0m [1m[94m|[0m     pub async fn retry_send_message(db: &DbConn, mid: i64) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m214[0m [1m[94m|[0m     pub async fn retry_failed_messages(_db: &DbConn, _session_type: i8, _target_id: i64) -> AppResult<usize> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated functions `delete_message`, `delete_session`, and `clear_unread` are never used[0m
+   [1m[94m--> [0msrc-tauri/src/core/chat/service.rs:202:18
+    [1m[94m|[0m
+ [1m[94m21[0m [1m[94m|[0m impl ChatService {
+    [1m[94m|[0m [1m[94m----------------[0m [1m[94massociated functions in this implementation[0m
+[1m[94m...[0m
+[1m[94m202[0m [1m[94m|[0m     pub async fn delete_message(db: &DbConn, msg_id: i64) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m246[0m [1m[94m|[0m     pub async fn delete_session(db: &DbConn, session_id: i64) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m258[0m [1m[94m|[0m     pub async fn clear_unread(db: &DbConn, session_id: i64) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: function `get_online_users_list` is never used[0m
+  [1m[94m--> [0msrc-tauri/src/core/contact/discovery.rs:40:8
+   [1m[94m|[0m
+[1m[94m40[0m [1m[94m|[0m pub fn get_online_users_list() -> Vec<UserInfo> {
+   [1m[94m|[0m        [1m[33m^^^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: function `find_user_by_ip` is never used[0m
+  [1m[94m--> [0msrc-tauri/src/core/contact/discovery.rs:87:8
+   [1m[94m|[0m
+[1m[94m87[0m [1m[94m|[0m pub fn find_user_by_ip(ip: &str) -> Option<UserInfo> {
+   [1m[94m|[0m        [1m[33m^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: function `parse_sender_info` is never used[0m
+   [1m[94m--> [0msrc-tauri/src/core/contact/discovery.rs:274:8
+    [1m[94m|[0m
+[1m[94m274[0m [1m[94m|[0m pub fn parse_sender_info(
+    [1m[94m|[0m        [1m[33m^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated functions `add_contact`, `update_contact`, `delete_contact`, and `is_contact` are never used[0m
+   [1m[94m--> [0msrc-tauri/src/core/contact/service.rs:55:18
+    [1m[94m|[0m
+ [1m[94m17[0m [1m[94m|[0m impl ContactService {
+    [1m[94m|[0m [1m[94m-------------------[0m [1m[94massociated functions in this implementation[0m
+[1m[94m...[0m
+ [1m[94m55[0m [1m[94m|[0m     pub async fn add_contact(
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^[0m
+[1m[94m...[0m
+ [1m[94m81[0m [1m[94m|[0m     pub async fn update_contact(db: &DbConn, id: i64, remark: Option<String>, tag: Option<String>) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m100[0m [1m[94m|[0m     pub async fn delete_contact(db: &DbConn, id: i64) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m117[0m [1m[94m|[0m     pub async fn is_contact(db: &DbConn, owner_uid: i64, contact_uid: i64) -> AppResult<bool> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: function `handle_file_attach_request` is never used[0m
+  [1m[94m--> [0msrc-tauri/src/core/file/request.rs:14:8
+   [1m[94m|[0m
+[1m[94m14[0m [1m[94m|[0m pub fn handle_file_attach_request(packet: &ProtocolPacket) -> AppResult<Vec<FileAttachment>> {
+   [1m[94m|[0m        [1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: function `resume_transfers` is never used[0m
+  [1m[94m--> [0msrc-tauri/src/core/file/resume.rs:10:14
+   [1m[94m|[0m
+[1m[94m10[0m [1m[94m|[0m pub async fn resume_transfers(db: &DbConn) -> AppResult<Vec<ResumeInfo>> {
+   [1m[94m|[0m              [1m[33m^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: struct `ResumeInfo` is never constructed[0m
+  [1m[94m--> [0msrc-tauri/src/core/file/resume.rs:42:12
+   [1m[94m|[0m
+[1m[94m42[0m [1m[94m|[0m pub struct ResumeInfo {
+   [1m[94m|[0m            [1m[33m^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: function `create_transfer_state` is never used[0m
+  [1m[94m--> [0msrc-tauri/src/core/file/resume.rs:55:14
+   [1m[94m|[0m
+[1m[94m55[0m [1m[94m|[0m pub async fn create_transfer_state(
+   [1m[94m|[0m              [1m[33m^^^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: function `update_transfer_progress` is never used[0m
+  [1m[94m--> [0msrc-tauri/src/core/file/resume.rs:93:14
+   [1m[94m|[0m
+[1m[94m93[0m [1m[94m|[0m pub async fn update_transfer_progress(db: &DbConn, tid: i64, transferred: i64, status: i8) -> AppResult<()> {
+   [1m[94m|[0m              [1m[33m^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: function `complete_transfer` is never used[0m
+  [1m[94m--> [0msrc-tauri/src/core/file/resume.rs:99:14
+   [1m[94m|[0m
+[1m[94m99[0m [1m[94m|[0m pub async fn complete_transfer(db: &DbConn, tid: i64) -> AppResult<()> {
+   [1m[94m|[0m              [1m[33m^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: function `fail_transfer` is never used[0m
+   [1m[94m--> [0msrc-tauri/src/core/file/resume.rs:105:14
+    [1m[94m|[0m
+[1m[94m105[0m [1m[94m|[0m pub async fn fail_transfer(db: &DbConn, tid: i64, error: &str) -> AppResult<()> {
+    [1m[94m|[0m              [1m[33m^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: function `cancel_transfer` is never used[0m
+   [1m[94m--> [0msrc-tauri/src/core/file/resume.rs:111:14
+    [1m[94m|[0m
+[1m[94m111[0m [1m[94m|[0m pub async fn cancel_transfer(db: &DbConn, tid: i64) -> AppResult<()> {
+    [1m[94m|[0m              [1m[33m^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated function `update_transfer_progress` is never used[0m
+   [1m[94m--> [0msrc-tauri/src/core/file/service.rs:257:18
+    [1m[94m|[0m
+ [1m[94m20[0m [1m[94m|[0m impl FileService {
+    [1m[94m|[0m [1m[94m----------------[0m [1m[94massociated function in this implementation[0m
+[1m[94m...[0m
+[1m[94m257[0m [1m[94m|[0m     pub async fn update_transfer_progress(db: &DbConn, transfer_id: i64, transferred: i64) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: field `file_id` is never read[0m
+  [1m[94m--> [0msrc-tauri/src/core/file/transfer.rs:22:9
+   [1m[94m|[0m
+[1m[94m21[0m [1m[94m|[0m pub struct FileTransferProgress {
+   [1m[94m|[0m            [1m[94m--------------------[0m [1m[94mfield in this struct[0m
+[1m[94m22[0m [1m[94m|[0m     pub file_id: u64,
+   [1m[94m|[0m         [1m[33m^^^^^^^[0m
+   [1m[94m|[0m
+   [1m[94m= [0m[1mnote[0m: `FileTransferProgress` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+[1m[33mwarning[0m[1m: method `checksum` is never used[0m
+   [1m[94m--> [0msrc-tauri/src/core/file/transfer.rs:137:12
+    [1m[94m|[0m
+ [1m[94m57[0m [1m[94m|[0m impl FileSender {
+    [1m[94m|[0m [1m[94m---------------[0m [1m[94mmethod in this implementation[0m
+[1m[94m...[0m
+[1m[94m137[0m [1m[94m|[0m     pub fn checksum(&self) -> AppResult<String> {
+    [1m[94m|[0m            [1m[33m^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: fields `save_path`, `file_id`, and `expected_size` are never read[0m
+   [1m[94m--> [0msrc-tauri/src/core/file/transfer.rs:157:5
+    [1m[94m|[0m
+[1m[94m156[0m [1m[94m|[0m pub struct FileReceiver {
+    [1m[94m|[0m            [1m[94m------------[0m [1m[94mfields in this struct[0m
+[1m[94m157[0m [1m[94m|[0m     save_path: String,
+    [1m[94m|[0m     [1m[33m^^^^^^^^^[0m
+[1m[94m158[0m [1m[94m|[0m     file_id: u64,
+    [1m[94m|[0m     [1m[33m^^^^^^^[0m
+[1m[94m159[0m [1m[94m|[0m     expected_size: u64,
+    [1m[94m|[0m     [1m[33m^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: methods `receive_chunk`, `verify`, and `current_size` are never used[0m
+   [1m[94m--> [0msrc-tauri/src/core/file/transfer.rs:172:12
+    [1m[94m|[0m
+[1m[94m162[0m [1m[94m|[0m impl FileReceiver {
+    [1m[94m|[0m [1m[94m-----------------[0m [1m[94mmethods in this implementation[0m
+[1m[94m...[0m
+[1m[94m172[0m [1m[94m|[0m     pub fn receive_chunk(&mut self, offset: u64, data: &[u8]) -> AppResult<usize> {
+    [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m190[0m [1m[94m|[0m     pub fn verify(&self, expected_checksum: &str) -> AppResult<bool> {
+    [1m[94m|[0m            [1m[33m^^^^^^[0m
+[1m[94m...[0m
+[1m[94m208[0m [1m[94m|[0m     pub fn current_size(&self) -> AppResult<u64> {
+    [1m[94m|[0m            [1m[33m^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated functions `get_member_count` and `get_online_member_count` are never used[0m
+  [1m[94m--> [0msrc-tauri/src/core/group/broadcast.rs:53:18
+   [1m[94m|[0m
+[1m[94m14[0m [1m[94m|[0m impl GroupBroadcaster {
+   [1m[94m|[0m [1m[94m---------------------[0m [1m[94massociated functions in this implementation[0m
+[1m[94m...[0m
+[1m[94m53[0m [1m[94m|[0m     pub async fn get_member_count(db: &DbConn, gid: i64) -> AppResult<usize> {
+   [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m59[0m [1m[94m|[0m     pub async fn get_online_member_count(db: &DbConn, gid: i64) -> AppResult<usize> {
+   [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated functions `update_group` and `delete_group` are never used[0m
+   [1m[94m--> [0msrc-tauri/src/core/group/service.rs:171:18
+    [1m[94m|[0m
+ [1m[94m18[0m [1m[94m|[0m impl GroupService {
+    [1m[94m|[0m [1m[94m-----------------[0m [1m[94massociated functions in this implementation[0m
+[1m[94m...[0m
+[1m[94m171[0m [1m[94m|[0m     pub async fn update_group(
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m198[0m [1m[94m|[0m     pub async fn delete_group(db: &DbConn, gid: i64) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated functions `find_by_session`, `find_by_status`, and `mark_session_read` are never used[0m
+   [1m[94m--> [0msrc-tauri/src/database/handler/chat.rs:81:18
+    [1m[94m|[0m
+ [1m[94m12[0m [1m[94m|[0m impl ChatMessageHandler {
+    [1m[94m|[0m [1m[94m-----------------------[0m [1m[94massociated functions in this implementation[0m
+[1m[94m...[0m
+ [1m[94m81[0m [1m[94m|[0m     pub async fn find_by_session(
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m155[0m [1m[94m|[0m     pub async fn find_by_status(db: &DbConn, status: i8, limit: Option<u64>) -> AppResult<Vec<chat_message::Model>> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m172[0m [1m[94m|[0m     pub async fn mark_session_read(db: &DbConn, owner_uid: i64, session_type: i8, target_id: i64) -> AppResult<u64> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated functions `delete`, `archive_old_sessions`, and `search_sessions` are never used[0m
+   [1m[94m--> [0msrc-tauri/src/database/handler/chat.rs:318:18
+    [1m[94m|[0m
+[1m[94m206[0m [1m[94m|[0m impl ChatSessionHandler {
+    [1m[94m|[0m [1m[94m-----------------------[0m [1m[94massociated functions in this implementation[0m
+[1m[94m...[0m
+[1m[94m318[0m [1m[94m|[0m     pub async fn delete(db: &DbConn, sid: i64) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^[0m
+[1m[94m...[0m
+[1m[94m329[0m [1m[94m|[0m     pub async fn archive_old_sessions(db: &DbConn, owner_uid: i64, days: i64) -> AppResult<usize> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m354[0m [1m[94m|[0m     pub async fn search_sessions(
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated functions `create`, `find_by_id`, `find_by_owner_and_contact`, `update_remark`, `update_tag`, and `delete` are never used[0m
+   [1m[94m--> [0msrc-tauri/src/database/handler/contact.rs:14:18
+    [1m[94m|[0m
+ [1m[94m12[0m [1m[94m|[0m impl ContactHandler {
+    [1m[94m|[0m [1m[94m-------------------[0m [1m[94massociated functions in this implementation[0m
+ [1m[94m13[0m [1m[94m|[0m     /// 添加联系人
+ [1m[94m14[0m [1m[94m|[0m     pub async fn create(
+    [1m[94m|[0m                  [1m[33m^^^^^^[0m
+[1m[94m...[0m
+ [1m[94m45[0m [1m[94m|[0m     pub async fn find_by_id(db: &DbConn, id: i64) -> AppResult<contact::Model> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^[0m
+[1m[94m...[0m
+ [1m[94m56[0m [1m[94m|[0m     pub async fn find_by_owner_and_contact(
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+ [1m[94m83[0m [1m[94m|[0m     pub async fn update_remark(db: &DbConn, owner_uid: i64, contact_uid: i64, remark: Option<String>) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+ [1m[94m97[0m [1m[94m|[0m     pub async fn update_tag(db: &DbConn, owner_uid: i64, contact_uid: i64, tag: Option<String>) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m111[0m [1m[94m|[0m     pub async fn delete(db: &DbConn, owner_uid: i64, contact_uid: i64) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated functions `list_by_uploader`, `list_by_type`, `delete`, and `get_stats_by_uploader` are never used[0m
+  [1m[94m--> [0msrc-tauri/src/database/handler/file.rs:55:18
+   [1m[94m|[0m
+[1m[94m13[0m [1m[94m|[0m impl FileStorageHandler {
+   [1m[94m|[0m [1m[94m-----------------------[0m [1m[94massociated functions in this implementation[0m
+[1m[94m...[0m
+[1m[94m55[0m [1m[94m|[0m     pub async fn list_by_uploader(db: &DbConn, uploader_uid: i64) -> AppResult<Vec<file_storage::Model>> {
+   [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m67[0m [1m[94m|[0m     pub async fn list_by_type(db: &DbConn, file_type: &str) -> AppResult<Vec<file_storage::Model>> {
+   [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m79[0m [1m[94m|[0m     pub async fn delete(db: &DbConn, fid: i64) -> AppResult<()> {
+   [1m[94m|[0m                  [1m[33m^^^^^^[0m
+[1m[94m...[0m
+[1m[94m88[0m [1m[94m|[0m     pub async fn get_stats_by_uploader(db: &DbConn, uploader_uid: i64) -> AppResult<FileStats> {
+   [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: struct `FileStats` is never constructed[0m
+   [1m[94m--> [0msrc-tauri/src/database/handler/file.rs:110:12
+    [1m[94m|[0m
+[1m[94m110[0m [1m[94m|[0m pub struct FileStats {
+    [1m[94m|[0m            [1m[33m^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated functions `list_by_creator` and `delete` are never used[0m
+  [1m[94m--> [0msrc-tauri/src/database/handler/group.rs:50:18
+   [1m[94m|[0m
+[1m[94m12[0m [1m[94m|[0m impl GroupHandler {
+   [1m[94m|[0m [1m[94m-----------------[0m [1m[94massociated functions in this implementation[0m
+[1m[94m...[0m
+[1m[94m50[0m [1m[94m|[0m     pub async fn list_by_creator(db: &DbConn, creator_uid: i64) -> AppResult<Vec<group::Model>> {
+   [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m87[0m [1m[94m|[0m     pub async fn delete(db: &DbConn, gid: i64) -> AppResult<()> {
+   [1m[94m|[0m                  [1m[33m^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated functions `find_by_file_id`, `update_progress`, `delete`, and `cleanup_completed` are never used[0m
+  [1m[94m--> [0msrc-tauri/src/database/handler/transfer_state.rs:37:18
+   [1m[94m|[0m
+[1m[94m23[0m [1m[94m|[0m impl TransferStateHandler {
+   [1m[94m|[0m [1m[94m-------------------------[0m [1m[94massociated functions in this implementation[0m
+[1m[94m...[0m
+[1m[94m37[0m [1m[94m|[0m     pub async fn find_by_file_id(db: &DbConn, file_id: i64) -> Result<Option<Model>> {
+   [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m57[0m [1m[94m|[0m     pub async fn update_progress(db: &DbConn, tid: i64, transferred: i64, status: i8) -> Result<Model> {
+   [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m86[0m [1m[94m|[0m     pub async fn delete(db: &DbConn, tid: i64) -> Result<()> {
+   [1m[94m|[0m                  [1m[33m^^^^^^[0m
+[1m[94m...[0m
+[1m[94m92[0m [1m[94m|[0m     pub async fn cleanup_completed(db: &DbConn, days: i64) -> Result<u64> {
+   [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated functions `update_status`, `delete`, and `list_all` are never used[0m
+   [1m[94m--> [0msrc-tauri/src/database/handler/user.rs:97:18
+    [1m[94m|[0m
+ [1m[94m12[0m [1m[94m|[0m impl UserHandler {
+    [1m[94m|[0m [1m[94m----------------[0m [1m[94massociated functions in this implementation[0m
+[1m[94m...[0m
+ [1m[94m97[0m [1m[94m|[0m     pub async fn update_status(db: &DbConn, uid: i64, status: i8) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m117[0m [1m[94m|[0m     pub async fn delete(db: &DbConn, uid: i64) -> AppResult<()> {
+    [1m[94m|[0m                  [1m[33m^^^^^^[0m
+[1m[94m...[0m
+[1m[94m123[0m [1m[94m|[0m     pub async fn list_all(db: &DbConn) -> AppResult<Vec<user::Model>> {
+    [1m[94m|[0m                  [1m[33m^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated items `new_ipmsg`, `formatted_mac`, and `local_timestamp` are never used[0m
+   [1m[94m--> [0msrc-tauri/src/network/feiq/model.rs:283:12
+    [1m[94m|[0m
+[1m[94m235[0m [1m[94m|[0m impl ProtocolPacket {
+    [1m[94m|[0m [1m[94m-------------------[0m [1m[94massociated items in this implementation[0m
+[1m[94m...[0m
+[1m[94m283[0m [1m[94m|[0m     pub fn new_ipmsg(
+    [1m[94m|[0m            [1m[33m^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m325[0m [1m[94m|[0m     pub fn formatted_mac(&self) -> Option<String> {
+    [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m336[0m [1m[94m|[0m     pub fn local_timestamp(&self) -> Option<String> {
+    [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated function `make_feiq_exit_packet` is never used[0m
+   [1m[94m--> [0msrc-tauri/src/network/feiq/packer.rs:226:12
+    [1m[94m|[0m
+[1m[94m178[0m [1m[94m|[0m impl FeiQPacket {
+    [1m[94m|[0m [1m[94m---------------[0m [1m[94massociated function in this implementation[0m
+[1m[94m...[0m
+[1m[94m226[0m [1m[94m|[0m     pub fn make_feiq_exit_packet(nickname: Option<&str>) -> FeiQPacket {
+    [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: function `broadcast_packet` is never used[0m
+  [1m[94m--> [0msrc-tauri/src/network/udp/sender.rs:55:14
+   [1m[94m|[0m
+[1m[94m55[0m [1m[94m|[0m pub async fn broadcast_packet(packet: &ProtocolPacket) -> AppResult<()> {
+   [1m[94m|[0m              [1m[33m^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated function `from_json` is never used[0m
+   [1m[94m--> [0msrc-tauri/src/types.rs:117:12
+    [1m[94m|[0m
+[1m[94m109[0m [1m[94m|[0m impl FrontendError {
+    [1m[94m|[0m [1m[94m------------------[0m [1m[94massociated function in this implementation[0m
+[1m[94m...[0m
+[1m[94m117[0m [1m[94m|[0m     pub fn from_json(json: &str) -> Self {
+    [1m[94m|[0m            [1m[33m^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: struct `FileInfo` is never constructed[0m
+   [1m[94m--> [0msrc-tauri/src/types.rs:297:12
+    [1m[94m|[0m
+[1m[94m297[0m [1m[94m|[0m pub struct FileInfo {
+    [1m[94m|[0m            [1m[33m^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: struct `SnowflakeGenerator` is never constructed[0m
+  [1m[94m--> [0msrc-tauri/src/utils/snowflake/mod.rs:14:12
+   [1m[94m|[0m
+[1m[94m14[0m [1m[94m|[0m pub struct SnowflakeGenerator {
+   [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m[1m: associated items `new`, `next_id`, `compose_id`, `get_millis`, `node_id`, and `epoch` are never used[0m
+   [1m[94m--> [0msrc-tauri/src/utils/snowflake/mod.rs:34:12
+    [1m[94m|[0m
+ [1m[94m25[0m [1m[94m|[0m impl SnowflakeGenerator {
+    [1m[94m|[0m [1m[94m-----------------------[0m [1m[94massociated items in this implementation[0m
+[1m[94m...[0m
+ [1m[94m34[0m [1m[94m|[0m     pub fn new(epoch: u64, node_id: u64) -> Self {
+    [1m[94m|[0m            [1m[33m^^^[0m
+[1m[94m...[0m
+ [1m[94m52[0m [1m[94m|[0m     pub fn next_id(&self) -> i64 {
+    [1m[94m|[0m            [1m[33m^^^^^^^[0m
+[1m[94m...[0m
+ [1m[94m99[0m [1m[94m|[0m     fn compose_id(&self, timestamp: u64, sequence: u64) -> i64 {
+    [1m[94m|[0m        [1m[33m^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m110[0m [1m[94m|[0m     fn get_millis(&self) -> u64 {
+    [1m[94m|[0m        [1m[33m^^^^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m118[0m [1m[94m|[0m     pub fn node_id(&self) -> u64 {
+    [1m[94m|[0m            [1m[33m^^^^^^^[0m
+[1m[94m...[0m
+[1m[94m123[0m [1m[94m|[0m     pub fn epoch(&self) -> u64 {
+    [1m[94m|[0m            [1m[33m^^^^^[0m
+
+[1m[33mwarning[0m[1m: function `warn_clock_backward` is never used[0m
+   [1m[94m--> [0msrc-tauri/src/utils/snowflake/mod.rs:137:4
+    [1m[94m|[0m
+[1m[94m137[0m [1m[94m|[0m fn warn_clock_backward() {
+    [1m[94m|[0m    [1m[33m^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m: `feiqiu-communication` (bin "feiqiu-communication") generated 48 warnings (4 duplicates) (run `cargo fix --bin "feiqiu-communication" -p feiqiu-communication` to apply 2 suggestions)
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 0.99s
+[1m[92m     Running[0m `/Users/ssk/Documents/tmp/target/debug/feiqiu-communication`
+[2m2026-01-30T10:57:18.271216Z[0m [32m INFO[0m ThreadId(25) 飞秋通讯启动中...
+[2m2026-01-30T10:57:18.271584Z[0m [32m INFO[0m ThreadId(25) 应用数据目录: "/Users/ssk/Library/Application Support/com.feiqiu.app"
+[2m2026-01-30T10:57:18.271647Z[0m [32m INFO[0m ThreadId(25) 数据库文件路径: "/Users/ssk/Library/Application Support/com.feiqiu.app/feiqiu.db"
+[2m2026-01-30T10:57:18.271677Z[0m [32m INFO[0m ThreadId(25) 数据库文件已存在: /Users/ssk/Library/Application Support/com.feiqiu.app/feiqiu.db
+[2m2026-01-30T10:57:18.271779Z[0m [32m INFO[0m ThreadId(25) 正在连接数据库: sqlite:/Users/ssk/Library/Application Support/com.feiqiu.app/feiqiu.db
+[2m2026-01-30T10:57:18.281862Z[0m [32m INFO[0m ThreadId(25) 正在运行数据库迁移...
+[2m2026-01-30T10:57:18.294220Z[0m [32m INFO[0m ThreadId(23) 数据库迁移完成
+[2m2026-01-30T10:57:18.294257Z[0m [32m INFO[0m ThreadId(23) 数据库初始化完成
+[2m2026-01-30T10:57:18.297854Z[0m [32m INFO[0m ThreadId(23) 用户已存在: 192.168.0.23
+[2m2026-01-30T10:57:18.298849Z[0m [32m INFO[0m ThreadId(23) UDP socket 已绑定到 0.0.0.0:2425 (broadcast enabled)
+[2m2026-01-30T10:57:18.298974Z[0m [32m INFO[0m ThreadId(23) 广播上线通知...
+[2m2026-01-30T10:57:18.299066Z[0m [32m INFO[0m ThreadId(25) UDP 接收器已启动，使用全局共享套接字监听端口 2425
+[2m2026-01-30T10:57:18.299181Z[0m [32m INFO[0m ThreadId(23) ┌────────────────────────────────────────
+[2m2026-01-30T10:57:18.299211Z[0m [32m INFO[0m ThreadId(23) │ [PACKET INFO]
+[2m2026-01-30T10:57:18.299231Z[0m [32m INFO[0m ThreadId(23) │ ├─ 目标地址: 255.255.255.255:2425
+[2m2026-01-30T10:57:18.299232Z[0m [32m INFO[0m ThreadId(24) 消息接收器已启动
+[2m2026-01-30T10:57:18.299249Z[0m [32m INFO[0m ThreadId(23) │ ├─ 协议类型: IPMsg
+[2m2026-01-30T10:57:18.299306Z[0m [32m INFO[0m ThreadId(23) │ ├─ 版本: 1.0
+[2m2026-01-30T10:57:18.299349Z[0m [32m INFO[0m ThreadId(26) 用户发现服务启动中...
+[2m2026-01-30T10:57:18.299419Z[0m [32m INFO[0m ThreadId(26) 广播上线通知...
+[2m2026-01-30T10:57:18.299325Z[0m [32m INFO[0m ThreadId(23) │ ├─ 命令字: 0x0001 (1)
+[2m2026-01-30T10:57:18.299603Z[0m [32m INFO[0m ThreadId(23) │ ├─ 发送者: ssk@localhost/192.168.0.23:2425
+[2m2026-01-30T10:57:18.299615Z[0m [32m INFO[0m ThreadId(26) ========================================
+[2m2026-01-30T10:57:18.299666Z[0m [32m INFO[0m ThreadId(26) 📤 [UDP SEND] 目标: 255.255.255.255:2425
+[2m2026-01-30T10:57:18.299638Z[0m [32m INFO[0m ThreadId(23) │ ├─ 接收者: 
+[2m2026-01-30T10:57:18.299721Z[0m [32m INFO[0m ThreadId(23) │ ├─ 消息编号: 1769770638
+[2m2026-01-30T10:57:18.299693Z[0m [32m INFO[0m ThreadId(26) 📦 [DATA BYTES] 长度: 50 bytes
+[2m2026-01-30T10:57:18.299747Z[0m [32m INFO[0m ThreadId(23) │ ├─ 完整数据包: 1.0:1:ssk@localhost/192.168.0.23:2425::1769770638:
+[2m2026-01-30T10:57:18.299773Z[0m [32m INFO[0m ThreadId(26) 📄 [DATA CONTENT] 1.0:1:ssk@localhost/192.168.0.23:2425::1769770638:
+[2m2026-01-30T10:57:18.299802Z[0m [32m INFO[0m ThreadId(23) └────────────────────────────────────────
+[2m2026-01-30T10:57:18.299843Z[0m [32m INFO[0m ThreadId(23) ========================================
+[2m2026-01-30T10:57:18.299858Z[0m [32m INFO[0m ThreadId(23) 📤 [UDP SEND] 目标: 255.255.255.255:2425
+[2m2026-01-30T10:57:18.299870Z[0m [32m INFO[0m ThreadId(23) 📦 [DATA BYTES] 长度: 50 bytes
+[2m2026-01-30T10:57:18.299882Z[0m [32m INFO[0m ThreadId(23) 📄 [DATA CONTENT] 1.0:1:ssk@localhost/192.168.0.23:2425::1769770638:
+[2m2026-01-30T10:57:18.299949Z[0m [31mERROR[0m ThreadId(26) 用户发现服务启动失败: 网络错误: Failed to send UDP data to 255.255.255.255:2425: Can't assign requested address (os error 49)
+[2m2026-01-30T10:57:18.299953Z[0m [31mERROR[0m ThreadId(23) 广播上线失败: 网络错误: Failed to send UDP data to 255.255.255.255:2425: Can't assign requested address (os error 49)
+[2m2026-01-30T10:57:18.300001Z[0m [32m INFO[0m ThreadId(23) 飞秋通讯启动完成
+[2m2026-01-30T10:57:18.300055Z[0m [32m INFO[0m ThreadId(23) 已读回执处理器已启动
+RemoteLayerTreeDrawingAreaProxyMac::scheduleDisplayLink(): page has no displayID
+RemoteLayerTreeDrawingAreaProxyMac::scheduleDisplayLink(): page has no displayID
+19:02:26 [vite] hmr update /src/components/GroupChatWindow.tsx
+[2m2026-01-30T11:05:20.633165Z[0m [32m INFO[0m ThreadId(15) ========================================
+[2m2026-01-30T11:05:20.634070Z[0m [32m INFO[0m ThreadId(15) 📥 [UDP RECV] 来自: 192.168.0.21:2425
+[2m2026-01-30T11:05:20.634106Z[0m [32m INFO[0m ThreadId(15) 📦 [RAW BYTES] 长度: 65 bytes
+[2m2026-01-30T11:05:20.634149Z[0m [32m INFO[0m ThreadId(15) 📝 [GBK DECODE] 成功解码 (GBK -> UTF-8)
+[2m2026-01-30T11:05:20.634167Z[0m [32m INFO[0m ThreadId(15) 📄 [DECODED MSG] 1_lbt6_0#131200#001C427B7AD4#0#0#0#4001#9:1769798931:ssk:0D3A:0: 
+[2m2026-01-30T11:05:20.635091Z[0m [31mERROR[0m ThreadId(15) ❌ [PARSE ERROR] Invalid packet format: 功能标识位解析失败：number too large to fit in target type
+[2m2026-01-30T11:05:20.635142Z[0m [31mERROR[0m ThreadId(15)    原始数据: 1_lbt6_0#131200#001C427B7AD4#0#0#0#4001#9:1769798931:ssk:0D3A:0: 
+[2m2026-01-30T11:05:20.635192Z[0m [32m INFO[0m ThreadId(15) ========================================
+[2m2026-01-30T11:05:20.635217Z[0m [32m INFO[0m ThreadId(15) 📥 [UDP RECV] 来自: 192.168.0.21:2425
+[2m2026-01-30T11:05:20.635238Z[0m [32m INFO[0m ThreadId(15) 📦 [RAW BYTES] 长度: 65 bytes
+[2m2026-01-30T11:05:20.635262Z[0m [32m INFO[0m ThreadId(15) 📝 [GBK DECODE] 成功解码 (GBK -> UTF-8)
+[2m2026-01-30T11:05:20.635283Z[0m [32m INFO[0m ThreadId(15) 📄 [DECODED MSG] 1_lbt6_0#131200#001C427B7AD4#0#0#0#4001#9:1769798932:ssk:0D3A:0: 
+[2m2026-01-30T11:05:20.635314Z[0m [31mERROR[0m ThreadId(15) ❌ [PARSE ERROR] Invalid packet format: 功能标识位解析失败：number too large to fit in target type
+[2m2026-01-30T11:05:20.635364Z[0m [31mERROR[0m ThreadId(15)    原始数据: 1_lbt6_0#131200#001C427B7AD4#0#0#0#4001#9:1769798932:ssk:0D3A:0: 
+[2m2026-01-30T11:05:20.635395Z[0m [32m INFO[0m ThreadId(15) ========================================
+[2m2026-01-30T11:05:20.635412Z[0m [32m INFO[0m ThreadId(15) 📥 [UDP RECV] 来自: 192.168.0.21:2425
+[2m2026-01-30T11:05:20.635428Z[0m [32m INFO[0m ThreadId(15) 📦 [RAW BYTES] 长度: 84 bytes
+[2m2026-01-30T11:05:20.635445Z[0m [32m INFO[0m ThreadId(15) 📝 [GBK DECODE] 成功解码 (GBK -> UTF-8)
+[2m2026-01-30T11:05:20.635459Z[0m [32m INFO[0m ThreadId(15) 📄 [DECODED MSG] 1_lbt6_0#131200#001C427B7AD4#0#0#0#4001#9:1769798933:ssk:0D3A:6291457:shikun.sh sss 
+[2m2026-01-30T11:05:20.635481Z[0m [31mERROR[0m ThreadId(15) ❌ [PARSE ERROR] Invalid packet format: 功能标识位解析失败：number too large to fit in target type
+[2m2026-01-30T11:05:20.635498Z[0m [31mERROR[0m ThreadId(15)    原始数据: 1_lbt6_0#131200#001C427B7AD4#0#0#0#4001#9:1769798933:ssk:0D3A:6291457:shikun.sh sss 
+[2m2026-01-30T11:05:20.635525Z[0m [32m INFO[0m ThreadId(15) ========================================
+[2m2026-01-30T11:05:20.635540Z[0m [32m INFO[0m ThreadId(15) 📥 [UDP RECV] 来自: 192.168.0.21:2425
+[2m2026-01-30T11:05:20.635554Z[0m [32m INFO[0m ThreadId(15) 📦 [RAW BYTES] 长度: 84 bytes
+[2m2026-01-30T11:05:20.635568Z[0m [32m INFO[0m ThreadId(15) 📝 [GBK DECODE] 成功解码 (GBK -> UTF-8)
+[2m2026-01-30T11:05:20.635580Z[0m [32m INFO[0m ThreadId(15) 📄 [DECODED MSG] 1_lbt6_0#131200#001C427B7AD4#0#0#0#4001#9:1769798934:ssk:0D3A:6291457:shikun.sh sss 
+[2m2026-01-30T11:05:20.635599Z[0m [31mERROR[0m ThreadId(15) ❌ [PARSE ERROR] Invalid packet format: 功能标识位解析失败：number too large to fit in target type
+[2m2026-01-30T11:05:20.635615Z[0m [31mERROR[0m ThreadId(15)    原始数据: 1_lbt6_0#131200#001C427B7AD4#0#0#0#4001#9:1769798934:ssk:0D3A:6291457:shikun.sh sss 
+[2m2026-01-30T11:05:23.704284Z[0m [32m INFO[0m ThreadId(15) ========================================
+[2m2026-01-30T11:05:23.704330Z[0m [32m INFO[0m ThreadId(15) 📥 [UDP RECV] 来自: 192.168.0.21:2425
+[2m2026-01-30T11:05:23.704341Z[0m [32m INFO[0m ThreadId(15) 📦 [RAW BYTES] 长度: 84 bytes
+[2m2026-01-30T11:05:23.704356Z[0m [32m INFO[0m ThreadId(15) 📝 [GBK DECODE] 成功解码 (GBK -> UTF-8)
+[2m2026-01-30T11:05:23.704365Z[0m [32m INFO[0m ThreadId(15) 📄 [DECODED MSG] 1_lbt6_0#131200#001C427B7AD4#0#0#0#4001#9:1769798939:ssk:0D3A:6291457:shikun.sh sss 
+[2m2026-01-30T11:05:23.704387Z[0m [31mERROR[0m ThreadId(15) ❌ [PARSE ERROR] Invalid packet format: 功能标识位解析失败：number too large to fit in target type
+[2m2026-01-30T11:05:23.704398Z[0m [31mERROR[0m ThreadId(15)    原始数据: 1_lbt6_0#131200#001C427B7AD4#0#0#0#4001#9:1769798939:ssk:0D3A:6291457:shikun.sh sss 
+19:05:24 [vite] hmr update /src/components/MainLayout/MainLayout.tsx
+19:05:53 [vite] hmr update /src/components/MainLayout/MainLayout.tsx

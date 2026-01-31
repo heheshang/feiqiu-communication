@@ -12,10 +12,12 @@
 use crate::database::handler::{ChatMessageHandler, ChatSessionHandler, UserHandler};
 use crate::event::bus::EVENT_RECEIVER;
 use crate::event::model::{AppEvent, NetworkEvent, UiEvent};
-use crate::network::feiq::{constants::*, model::ProtocolPacket};
+use crate::network::feiq::model::FeiQPacket;
 use sea_orm::DbConn;
 use std::sync::Arc;
 use tracing::{error, info, warn};
+
+// 注意：保留 FeiQPacket 用于 RECVMSG 确认发送
 
 /// 消息接收器
 pub struct MessageReceiver {
@@ -46,9 +48,26 @@ impl MessageReceiver {
         loop {
             match receiver.recv() {
                 Ok(event) => {
-                    // 只处理网络事件中的数据包接收
-                    if let AppEvent::Network(NetworkEvent::PacketReceived { packet, addr }) = event {
-                        Self::handle_packet_received(db.clone(), packet, addr).await;
+                    // 处理细粒度的MessageReceived事件
+                    if let AppEvent::Network(NetworkEvent::MessageReceived {
+                        sender_ip,
+                        sender_port,
+                        sender_nickname,
+                        content,
+                        msg_no,
+                        needs_receipt,
+                    }) = event
+                    {
+                        Self::handle_message_received(
+                            db.clone(),
+                            sender_ip,
+                            sender_port,
+                            sender_nickname,
+                            content,
+                            msg_no,
+                            needs_receipt,
+                        )
+                        .await;
                     }
                 }
                 Err(e) => {
@@ -58,39 +77,27 @@ impl MessageReceiver {
         }
     }
 
-    /// 处理接收到的数据包
-    async fn handle_packet_received(db: Arc<DbConn>, packet_json: String, addr: String) {
-        // 反序列化数据包
-        let packet: ProtocolPacket = match serde_json::from_str(&packet_json) {
-            Ok(p) => p,
-            Err(e) => {
-                error!("数据包反序列化失败: {}", e);
-                return;
-            }
-        };
+    /// 处理接收到的消息
+    async fn handle_message_received(
+        db: Arc<DbConn>,
+        sender_ip: String,
+        sender_port: u16,
+        sender_nickname: String,
+        content: String,
+        msg_no: String,
+        needs_receipt: bool,
+    ) {
+        info!("收到消息包 from {}:{}", sender_ip, sender_port);
 
-        // 只处理 SENDMSG 命令
-        let base_cmd = packet.base_command();
-        if base_cmd != IPMSG_SENDMSG {
-            return;
-        }
-
-        info!("收到消息包 from {}", addr);
-
-        // 解析发送者信息
-        let (sender_ip, sender_port, sender_nickname) = match Self::parse_sender_info(&addr, &packet.sender) {
-            Ok(info) => info,
-            Err(e) => {
-                warn!("无法解析发送者信息: {}", e);
-                return;
-            }
-        };
-
-        // 获取消息内容
-        let content = packet.extension.clone().unwrap_or_default();
-
-        // 生成消息编号（用于已读回执）
-        let msg_no = packet.msg_no.clone();
+        // 验证发送者信息
+        let (sender_ip, sender_port, sender_nickname) =
+            match Self::validate_sender_info(&sender_ip, sender_port, &sender_nickname) {
+                Ok(info) => info,
+                Err(e) => {
+                    warn!("发送者信息无效: {}", e);
+                    return;
+                }
+            };
 
         // 查找或创建发送者用户记录
         let sender_uid = match Self::get_or_create_sender_user(&db, &sender_ip, sender_port, &sender_nickname).await {
@@ -100,9 +107,6 @@ impl MessageReceiver {
                 return;
             }
         };
-
-        // 检查是否需要发送确认（RECVMSG）
-        let needs_receipt = packet.has_option(IPMSG_SENDCHECKOPT);
 
         // 存储消息到数据库（单聊类型 = 0）
         let session_type = 0; // 单聊
@@ -145,7 +149,7 @@ impl MessageReceiver {
 
                 // 如果需要发送确认
                 if needs_receipt {
-                    Self::send_recv_confirmation(&addr, &msg_no).await;
+                    Self::send_recv_confirmation(&format!("{}:{}", sender_ip, sender_port), &msg_no).await;
                 }
 
                 // 触发 UI 事件：显示消息
@@ -173,13 +177,18 @@ impl MessageReceiver {
         }
     }
 
-    /// 解析发送者信息
-    fn parse_sender_info(addr: &str, sender: &str) -> Result<(String, u16, String), String> {
-        // Use the public version from contact::discovery
-        // The signature there is (sender, addr) -> (nickname, ip, port, machine_id, mac_addr, timestamp_local)
-        let (nickname, ip, port, _machine_id, _mac_addr, _timestamp_local) =
-            crate::core::contact::discovery::parse_sender_info(sender, addr)?;
-        Ok((ip, port, nickname))
+    /// 验证发送者信息
+    fn validate_sender_info(ip: &str, port: u16, nickname: &str) -> Result<(String, u16, String), String> {
+        if ip.is_empty() {
+            return Err("IP地址为空".to_string());
+        }
+        if port == 0 {
+            return Err("端口无效".to_string());
+        }
+        if nickname.is_empty() {
+            return Err("昵称为空".to_string());
+        }
+        Ok((ip.to_string(), port, nickname.to_string()))
     }
 
     /// 获取或创建发送者用户记录
@@ -211,8 +220,8 @@ impl MessageReceiver {
     async fn send_recv_confirmation(addr: &str, msg_no: &str) {
         use crate::network::udp::sender;
 
-        let recv_packet = ProtocolPacket::make_recv_packet(msg_no);
-        let packet_str = recv_packet.to_string();
+        let recv_packet = FeiQPacket::make_feiq_recv_packet(msg_no);
+        let packet_str = recv_packet.to_feiq_string();
 
         if let Err(e) = sender::send_packet_data(addr, &packet_str).await {
             error!("发送 RECVMSG 确认失败: {}", e);

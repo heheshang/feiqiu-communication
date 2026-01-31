@@ -7,11 +7,8 @@
 
 .group-settings-dialog-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background-color: rgb(0 0 0 / 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -22,6 +19,7 @@
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
     }
@@ -31,7 +29,7 @@
 .group-settings-dialog {
   background-color: @bg-white;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px rgb(0 0 0 / 15%);
   width: 90%;
   max-width: 600px;
   max-height: 85vh;
@@ -44,6 +42,7 @@
       transform: translateY(20px);
       opacity: 0;
     }
+
     to {
       transform: translateY(0);
       opacity: 1;
@@ -83,6 +82,7 @@
   padding: 0;
   overflow-y: auto;
   .custom-scrollbar();
+
   flex: 1;
 }
 
@@ -141,7 +141,7 @@
     &:focus {
       outline: none;
       border-color: @primary-color;
-      box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+      box-shadow: 0 0 0 2px rgb(24 144 255 / 10%);
     }
 
     &::placeholder {
@@ -165,6 +165,7 @@
 
 .avatar-upload-placeholder {
   .flex-center();
+
   flex-direction: column;
   gap: @spacing-md;
   padding: @spacing-lg;
@@ -224,14 +225,14 @@
   background-color: @error-bg;
 
   h4 {
-    margin: 0 0 @spacing-sm 0;
+    margin: 0 0 @spacing-sm;
     font-size: 14px;
     font-weight: 600;
     color: @error-color;
   }
 
   p {
-    margin: 0 0 @spacing-md 0;
+    margin: 0 0 @spacing-md;
     font-size: 13px;
     color: @text-secondary;
   }
@@ -323,14 +324,14 @@
   background-color: #fff7e6;
 
   h4 {
-    margin: 0 0 @spacing-sm 0;
+    margin: 0 0 @spacing-sm;
     font-size: 14px;
     font-weight: 600;
     color: @warning-color;
   }
 
   p {
-    margin: 0 0 @spacing-md 0;
+    margin: 0 0 @spacing-md;
     font-size: 13px;
     color: @text-secondary;
   }
@@ -433,7 +434,7 @@
       padding-left: @spacing-lg;
       position: relative;
 
-      &:before {
+      &::before {
         content: '•';
         position: absolute;
         left: 0;

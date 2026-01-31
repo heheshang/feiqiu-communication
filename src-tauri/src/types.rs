@@ -4,6 +4,142 @@
 use serde::{Deserialize, Serialize};
 
 // ============================================================
+// 错误类型
+// ============================================================
+
+/// 前端错误结构（可序列化，用于IPC传递）
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FrontendError {
+    pub code: ErrorCode,
+    pub message: String,
+    pub details: Option<String>,
+}
+
+/// 错误代码枚举
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ErrorCode {
+    Database = 0,
+    Network = 1,
+    Io = 2,
+    Business = 3,
+    Serialize = 4,
+    Protocol = 5,
+    NotFound = 6,
+    AlreadyExists = 7,
+    Validation = 8,
+    Permission = 9,
+}
+
+impl std::fmt::Display for ErrorCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorCode::Database => write!(f, "DATABASE_ERROR"),
+            ErrorCode::Network => write!(f, "NETWORK_ERROR"),
+            ErrorCode::Io => write!(f, "IO_ERROR"),
+            ErrorCode::Business => write!(f, "BUSINESS_ERROR"),
+            ErrorCode::Serialize => write!(f, "SERIALIZE_ERROR"),
+            ErrorCode::Protocol => write!(f, "PROTOCOL_ERROR"),
+            ErrorCode::NotFound => write!(f, "NOT_FOUND"),
+            ErrorCode::AlreadyExists => write!(f, "ALREADY_EXISTS"),
+            ErrorCode::Validation => write!(f, "VALIDATION_ERROR"),
+            ErrorCode::Permission => write!(f, "PERMISSION_DENIED"),
+        }
+    }
+}
+
+impl std::fmt::Display for FrontendError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(ref details) = self.details {
+            write!(f, "[{}] {} - {}", self.code, self.message, details)
+        } else {
+            write!(f, "[{}] {}", self.code, self.message)
+        }
+    }
+}
+
+impl std::error::Error for FrontendError {}
+
+impl From<crate::error::AppError> for FrontendError {
+    fn from(err: crate::error::AppError) -> Self {
+        match err {
+            crate::error::AppError::Database(e) => FrontendError {
+                code: ErrorCode::Database,
+                message: "数据库操作失败".to_string(),
+                details: Some(e.to_string()),
+            },
+            crate::error::AppError::Network(msg) => FrontendError {
+                code: ErrorCode::Network,
+                message: "网络操作失败".to_string(),
+                details: Some(msg),
+            },
+            crate::error::AppError::Io(e) => FrontendError {
+                code: ErrorCode::Io,
+                message: "文件操作失败".to_string(),
+                details: Some(e.to_string()),
+            },
+            crate::error::AppError::Business(msg) => FrontendError {
+                code: ErrorCode::Business,
+                message: msg,
+                details: None,
+            },
+            crate::error::AppError::Serialize(msg) => FrontendError {
+                code: ErrorCode::Serialize,
+                message: "序列化失败".to_string(),
+                details: Some(msg),
+            },
+            crate::error::AppError::Protocol(msg) => FrontendError {
+                code: ErrorCode::Protocol,
+                message: "协议解析失败".to_string(),
+                details: Some(msg),
+            },
+            crate::error::AppError::NotFound(what) => FrontendError {
+                code: ErrorCode::NotFound,
+                message: format!("{} 不存在", what),
+                details: None,
+            },
+            crate::error::AppError::AlreadyExists(what) => FrontendError {
+                code: ErrorCode::AlreadyExists,
+                message: format!("{} 已存在", what),
+                details: None,
+            },
+        }
+    }
+}
+
+impl FrontendError {
+    /// 将错误转换为 JSON 字符串（用于 IPC 返回）
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self)
+            .unwrap_or_else(|_| format!("{{\"code\":{:?},\"message\":\"{}\"}}", self.code, self.message))
+    }
+
+    /// 从 JSON 字符串解析错误
+    pub fn from_json(json: &str) -> Self {
+        serde_json::from_str(json).unwrap_or_else(|_| FrontendError {
+            code: ErrorCode::Business,
+            message: json.to_string(),
+            details: None,
+        })
+    }
+}
+
+/// IPC 错误转换辅助宏
+/// 用法：`.map_err_to_frontend()`
+pub trait MapErrToFrontend<T> {
+    fn map_err_to_frontend(self) -> Result<T, String>;
+}
+
+impl<T, E: Into<crate::error::AppError>> MapErrToFrontend<T> for Result<T, E> {
+    fn map_err_to_frontend(self) -> Result<T, String> {
+        self.map_err(|e| {
+            let app_err: crate::error::AppError = e.into();
+            let frontend_err: FrontendError = app_err.into();
+            frontend_err.to_json()
+        })
+    }
+}
+
+// ============================================================
 // 用户相关
 // ============================================================
 

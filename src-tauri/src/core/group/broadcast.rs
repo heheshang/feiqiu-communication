@@ -4,7 +4,7 @@
 use crate::database::handler::group::GroupMemberHandler;
 use crate::database::handler::user::UserHandler;
 use crate::error::AppResult;
-use crate::network::feiq::model::ProtocolPacket;
+use crate::network::feiq::model::FeiQPacket;
 use crate::network::udp::sender;
 use sea_orm::DbConn;
 
@@ -16,7 +16,7 @@ impl GroupBroadcaster {
     pub async fn broadcast_message(
         db: &DbConn,
         gid: i64,
-        packet: &ProtocolPacket,
+        packet: &FeiQPacket,
         sender_uid: i64,
     ) -> AppResult<usize> {
         // 获取群组所有成员

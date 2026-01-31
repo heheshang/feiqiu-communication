@@ -25,7 +25,11 @@ pub static EVENT_BUS: Lazy<EventBus<AppEvent>> = Lazy::new(|| {
 /// use crate::event::model::{AppEvent, NetworkEvent};
 ///
 /// EVENT_SENDER.send(AppEvent::Network(NetworkEvent::UserOnline {
-///     user: "...".to_string(),
+///     ip: "192.168.1.100".to_string(),
+///     port: 2425,
+///     nickname: "user".to_string(),
+///     hostname: Some("hostname".to_string()),
+///     mac_addr: Some("00:11:22:33:44:55".to_string()),
 /// })).unwrap();
 /// ```
 pub static EVENT_SENDER: Lazy<Sender<AppEvent>> = Lazy::new(|| EVENT_BUS.sender().clone());

@@ -105,6 +105,83 @@ impl FeiQPacket {
         packet
     }
 
+    /// 创建 FeiQ 格式的消息包 (SENDMSG)
+    ///
+    /// 格式: 1_lbt6_0#func_flag#MAC#端口#0#0#4001#20:时间戳:包ID:主机名:用户名:消息内容
+    pub fn make_feiq_message_packet(content: &str, nickname: Option<&str>) -> FeiQPacket {
+        let (username, hostname, _ip, _port) = get_system_user_info();
+        let mac_addr = get_mac_address();
+        let mac_formatted = format_mac_addr(&mac_addr).unwrap_or_else(|_| mac_addr.clone());
+
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
+        let packet_id = generate_packet_id();
+        let nickname = nickname.unwrap_or(&username).to_string();
+
+        FeiQPacket {
+            pkg_type: "1_lbt6_0".to_string(),
+            func_flag: 128,
+            mac_addr_raw: mac_addr.clone(),
+            mac_addr_formatted: mac_formatted,
+            udp_port: 2425,
+            file_transfer_id: 0,
+            extra_flag: 0,
+            client_version: 0x4001,
+            ext_info: FeiQExtInfo {
+                msg_sub_type: 0x20,
+                timestamp,
+                timestamp_local: timestamp_to_local(timestamp),
+                unique_id: packet_id,
+                hostname: hostname.clone(),
+                nickname,
+                remark: content.to_string(),
+            },
+        }
+    }
+
+    /// 创建 FeiQ 格式的接收确认包 (RECVMSG)
+    pub fn make_feiq_recv_packet(msg_no: &str) -> FeiQPacket {
+        let (username, hostname, _ip, _port) = get_system_user_info();
+        let mac_addr = get_mac_address();
+        let mac_formatted = format_mac_addr(&mac_addr).unwrap_or_else(|_| mac_addr.clone());
+
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
+        let packet_id = generate_packet_id();
+
+        FeiQPacket {
+            pkg_type: "1_lbt6_0".to_string(),
+            func_flag: 128,
+            mac_addr_raw: mac_addr.clone(),
+            mac_addr_formatted: mac_formatted,
+            udp_port: 2425,
+            file_transfer_id: 0,
+            extra_flag: 0,
+            client_version: 0x4001,
+            ext_info: FeiQExtInfo {
+                msg_sub_type: 0x21,
+                timestamp,
+                timestamp_local: timestamp_to_local(timestamp),
+                unique_id: packet_id,
+                hostname,
+                nickname: username,
+                remark: msg_no.to_string(),
+            },
+        }
+    }
+
+    /// 创建 FeiQ 格式的已读回执包 (READMSG)
+    pub fn make_feiq_read_packet(msg_no: &str) -> FeiQPacket {
+        let mut packet = Self::make_feiq_recv_packet(msg_no);
+        packet.ext_info.msg_sub_type = 0x30;
+        packet
+    }
+
+    /// 创建 FeiQ 格式的已读应答包 (ANSREADMSG)
+    pub fn make_feiq_ansread_packet(msg_no: &str) -> FeiQPacket {
+        let mut packet = Self::make_feiq_recv_packet(msg_no);
+        packet.ext_info.msg_sub_type = 0x32;
+        packet
+    }
+
     /// 序列化为 FeiQ 协议字符串
     ///
     /// 格式: 版本号#长度#MAC#端口#标志1#标志2#命令#类型:时间戳:包ID:主机名:用户ID:备注

@@ -10,12 +10,20 @@
 use feiqiu_communication::database::handler::{chat::ChatMessageHandler, user::UserHandler};
 use feiqiu_communication::database::model::user;
 use feiqiu_communication::network::feiq::{constants::*, parser::parse_feiq_packet};
+use sea_orm_migration::MigratorTrait;
 
 /// 初始化测试数据库（使用内存数据库）
 async fn init_test_db() -> sea_orm::DbConn {
-    sea_orm::Database::connect("sqlite::memory:")
+    let db = sea_orm::Database::connect("sqlite::memory:")
         .await
-        .expect("Failed to connect to test database")
+        .expect("Failed to connect to test database");
+    
+    // 运行迁移以创建表
+    feiqiu_communication::database::migration::Migrator::up(&db, None)
+        .await
+        .expect("Failed to run migrations");
+    
+    db
 }
 
 // ============================================================
@@ -31,10 +39,6 @@ async fn test_user_discovery_flow() {
     // 4. 用户 B 也添加 A 到在线列表
 
     let db = init_test_db().await;
-    // 创建数据库表
-    feiqiu_communication::database::create_tables(&db)
-        .await
-        .expect("Failed to create tables");
 
     // 创建测试用户
     let user_a = user::Model {
@@ -83,10 +87,6 @@ async fn test_message_send_receive_flow() {
     // 4. 消息状态更新为已读
 
     let db = init_test_db().await;
-    // 创建数据库表
-    feiqiu_communication::database::create_tables(&db)
-        .await
-        .expect("Failed to create tables");
 
     // 创建发送者和接收者
     let sender = user::Model {
@@ -117,9 +117,9 @@ async fn test_message_send_receive_flow() {
     let receiver = UserHandler::create(&db, receiver).await.expect("Failed to create receiver");
 
     // 创建 SENDMSG 数据包
-    use feiqiu_communication::network::feiq::model::FeiqPacket;
+    use feiqiu_communication::network::feiq::model::ProtocolPacket;
 
-    let packet = FeiqPacket::new_ipmsg(
+    let packet = ProtocolPacket::new_ipmsg(
         "1.0".to_string(),
         IPMSG_SENDMSG | IPMSG_UTF8OPT,
         "Alice".to_string(),
@@ -201,10 +201,6 @@ async fn test_database_persistence_integration() {
     // 4. 删除用户
 
     let db = init_test_db().await;
-    // 创建数据库表
-    feiqiu_communication::database::create_tables(&db)
-        .await
-        .expect("Failed to create tables");
 
     // 创建用户
     let user = user::Model {
@@ -255,10 +251,6 @@ async fn test_end_to_end_messaging_scenario() {
     // 5. 用户 B 下线
 
     let db = init_test_db().await;
-    // 创建数据库表
-    feiqiu_communication::database::create_tables(&db)
-        .await
-        .expect("Failed to create tables");
 
     // 创建两个测试用户
     let alice = user::Model {

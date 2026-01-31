@@ -13,7 +13,11 @@
 /// - sender: 消息发送处理器
 /// - receipt: 已读回执处理器
 /// - manager: 会话管理器
+/// - service: 聊天业务逻辑服务层
 pub mod manager;
 pub mod receipt;
 pub mod receiver;
 pub mod sender;
+pub mod service;
+
+pub use service::ChatService;
