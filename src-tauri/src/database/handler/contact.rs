@@ -19,7 +19,7 @@ impl ContactHandler {
         tag: Option<String>,
     ) -> AppResult<contact::Model> {
         // 检查是否已存在
-        if let Some(_) = Self::find_by_owner_and_contact(db, owner_uid, contact_uid).await? {
+        if Self::find_by_owner_and_contact(db, owner_uid, contact_uid).await?.is_some() {
             return Err(AppError::AlreadyExists(format!(
                 "联系人关系已存在: {} -> {}",
                 owner_uid, contact_uid
@@ -36,7 +36,7 @@ impl ContactHandler {
             update_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
         };
 
-        let result = Contact::insert(new_contact).exec(db).await.map_err(|e| AppError::Database(e))?;
+        let result = Contact::insert(new_contact).exec(db).await.map_err(AppError::Database)?;
 
         Self::find_by_id(db, result.last_insert_id).await
     }
@@ -46,7 +46,7 @@ impl ContactHandler {
         let contact = Contact::find_by_id(id)
             .one(db)
             .await
-            .map_err(|e| AppError::Database(e))?
+            .map_err(AppError::Database)?
             .ok_or_else(|| AppError::NotFound(format!("联系人记录 {} 不存在", id)))?;
 
         Ok(contact)
@@ -63,7 +63,7 @@ impl ContactHandler {
             .filter(contact::Column::ContactUid.eq(contact_uid))
             .one(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Ok(contact)
     }
@@ -74,7 +74,7 @@ impl ContactHandler {
             .filter(contact::Column::OwnerUid.eq(owner_uid))
             .all(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Ok(contacts)
     }
@@ -89,7 +89,7 @@ impl ContactHandler {
         contact_update.remark = ActiveValue::Set(remark);
         contact_update.update_time = ActiveValue::Set(chrono::Utc::now().naive_utc());
 
-        contact_update.update(db).await.map_err(|e| AppError::Database(e))?;
+        contact_update.update(db).await.map_err(AppError::Database)?;
         Ok(())
     }
 
@@ -103,7 +103,7 @@ impl ContactHandler {
         contact_update.tag = ActiveValue::Set(tag);
         contact_update.update_time = ActiveValue::Set(chrono::Utc::now().naive_utc());
 
-        contact_update.update(db).await.map_err(|e| AppError::Database(e))?;
+        contact_update.update(db).await.map_err(AppError::Database)?;
         Ok(())
     }
 
@@ -116,7 +116,7 @@ impl ContactHandler {
         Contact::delete_by_id(contact.id)
             .exec(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
         Ok(())
     }
 }

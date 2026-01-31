@@ -27,7 +27,7 @@ impl GroupHandler {
             update_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
         };
 
-        let result = Group::insert(new_group).exec(db).await.map_err(|e| AppError::Database(e))?;
+        let result = Group::insert(new_group).exec(db).await.map_err(AppError::Database)?;
 
         // 自动将创建者添加为群主
         GroupMemberHandler::add_member(db, result.last_insert_id, creator_uid, 1).await?;
@@ -40,7 +40,7 @@ impl GroupHandler {
         let group = Group::find_by_id(gid)
             .one(db)
             .await
-            .map_err(|e| AppError::Database(e))?
+            .map_err(AppError::Database)?
             .ok_or_else(|| AppError::NotFound(format!("群组 {} 不存在", gid)))?;
 
         Ok(group)
@@ -52,7 +52,7 @@ impl GroupHandler {
             .filter(group::Column::CreatorUid.eq(creator_uid))
             .all(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Ok(groups)
     }
@@ -80,12 +80,12 @@ impl GroupHandler {
         }
         group_update.update_time = ActiveValue::Set(chrono::Utc::now().naive_utc());
 
-        group_update.update(db).await.map_err(|e| AppError::Database(e))
+        group_update.update(db).await.map_err(AppError::Database)
     }
 
     /// 删除群组
     pub async fn delete(db: &DbConn, gid: i64) -> AppResult<()> {
-        Group::delete_by_id(gid).exec(db).await.map_err(|e| AppError::Database(e))?;
+        Group::delete_by_id(gid).exec(db).await.map_err(AppError::Database)?;
         Ok(())
     }
 }
@@ -97,7 +97,7 @@ impl GroupMemberHandler {
     /// 添加群组成员
     pub async fn add_member(db: &DbConn, gid: i64, member_uid: i64, role: i8) -> AppResult<group_member::Model> {
         // 检查是否已存在
-        if let Some(_) = Self::find_by_group_and_member(db, gid, member_uid).await? {
+        if Self::find_by_group_and_member(db, gid, member_uid).await?.is_some() {
             return Err(AppError::AlreadyExists(format!(
                 "用户 {} 已在群组 {} 中",
                 member_uid, gid
@@ -115,7 +115,7 @@ impl GroupMemberHandler {
         let result = GroupMember::insert(new_member)
             .exec(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Self::find_by_id(db, result.last_insert_id).await
     }
@@ -125,7 +125,7 @@ impl GroupMemberHandler {
         let member = GroupMember::find_by_id(id)
             .one(db)
             .await
-            .map_err(|e| AppError::Database(e))?
+            .map_err(AppError::Database)?
             .ok_or_else(|| AppError::NotFound(format!("群组成员记录 {} 不存在", id)))?;
 
         Ok(member)
@@ -142,7 +142,7 @@ impl GroupMemberHandler {
             .filter(group_member::Column::MemberUid.eq(member_uid))
             .one(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Ok(member)
     }
@@ -153,7 +153,7 @@ impl GroupMemberHandler {
             .filter(group_member::Column::Gid.eq(gid))
             .all(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Ok(members)
     }
@@ -164,7 +164,7 @@ impl GroupMemberHandler {
             .filter(group_member::Column::MemberUid.eq(member_uid))
             .all(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Ok(members)
     }
@@ -178,7 +178,7 @@ impl GroupMemberHandler {
         let mut member_update: group_member::ActiveModel = member.into();
         member_update.role = ActiveValue::Set(role);
 
-        member_update.update(db).await.map_err(|e| AppError::Database(e))?;
+        member_update.update(db).await.map_err(AppError::Database)?;
         Ok(())
     }
 
@@ -191,7 +191,7 @@ impl GroupMemberHandler {
         GroupMember::delete_by_id(member.id)
             .exec(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
         Ok(())
     }
 }

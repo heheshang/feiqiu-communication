@@ -24,7 +24,7 @@ impl UserHandler {
             update_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
         };
 
-        let result = User::insert(new_user).exec(db).await.map_err(|e| AppError::Database(e))?;
+        let result = User::insert(new_user).exec(db).await.map_err(AppError::Database)?;
 
         Self::find_by_id(db, result.last_insert_id).await
     }
@@ -34,7 +34,7 @@ impl UserHandler {
         let user = User::find_by_id(uid)
             .one(db)
             .await
-            .map_err(|e| AppError::Database(e))?
+            .map_err(AppError::Database)?
             .ok_or_else(|| AppError::NotFound(format!("用户 {} 不存在", uid)))?;
 
         Ok(user)
@@ -47,7 +47,7 @@ impl UserHandler {
             .filter(user::Column::FeiqPort.eq(port as i32))
             .one(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Ok(user)
     }
@@ -60,7 +60,7 @@ impl UserHandler {
         let user = User::find()
             .one(db)
             .await
-            .map_err(|e| AppError::Database(e))?
+            .map_err(AppError::Database)?
             .ok_or_else(|| AppError::NotFound("未找到当前用户".to_string()))?;
 
         Ok(user)
@@ -90,7 +90,7 @@ impl UserHandler {
             update_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
         };
 
-        user_update.update(db).await.map_err(|e| AppError::Database(e))
+        user_update.update(db).await.map_err(AppError::Database)
     }
 
     /// 更新用户状态
@@ -109,19 +109,19 @@ impl UserHandler {
             update_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
         };
 
-        user_update.update(db).await.map_err(|e| AppError::Database(e))?;
+        user_update.update(db).await.map_err(AppError::Database)?;
         Ok(())
     }
 
     /// 删除用户
     pub async fn delete(db: &DbConn, uid: i64) -> AppResult<()> {
-        User::delete_by_id(uid).exec(db).await.map_err(|e| AppError::Database(e))?;
+        User::delete_by_id(uid).exec(db).await.map_err(AppError::Database)?;
         Ok(())
     }
 
     /// 获取所有用户
     pub async fn list_all(db: &DbConn) -> AppResult<Vec<user::Model>> {
-        let users = User::find().all(db).await.map_err(|e| AppError::Database(e))?;
+        let users = User::find().all(db).await.map_err(AppError::Database)?;
 
         Ok(users)
     }
@@ -132,7 +132,7 @@ impl UserHandler {
             .filter(user::Column::Status.eq(status))
             .all(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Ok(users)
     }

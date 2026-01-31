@@ -338,22 +338,14 @@ impl ProtocolPacket {
     pub fn formatted_mac(&self) -> Option<String> {
         if let Some(ref detail) = self.feiq_detail {
             Some(detail.mac_addr_formatted.clone())
-        } else if let Some(ref mac) = self.mac_addr {
-            Some(format_mac_addr(mac).unwrap_or_else(|_| mac.clone()))
-        } else {
-            None
-        }
+        } else { self.mac_addr.as_ref().map(|mac| format_mac_addr(mac).unwrap_or_else(|_| mac.clone())) }
     }
 
     /// 获取本地时间戳字符串（如果可用）
     pub fn local_timestamp(&self) -> Option<String> {
         if let Some(ref detail) = self.feiq_detail {
             Some(detail.ext_info.timestamp_local.clone())
-        } else if let Some(ts) = self.timestamp {
-            Some(timestamp_to_local(ts as i64))
-        } else {
-            None
-        }
+        } else { self.timestamp.map(|ts| timestamp_to_local(ts as i64)) }
     }
 }
 

@@ -33,7 +33,7 @@ pub async fn init_database(db_path: Option<&str>) -> AppResult<DbConn> {
 
     tracing::info!("正在连接数据库: {}", db_url);
 
-    let db = Database::connect(&db_url).await.map_err(|e| AppError::Database(e))?;
+    let db = Database::connect(&db_url).await.map_err(AppError::Database)?;
 
     // // 创建数据库表（使用原生 SQL）
     // create_tables(&db).await?;

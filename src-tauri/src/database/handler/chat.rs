@@ -50,7 +50,7 @@ impl ChatMessageHandler {
         let result = ChatMessage::insert(new_message)
             .exec(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Self::find_by_id(db, result.last_insert_id).await
     }
@@ -60,7 +60,7 @@ impl ChatMessageHandler {
         let message = ChatMessage::find_by_id(mid)
             .one(db)
             .await
-            .map_err(|e| AppError::Database(e))?
+            .map_err(AppError::Database)?
             .ok_or_else(|| AppError::NotFound(format!("消息 {} 不存在", mid)))?;
 
         Ok(message)
@@ -72,7 +72,7 @@ impl ChatMessageHandler {
             .filter(chat_message::Column::MsgNo.eq(msg_no))
             .one(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Ok(message)
     }
@@ -91,7 +91,7 @@ impl ChatMessageHandler {
             .limit(limit)
             .all(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         // 反转顺序，使最新的消息在最后
         Ok(messages.into_iter().rev().collect())
@@ -122,7 +122,7 @@ impl ChatMessageHandler {
             .offset(offset)
             .all(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         // 反转顺序，使最新的消息在最后（正序：旧 -> 新）
         Ok(messages.into_iter().rev().collect())
@@ -136,7 +136,7 @@ impl ChatMessageHandler {
         message_update.status = ActiveValue::Set(status);
         message_update.update_time = ActiveValue::Set(chrono::Utc::now().naive_utc());
 
-        message_update.update(db).await.map_err(|e| AppError::Database(e))?;
+        message_update.update(db).await.map_err(AppError::Database)?;
         Ok(())
     }
 
@@ -145,7 +145,7 @@ impl ChatMessageHandler {
         ChatMessage::delete_by_id(mid)
             .exec(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
         Ok(())
     }
 
@@ -161,7 +161,7 @@ impl ChatMessageHandler {
             query = query.limit(limit_value);
         }
 
-        let messages = query.all(db).await.map_err(|e| AppError::Database(e))?;
+        let messages = query.all(db).await.map_err(AppError::Database)?;
 
         Ok(messages)
     }
@@ -190,7 +190,7 @@ impl ChatMessageHandler {
             .filter(chat_message::Column::Status.lt(2)) // 只更新未读消息
             .exec(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         // 清除会话的未读计数
         ChatSessionHandler::clear_unread(db, session.sid).await?;
@@ -231,7 +231,7 @@ impl ChatSessionHandler {
         let result = ChatSession::insert(new_session)
             .exec(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Self::find_by_id(db, result.last_insert_id).await
     }
@@ -241,7 +241,7 @@ impl ChatSessionHandler {
         let session = ChatSession::find_by_id(sid)
             .one(db)
             .await
-            .map_err(|e| AppError::Database(e))?
+            .map_err(AppError::Database)?
             .ok_or_else(|| AppError::NotFound(format!("会话 {} 不存在", sid)))?;
 
         Ok(session)
@@ -260,7 +260,7 @@ impl ChatSessionHandler {
             .filter(chat_session::Column::TargetId.eq(target_id))
             .one(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Ok(session)
     }
@@ -272,7 +272,7 @@ impl ChatSessionHandler {
             .order_by_desc(chat_session::Column::UpdateTime)
             .all(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Ok(sessions)
     }
@@ -285,7 +285,7 @@ impl ChatSessionHandler {
         session_update.last_msg_id = ActiveValue::Set(Some(message_id));
         session_update.update_time = ActiveValue::Set(chrono::Utc::now().naive_utc());
 
-        session_update.update(db).await.map_err(|e| AppError::Database(e))?;
+        session_update.update(db).await.map_err(AppError::Database)?;
         Ok(())
     }
 
@@ -298,7 +298,7 @@ impl ChatSessionHandler {
         session_update.unread_count = ActiveValue::Set(unread_count + 1);
         session_update.update_time = ActiveValue::Set(chrono::Utc::now().naive_utc());
 
-        session_update.update(db).await.map_err(|e| AppError::Database(e))?;
+        session_update.update(db).await.map_err(AppError::Database)?;
         Ok(())
     }
 
@@ -310,7 +310,7 @@ impl ChatSessionHandler {
         session_update.unread_count = ActiveValue::Set(0);
         session_update.update_time = ActiveValue::Set(chrono::Utc::now().naive_utc());
 
-        session_update.update(db).await.map_err(|e| AppError::Database(e))?;
+        session_update.update(db).await.map_err(AppError::Database)?;
         Ok(())
     }
 
@@ -319,7 +319,7 @@ impl ChatSessionHandler {
         ChatSession::delete_by_id(sid)
             .exec(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
         Ok(())
     }
 
@@ -335,7 +335,7 @@ impl ChatSessionHandler {
             .filter(chat_session::Column::UpdateTime.lt(cutoff_time))
             .all(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         // 这里简化处理，实际可能需要将它们移动到归档表或标记为已归档
         // 当前实现只是删除旧会话
@@ -364,7 +364,7 @@ impl ChatSessionHandler {
             .limit(limit)
             .all(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         // 获取这些消息对应的会话
         let mut session_ids = std::collections::HashSet::new();

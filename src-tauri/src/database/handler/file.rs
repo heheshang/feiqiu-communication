@@ -35,7 +35,7 @@ impl FileStorageHandler {
         let result = FileStorage::insert(new_file)
             .exec(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Self::find_by_id(db, result.last_insert_id).await
     }
@@ -45,7 +45,7 @@ impl FileStorageHandler {
         let file = FileStorage::find_by_id(fid)
             .one(db)
             .await
-            .map_err(|e| AppError::Database(e))?
+            .map_err(AppError::Database)?
             .ok_or_else(|| AppError::NotFound(format!("文件 {} 不存在", fid)))?;
 
         Ok(file)
@@ -58,7 +58,7 @@ impl FileStorageHandler {
             .order_by_desc(file_storage::Column::UploadTime)
             .all(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Ok(files)
     }
@@ -70,7 +70,7 @@ impl FileStorageHandler {
             .order_by_desc(file_storage::Column::UploadTime)
             .all(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
 
         Ok(files)
     }
@@ -80,7 +80,7 @@ impl FileStorageHandler {
         FileStorage::delete_by_id(fid)
             .exec(db)
             .await
-            .map_err(|e| AppError::Database(e))?;
+            .map_err(AppError::Database)?;
         Ok(())
     }
 

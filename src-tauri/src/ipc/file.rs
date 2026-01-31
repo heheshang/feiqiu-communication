@@ -54,7 +54,7 @@ pub async fn get_file_handler(fid: i64, db: State<'_, DbConn>) -> Result<String,
     let db = db.inner();
     let file_storage = FileStorageHandler::find_by_id(db, fid).await.map_err_to_frontend()?;
     // serde_json::Error doesn't implement Into<AppError>, use standard error handling
-    Ok(serde_json::to_string(&file_storage).map_err(|e| e.to_string())?)
+    serde_json::to_string(&file_storage).map_err(|e| e.to_string())
 }
 
 /// 取消文件传输

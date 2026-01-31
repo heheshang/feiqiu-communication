@@ -181,6 +181,7 @@ impl FileReceiver {
         let mut file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
+            .truncate(false)
             .open(&self.save_path)
             .map_err(AppError::Io)?;
 

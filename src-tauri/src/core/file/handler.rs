@@ -216,17 +216,17 @@ impl FileTransferHandler {
 
         let mut file = File::open(file_path)
             .await
-            .map_err(|e| AppError::Io(e))?;
+            .map_err(AppError::Io)?;
 
         file.seek(SeekFrom::Start(offset))
             .await
-            .map_err(|e| AppError::Io(e))?;
+            .map_err(AppError::Io)?;
 
         let mut buffer = vec![0u8; 4096];
         let n = file
             .read(&mut buffer)
             .await
-            .map_err(|e| AppError::Io(e))?;
+            .map_err(AppError::Io)?;
 
         buffer.truncate(n);
         Ok(buffer)

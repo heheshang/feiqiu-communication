@@ -31,7 +31,7 @@ pub async fn get_current_user_handler(state: State<'_, DbConn>) -> Result<UserIn
                 uid: user.uid,
                 nickname: user.nickname,
                 feiq_ip: user.feiq_ip,
-                feiq_port: user.feiq_port as u16,
+                feiq_port: user.feiq_port,
                 feiq_machine_id: user.feiq_machine_id,
                 avatar: user.avatar,
                 status: user.status,

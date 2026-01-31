@@ -44,7 +44,7 @@ impl FileService {
         for path in &file_paths {
             use std::path::Path;
             let path_obj = Path::new(path);
-            let metadata = path_obj.metadata().map_err(|e| AppError::Io(e))?;
+            let metadata = path_obj.metadata().map_err(AppError::Io)?;
 
             files.push(crate::network::feiq::model::FileAttachment {
                 file_name: path_obj
@@ -55,10 +55,10 @@ impl FileService {
                 file_size: metadata.len() as i64,
                 mtime: metadata
                     .modified()
-                    .map_err(|e| AppError::Io(e))?
+                    .map_err(AppError::Io)?
                     .duration_since(std::time::UNIX_EPOCH)
                     .map_err(|e| AppError::Business(e.to_string()))?
-                    .as_secs() as u64,
+                    .as_secs(),
                 attr: if path_obj.is_dir() { 2 } else { 1 },
             });
         }
@@ -81,8 +81,8 @@ impl FileService {
             let file_storage = FileStorageHandler::create(
                 db,
                 file.file_name.clone(),
-                file_paths.get(0).unwrap_or(&String::new()).clone(),
-                file.file_size as i64,
+                file_paths.first().unwrap_or(&String::new()).clone(),
+                file.file_size,
                 "application/octet-stream".to_string(),
                 owner_uid,
             )
@@ -103,7 +103,7 @@ impl FileService {
                 target_id: Set(target_user.uid),
                 direction: Set(1), // 1=上传
                 transferred: Set(0),
-                file_size: Set(files[index].file_size as i64),
+                file_size: Set(files[index].file_size),
                 status: Set(0), // 0=等待对方接受
                 packet_no: Set(transfer_id.to_string()),
                 target_ip: Set(target_ip.clone()),
