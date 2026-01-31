@@ -2,7 +2,9 @@
   "active_plan": "/Users/ssk/Documents/project/personal/ai/feiqiu-communication/.sisyphus/plans/phase10-v1.1-features.md",
   "started_at": "2026-01-31T08:00:00.000Z",
   "status": "in_progress",
-  "session_ids": [],
+  "session_ids": [
+    "ses_3f64aa908ffegkH4ugXx9L4IhY"
+  ],
   "plan_name": "phase10-v1.1-features",
   "completion_percentage": 0,
   "tasks_completed": 0,
