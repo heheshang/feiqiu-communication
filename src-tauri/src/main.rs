@@ -20,6 +20,7 @@ mod utils;
 use core::chat::receipt::ReceiptHandler;
 use core::chat::receiver::MessageReceiver;
 use core::contact::start_discovery;
+use core::file::FileTransferHandler;
 use database::init_database;
 use event::bus::EVENT_RECEIVER;
 use event::model::AppEvent;
@@ -184,9 +185,10 @@ async fn start_background_services(app_handle: tauri::AppHandle, db: Arc<DbConn>
     });
 
     // 启动事件处理器
+    let db_clone = db.clone();
     let app_handle_clone = app_handle.clone();
     tokio::spawn(async move {
-        event_loop(app_handle_clone).await;
+        event_loop(app_handle_clone, db_clone).await;
     });
 
     // 启动消息接收处理器
@@ -228,17 +230,15 @@ async fn get_computer_name() -> Result<String, String> {
 }
 
 /// 事件循环：处理全局事件
-async fn event_loop(app_handle: tauri::AppHandle) {
+async fn event_loop(app_handle: tauri::AppHandle, db: Arc<DbConn>) {
     loop {
         match EVENT_RECEIVER.recv() {
             Ok(event) => {
                 match event {
                     AppEvent::Network(net_event) => {
-                        // 处理网络事件
-                        handle_network_event(net_event, &app_handle).await;
+                        handle_network_event(net_event, &app_handle, &db).await;
                     }
                     AppEvent::Ui(ui_event) => {
-                        // 处理 UI 事件
                         handle_ui_event(ui_event, &app_handle).await;
                     }
                     _ => {}
@@ -252,7 +252,11 @@ async fn event_loop(app_handle: tauri::AppHandle) {
 }
 
 /// 处理网络事件
-async fn handle_network_event(event: crate::event::model::NetworkEvent, _app_handle: &tauri::AppHandle) {
+async fn handle_network_event(
+    event: crate::event::model::NetworkEvent,
+    _app_handle: &tauri::AppHandle,
+    db: &Arc<DbConn>,
+) {
     match event {
         crate::event::model::NetworkEvent::UserOnline { ip, port, nickname, hostname, mac_addr } => {
             info!("用户上线事件: {} ({}:{})", nickname, ip, port);
@@ -293,6 +297,34 @@ async fn handle_network_event(event: crate::event::model::NetworkEvent, _app_han
         }
         crate::event::model::NetworkEvent::UserUpdated { user } => {
             info!("用户更新事件: {}", user);
+        }
+        crate::event::model::NetworkEvent::FileDataRequest {
+            from_ip,
+            packet_no,
+            file_id,
+            offset,
+        } => {
+            if let Err(e) = FileTransferHandler::handle_file_data_request(db, &from_ip, &packet_no, file_id, offset).await {
+                error!("处理文件数据请求失败: {}", e);
+            }
+        }
+        crate::event::model::NetworkEvent::FileDataReceived {
+            from_ip,
+            packet_no,
+            file_id,
+            offset,
+            data,
+        } => {
+            if let Err(e) =
+                FileTransferHandler::handle_file_data_received(db, &from_ip, &packet_no, file_id, offset, &data).await
+            {
+                error!("处理文件数据接收失败: {}", e);
+            }
+        }
+        crate::event::model::NetworkEvent::FileRelease { from_ip, packet_no } => {
+            if let Err(e) = FileTransferHandler::handle_file_release(db, &from_ip, &packet_no).await {
+                error!("处理文件释放失败: {}", e);
+            }
         }
         _ => {}
     }

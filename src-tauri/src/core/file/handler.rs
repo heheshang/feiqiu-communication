@@ -7,16 +7,14 @@
 //! - FileDataReceived: 接收到文件数据块
 //! - FileRelease: 文件传输释放/取消
 
-use crate::core::file::transfer::{FileReceiver, FileSender};
+use crate::core::file::transfer::FileReceiver;
 use crate::database::handler::{FileStorageHandler, TransferStateHandler};
 use crate::error::{AppError, AppResult};
-use crate::network::feiq::packer::FeiQPacket;
+use crate::network::feiq::model::FeiQPacket;
 use crate::network::udp::sender;
 use sea_orm::DbConn;
-use std::collections::HashMap;
-use std::sync::Mutex;
-use tokio::io::{AsyncReadExt, AsyncSeekExt};
-use tracing::{error, info, warn};
+use std::sync::OnceLock;
+use tracing::info;
 
 /// 文件传输事件处理器
 pub struct FileTransferHandler;
@@ -25,8 +23,9 @@ pub struct FileTransferHandler;
 ///
 /// key: (packet_no, file_id)
 /// value: FileReceiver
-lazy_static::lazy_static! {
-    static ref FILE_RECEIVERS: Mutex<HashMap<(String, u64), FileReceiver>> = Mutex::new(HashMap::new());
+fn file_receivers() -> &'static std::sync::Mutex<std::collections::HashMap<(String, u64), FileReceiver>> {
+    static RECEIVERS: OnceLock<std::sync::Mutex<std::collections::HashMap<(String, u64), FileReceiver>>> = OnceLock::new();
+    RECEIVERS.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
 }
 
 impl FileTransferHandler {
@@ -52,10 +51,8 @@ impl FileTransferHandler {
             from_ip, packet_no, file_id, offset
         );
 
-        // 查询传输状态记录
         let transfer_states = TransferStateHandler::find_by_packet_no(db, packet_no).await?;
 
-        // 找到对应的文件传输记录
         let transfer_state = transfer_states
             .iter()
             .find(|t| t.file_id as u64 == file_id)
@@ -66,13 +63,10 @@ impl FileTransferHandler {
                 ))
             })?;
 
-        // 获取文件路径
         let file_storage = FileStorageHandler::find_by_id(db, transfer_state.file_id).await?;
 
-        // 读取文件数据块 (4KB)
         let chunk = Self::read_file_chunk(&file_storage.file_path, offset).await?;
 
-        // 构建并发送 FeiQ 文件数据包
         let packet = FeiQPacket::make_feiq_file_data_packet(packet_no, file_id, offset, &chunk, None);
         let packet_str = packet.to_feiq_string();
 
@@ -119,13 +113,11 @@ impl FileTransferHandler {
             data.len()
         );
 
-        // 解码 Base64 数据
         use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
         let chunk = BASE64
             .decode(data)
             .map_err(|e| AppError::Protocol(format!("Base64 解码失败: {}", e)))?;
 
-        // 查询传输状态记录
         let transfer_states = TransferStateHandler::find_by_packet_no(db, packet_no).await?;
 
         let transfer_state = transfer_states
@@ -138,40 +130,42 @@ impl FileTransferHandler {
                 ))
             })?;
 
-        // 获取或创建 FileReceiver
         let key = (packet_no.to_string(), file_id);
-        let mut receivers = FILE_RECEIVERS.lock().map_err(|e| {
-            AppError::Business(format!("获取文件接收器缓存失败: {}", e))
-        })?;
 
-        let receiver = receivers.entry(key.clone()).or_insert_with(|| {
-            // 创建新的 FileReceiver
-            FileReceiver::new(
-                transfer_state.get_save_path(),
-                file_id,
-                transfer_state.file_size as u64,
-            )
-        });
+        let is_complete = {
+            let mut receivers = file_receivers().lock().map_err(|e| {
+                AppError::Business(format!("获取文件接收器缓存失败: {}", e))
+            })?;
 
-        // 写入数据块
-        receiver.receive_chunk(offset, &chunk)?;
+            let receiver = receivers.entry(key.clone()).or_insert_with(|| {
+                FileReceiver::new(
+                    transfer_state.get_save_path(),
+                    file_id,
+                    transfer_state.file_size as u64,
+                )
+            });
 
-        // 更新传输进度
+            receiver.receive_chunk(offset, &chunk)?;
+
+            let current_size = receiver.current_size()?;
+            let is_complete = current_size >= transfer_state.file_size as u64;
+
+            if is_complete {
+                info!(
+                    "文件接收完成: file_id={}, size={}",
+                    file_id, transfer_state.file_size
+                );
+                receivers.remove(&key);
+            }
+
+            is_complete
+        };
+
         let new_offset = offset + chunk.len() as u64;
         TransferStateHandler::update_progress(db, transfer_state.tid, new_offset as i64, 1).await?;
 
-        // 检查是否完成
-        if receiver.current_size()? >= transfer_state.file_size as u64 {
-            info!(
-                "文件接收完成: file_id={}, size={}",
-                file_id, transfer_state.file_size
-            );
-
-            // 标记传输完成
+        if is_complete {
             TransferStateHandler::update_status(db, transfer_state.tid, 2, None).await?;
-
-            // 移除接收器缓存
-            receivers.remove(&key);
         }
 
         Ok(())
@@ -191,20 +185,16 @@ impl FileTransferHandler {
             from_ip, packet_no
         );
 
-        // 查询传输状态记录
         let transfer_states = TransferStateHandler::find_by_packet_no(db, packet_no).await?;
 
         for transfer_state in transfer_states {
-            // 标记传输为已取消
             TransferStateHandler::update_status(db, transfer_state.tid, -2, Some("对方取消传输".to_string())).await?;
 
-            // 移除文件接收器缓存
-            let mut receivers = FILE_RECEIVERS.lock().map_err(|e| {
+            let mut receivers = file_receivers().lock().map_err(|e| {
                 AppError::Business(format!("获取文件接收器缓存失败: {}", e))
             })?;
 
-            // 移除所有与该 packet_no 相关的接收器
-            receivers.retain(|(p, _)| p != packet_no);
+            receivers.retain(|p, _| p.0.as_str() != packet_no);
         }
 
         info!("文件传输已清理: packet_no={}", packet_no);
@@ -222,18 +212,16 @@ impl FileTransferHandler {
     /// 返回文件数据块 (最大 4KB)
     async fn read_file_chunk(file_path: &str, offset: u64) -> AppResult<Vec<u8>> {
         use tokio::fs::File;
-        use tokio::io::{AsyncReadExt, AsyncSeekExt};
+        use tokio::io::{AsyncReadExt, AsyncSeekExt, SeekFrom};
 
         let mut file = File::open(file_path)
             .await
             .map_err(|e| AppError::Io(e))?;
 
-        // 定位到指定偏移量
-        file.seek(io::SeekFrom::Start(offset))
+        file.seek(SeekFrom::Start(offset))
             .await
             .map_err(|e| AppError::Io(e))?;
 
-        // 读取最多 4KB 数据
         let mut buffer = vec![0u8; 4096];
         let n = file
             .read(&mut buffer)
@@ -245,15 +233,12 @@ impl FileTransferHandler {
     }
 }
 
-/// 为 TransferState 添加辅助方法
 trait TransferStateExt {
     fn get_save_path(&self) -> String;
 }
 
 impl TransferStateExt for crate::database::model::transfer_state::Model {
     fn get_save_path(&self) -> String {
-        // 使用下载目录 + 文件名
-        // TODO: 从配置获取下载目录
         format!("/tmp/feiqiu_download_{}", self.file_id)
     }
 }
@@ -264,7 +249,6 @@ mod tests {
 
     #[test]
     fn test_handler_structure() {
-        // 测试模块结构是否正确
         assert!(true);
     }
 }

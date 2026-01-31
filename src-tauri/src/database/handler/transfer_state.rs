@@ -39,6 +39,12 @@ impl TransferStateHandler {
         Ok(result)
     }
 
+    /// 根据数据包编号查找传输状态
+    pub async fn find_by_packet_no(db: &DbConn, packet_no: &str) -> Result<Vec<Model>> {
+        let result = Entity::find().filter(Column::PacketNo.eq(packet_no)).all(db).await?;
+        Ok(result)
+    }
+
     /// 查找所有未完成的传输
     pub async fn find_pending(db: &DbConn) -> Result<Vec<Model>> {
         // 查找状态为 0 (等待中) 或 1 (传输中) 的记录

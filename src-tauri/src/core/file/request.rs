@@ -3,10 +3,7 @@
 //! 文件请求处理逻辑
 
 use crate::error::{AppError, AppResult};
-use crate::network::feiq::{
-    constants::*,
-    model::{FeiQPacket, FileAttachment},
-};
+use crate::network::feiq::model::{FeiQPacket, FileAttachment};
 
 /// 处理接收到的文件附件请求
 ///
