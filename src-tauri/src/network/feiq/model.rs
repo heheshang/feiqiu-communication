@@ -73,12 +73,13 @@ impl FileAttachment {
 // ============================================================
 
 /// 协议类型枚举
+/// TODO: Remove IPMsg variant once ProtocolPacket is fully removed from codebase
 #[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
 pub enum ProtocolType {
-    /// IPMsg 协议 (标准格式)
+    /// IPMsg 协议 (标准格式) - LEGACY, being removed in FeiQ-only migration
     #[default]
     IPMsg,
-    /// 飞秋协议 (扩展格式)
+    /// 飞秋协议 (扩展格式) - Current protocol
     FeiQ,
 }
 
@@ -142,6 +143,18 @@ pub struct FeiQPacket {
     /// 扩展信息段（F8字段解析结果）
     #[serde(default)]
     pub ext_info: FeiQExtInfo,
+}
+
+impl FeiQPacket {
+    /// 获取格式化的 MAC 地址
+    pub fn formatted_mac(&self) -> String {
+        self.mac_addr_formatted.clone()
+    }
+
+    /// 获取本地时间戳字符串
+    pub fn local_timestamp(&self) -> String {
+        self.ext_info.timestamp_local.clone()
+    }
 }
 
 /// 飞秋协议数据包（支持 IPMsg 和 FeiQ 两种格式）

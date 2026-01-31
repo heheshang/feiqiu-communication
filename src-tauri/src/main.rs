@@ -23,7 +23,6 @@ use core::contact::start_discovery;
 use database::init_database;
 use event::bus::EVENT_RECEIVER;
 use event::model::AppEvent;
-use network::feiq::model::ProtocolPacket;
 use network::udp::{init_udp_socket, start_udp_receiver};
 use sea_orm::DbConn;
 use std::sync::Arc;
