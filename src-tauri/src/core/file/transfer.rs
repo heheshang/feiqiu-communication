@@ -3,7 +3,6 @@
 //! 文件分块传输逻辑
 
 use crate::error::{AppError, AppResult};
-use crate::network::feiq::model::FeiQPacket;
 use crate::network::udp::sender;
 use sha2::{Digest, Sha256};
 use std::fs::File;
@@ -114,24 +113,29 @@ impl FileSender {
 
     /// 发送单个数据块
     async fn send_chunk(&self, chunk: &[u8], offset: u64) -> AppResult<()> {
-        // TODO: FeiQ file transfer not implemented yet
-        // 构建数据包: "packet_no:file_id:offset:data"
-        // use base64::Engine;
-        // let data_base64 = base64::engine::general_purpose::STANDARD.encode(chunk);
-        // let extension = format!("{}:{}:{}:{}", self.packet_no, self.file_id, offset, data_base64);
+        use crate::network::feiq::model::FeiQPacket;
 
-        // let packet = FeiQPacket {
-        //     command: crate::network::feiq::constants::IPMSG_SENDMSG | crate::network::feiq::constants::IPMSG_UTF8OPT,
-        //     extension: Some(extension),
-        //     ..Default::default()
-        // };
+        // 构建 FeiQ 文件数据包
+        let packet = FeiQPacket::make_feiq_file_data_packet(
+            &self.packet_no,
+            self.file_id,
+            offset,
+            chunk,
+            None,
+        );
 
-        // timeout(TRANSFER_TIMEOUT, sender::send_packet(&self.target_addr, &packet))
-        //     .await
-        //     .map_err(|_| AppError::Network("Transfer timeout".to_string()))?
-        //     .map_err(|e| AppError::Network(e.to_string()))?;
+        // 使用 base64 编码数据（已在 make_feiq_file_data_packet 中完成）
+        let packet_str = packet.to_feiq_string();
 
-        Err(AppError::Business("FeiQ file transfer not implemented yet".to_string()))
+        timeout(
+            TRANSFER_TIMEOUT,
+            sender::send_packet_data(&self.target_addr, &packet_str),
+        )
+        .await
+        .map_err(|_| AppError::Network("Transfer timeout".to_string()))?
+        .map_err(|e| AppError::Network(e.to_string()))?;
+
+        Ok(())
     }
 
     /// 计算文件 SHA256 校验和

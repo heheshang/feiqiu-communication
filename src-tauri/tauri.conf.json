@@ -1,11 +1,11 @@
 {
   "$schema": "https://schema.tauri.app/config/2.0.0",
   "productName": "飞秋通讯",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "identifier": "com.feiqiu.app",
   "build": {
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "bun run dev",
+    "beforeBuildCommand": "bun run build",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },
@@ -19,15 +19,63 @@
         "resizable": true,
         "fullscreen": false,
         "minWidth": 800,
-        "minHeight": 600
+        "minHeight": 600,
+        "center": true,
+        "decorations": true,
+        "transparent": false,
+        "alwaysOnTop": false,
+        "skipTaskbar": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*; img-src 'self' data: https://picsum.photos; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval';"
     }
   },
   "bundle": {
-    "active": false,
-    "targets": "all"
-  }
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "feiqiu-communication",
+    "copyright": "Copyright © 2026 feiqiu-communication. All rights reserved.",
+    "shortDescription": "LAN instant messaging application",
+    "macOS": {
+      "category": "public.app-category.social-networking",
+      "frameworks": [],
+      "minimumSystemVersion": "10.13",
+      "exceptionDomain": "",
+      "signingIdentity": null,
+      "entitlements": null,
+      "hardenedRuntime": true
+    },
+    "longDescription": "飞秋通讯是一款基于局域网的即时通讯应用，支持 FeiQ/IPMsg 协议的点对点通信。无需互联网连接，无需服务器，安全可靠。\n\nFeiqiu Communication is a LAN instant messaging application implementing the FeiQ/IPMsg protocol for peer-to-peer communication in local networks.",
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.13",
+      "exceptionDomain": "",
+      "signingIdentity": null,
+      "entitlements": null,
+      "hardenedRuntime": true
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    },
+    "linux": {
+      "deb": {
+        "depends": []
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    },
+    "createUpdaterArtifacts": false
+  },
+  "plugins": {}
 }

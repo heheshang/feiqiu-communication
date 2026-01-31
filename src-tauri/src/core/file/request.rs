@@ -10,57 +10,75 @@ use crate::network::feiq::{
 
 /// 处理接收到的文件附件请求
 ///
-/// 当收到 IPMSG_SENDMSG | IPMSG_FILEATTACHOPT 消息时调用
+/// 当收到文件附件消息时调用
 pub fn handle_file_attach_request(packet: &FeiQPacket) -> AppResult<Vec<FileAttachment>> {
-    // TODO: FeiQ file transfer not implemented yet
-    let _ = packet;
-    Err(AppError::Protocol("FeiQ file transfer not implemented yet".to_string()))
-    // 检查是否带文件附件
-    // if !packet.has_option(IPMSG_FILEATTACHOPT) {
-    //     return Err(AppError::Protocol("Not a file attachment packet".to_string()));
-    // }
+    // 检查是否为文件附件消息 (msg_sub_type 0x20 = SENDMSG)
+    if packet.ext_info.msg_sub_type != 0x20 {
+        return Err(AppError::Protocol("Not a file attachment packet".to_string()));
+    }
 
-    // // 解析文件附件头
-    // let extension = packet
-    //     .extension
-    //     .as_ref()
-    //     .ok_or_else(|| AppError::Protocol("Missing file attachment extension".to_string()))?;
+    // 解析文件附件信息
+    // 格式: "filename1:size1:mtime1:attr1\afilename2:size2:mtime2:attr2"
+    let files_info = &packet.ext_info.remark;
 
-    // let files = FileAttachment::from_ipmsg_header(extension)
-    //     .map_err(|e| AppError::Protocol(format!("Failed to parse file attachment: {}", e)))?;
+    if files_info.is_empty() {
+        return Err(AppError::Protocol("Empty file attachment data".to_string()));
+    }
 
-    // Ok(files)
+    let mut files = Vec::new();
+
+    // 多个文件用 \x07 分隔
+    for file_str in files_info.split('\x07') {
+        let parts: Vec<&str> = file_str.split(':').collect();
+        if parts.len() < 4 {
+            return Err(AppError::Protocol(format!(
+                "Invalid file attachment format: {}",
+                file_str
+            )));
+        }
+
+        let file_name = parts[0].to_string();
+        let file_size = parts[1]
+            .parse::<i64>()
+            .map_err(|_| AppError::Protocol("Invalid file size".to_string()))?;
+        let mtime = parts[2]
+            .parse::<u64>()
+            .map_err(|_| AppError::Protocol("Invalid mtime".to_string()))?;
+        let attr = parts[3]
+            .parse::<u32>()
+            .map_err(|_| AppError::Protocol("Invalid attr".to_string()))?;
+
+        files.push(FileAttachment {
+            file_name,
+            file_size,
+            mtime,
+            attr,
+        });
+    }
+
+    Ok(files)
 }
 
 /// 创建文件附件请求包
 ///
 /// 用于发送文件给其他用户
-pub fn create_file_attach_request(files: &[FileAttachment], receiver_ip: &str, receiver_port: u16) -> FeiQPacket {
-    // TODO: FeiQ file transfer not implemented yet
-    // let receiver = format!("{}:{}", receiver_ip, receiver_port);
-    // ProtocolPacket::make_file_attach_packet(files, &receiver)
-    let _ = (files, receiver_ip, receiver_port);
-    FeiQPacket::make_feiq_entry_packet(None)
+pub fn create_file_attach_request(files: &[FileAttachment], _receiver_ip: &str, _receiver_port: u16) -> FeiQPacket {
+    // 创建 FeiQ 文件附件包
+    FeiQPacket::make_feiq_file_attach_packet(files, None)
 }
 
 /// 创建文件数据请求包
 ///
 /// 用于接收方请求文件数据
 pub fn create_file_data_request(packet_no: &str, file_id: u64, offset: u64) -> FeiQPacket {
-    // TODO: FeiQ file transfer not implemented yet
-    // ProtocolPacket::make_get_file_data_packet(packet_no, file_id, offset)
-    let _ = (packet_no, file_id, offset);
-    FeiQPacket::make_feiq_entry_packet(None)
+    FeiQPacket::make_feiq_get_file_data_packet(packet_no, file_id, offset, None)
 }
 
 /// 创建文件释放包
 ///
 /// 用于通知发送方释放文件资源
 pub fn create_file_release(packet_no: &str) -> FeiQPacket {
-    // TODO: FeiQ file transfer not implemented yet
-    // ProtocolPacket::make_release_files_packet(packet_no)
-    let _ = packet_no;
-    FeiQPacket::make_feiq_entry_packet(None)
+    FeiQPacket::make_feiq_release_files_packet(packet_no, None)
 }
 
 #[cfg(test)]

@@ -68,8 +68,8 @@ impl FeiQPacket {
 
         FeiQPacket {
             pkg_type: "1_lbt6_0".to_string(),
-            func_flag: 128, // 客户端在线广播
-            mac_addr_raw: mac_addr.clone(),
+            func_flag: 128,
+            mac_addr_raw: mac_addr,
             mac_addr_formatted: mac_formatted,
             udp_port: 2425,
             file_transfer_id: 0,
@@ -177,6 +177,175 @@ impl FeiQPacket {
         let mut packet = Self::make_feiq_recv_packet(msg_no);
         packet.ext_info.msg_sub_type = 0x32;
         packet
+    }
+
+    // ============================================================
+    // 文件传输相关数据包 (FeiQ 格式)
+    // ============================================================
+
+    /// 创建文件附件请求包 (FILEATTACH)
+    ///
+    /// 格式: remark 字段包含文件信息 "filename:size:mtime:attr"
+    pub fn make_feiq_file_attach_packet(
+        files: &[crate::network::feiq::model::FileAttachment],
+        nickname: Option<&str>,
+    ) -> FeiQPacket {
+        let (username, hostname, _ip, _port) = get_system_user_info();
+        let mac_addr = get_mac_address();
+        let mac_formatted = format_mac_addr(&mac_addr).unwrap_or_else(|_| mac_addr.clone());
+
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
+        let packet_id = generate_packet_id();
+        let nickname = nickname.unwrap_or(&username).to_string();
+
+        // 构建文件附件信息: 多个文件用 \a (0x07) 分隔
+        // 格式: "filename1:size1:mtime1:attr1\afilename2:size2:mtime2:attr2"
+        let files_info: Vec<String> = files
+            .iter()
+            .map(|f| format!("{}:{}:{}:{}", f.file_name, f.file_size, f.mtime, f.attr))
+            .collect();
+        let remark = files_info.join("\x07");
+
+        FeiQPacket {
+            pkg_type: "1_lbt6_0".to_string(),
+            func_flag: 128,
+            mac_addr_raw: mac_addr,
+            mac_addr_formatted: mac_formatted,
+            udp_port: 2425,
+            file_transfer_id: 0,
+            extra_flag: 0,
+            client_version: 0x4001,
+            ext_info: FeiQExtInfo {
+                msg_sub_type: 0x20, // SENDMSG
+                timestamp,
+                timestamp_local: timestamp_to_local(timestamp),
+                unique_id: packet_id,
+                hostname: hostname.clone(),
+                nickname,
+                remark,
+            },
+        }
+    }
+
+    /// 创建文件数据请求包 (GETFILEDATA)
+    ///
+    /// 用于接收方请求文件数据块
+    pub fn make_feiq_get_file_data_packet(
+        packet_no: &str,
+        file_id: u64,
+        offset: u64,
+        nickname: Option<&str>,
+    ) -> FeiQPacket {
+        let (username, hostname, _ip, _port) = get_system_user_info();
+        let mac_addr = get_mac_address();
+        let mac_formatted = format_mac_addr(&mac_addr).unwrap_or_else(|_| mac_addr.clone());
+
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
+        let packet_id = generate_packet_id();
+        let nickname = nickname.unwrap_or(&username).to_string();
+
+        // remark 字段: "packet_no:file_id:offset"
+        let remark = format!("{}:{}:{}", packet_no, file_id, offset);
+
+        FeiQPacket {
+            pkg_type: "1_lbt6_0".to_string(),
+            func_flag: 128,
+            mac_addr_raw: mac_addr,
+            mac_addr_formatted: mac_formatted,
+            udp_port: 2425,
+            file_transfer_id: file_id as u32,
+            extra_flag: 0,
+            client_version: 0x4001,
+            ext_info: FeiQExtInfo {
+                msg_sub_type: 0x60, // GETFILEDATA
+                timestamp,
+                timestamp_local: timestamp_to_local(timestamp),
+                unique_id: packet_id,
+                hostname: hostname.clone(),
+                nickname,
+                remark,
+            },
+        }
+    }
+
+    /// 创建文件数据包 (用于发送文件数据块)
+    ///
+    /// 用于发送方响应文件数据请求
+    pub fn make_feiq_file_data_packet(
+        packet_no: &str,
+        file_id: u64,
+        offset: u64,
+        data: &[u8],
+        nickname: Option<&str>,
+    ) -> FeiQPacket {
+        let (username, hostname, _ip, _port) = get_system_user_info();
+        let mac_addr = get_mac_address();
+        let mac_formatted = format_mac_addr(&mac_addr).unwrap_or_else(|_| mac_addr.clone());
+
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
+        let packet_id = generate_packet_id();
+        let nickname = nickname.unwrap_or(&username).to_string();
+
+        // 使用 base64 编码文件数据
+        use base64::Engine;
+        let data_base64 = base64::engine::general_purpose::STANDARD.encode(data);
+        let remark = format!("{}:{}:{}:{}", packet_no, file_id, offset, data_base64);
+
+        FeiQPacket {
+            pkg_type: "1_lbt6_0".to_string(),
+            func_flag: 128,
+            mac_addr_raw: mac_addr,
+            mac_addr_formatted: mac_formatted,
+            udp_port: 2425,
+            file_transfer_id: file_id as u32,
+            extra_flag: 0,
+            client_version: 0x4001,
+            ext_info: FeiQExtInfo {
+                msg_sub_type: 0x61, // File data response
+                timestamp,
+                timestamp_local: timestamp_to_local(timestamp),
+                unique_id: packet_id,
+                hostname: hostname.clone(),
+                nickname,
+                remark,
+            },
+        }
+    }
+
+    /// 创建文件释放包 (RELEASEFILES)
+    ///
+    /// 用于取消文件传输或通知发送方释放文件资源
+    pub fn make_feiq_release_files_packet(packet_no: &str, nickname: Option<&str>) -> FeiQPacket {
+        let (username, hostname, _ip, _port) = get_system_user_info();
+        let mac_addr = get_mac_address();
+        let mac_formatted = format_mac_addr(&mac_addr).unwrap_or_else(|_| mac_addr.clone());
+
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
+        let packet_id = generate_packet_id();
+        let nickname = nickname.unwrap_or(&username).to_string();
+
+        // remark 字段只包含 packet_no
+        let remark = packet_no.to_string();
+
+        FeiQPacket {
+            pkg_type: "1_lbt6_0".to_string(),
+            func_flag: 128,
+            mac_addr_raw: mac_addr,
+            mac_addr_formatted: mac_formatted,
+            udp_port: 2425,
+            file_transfer_id: 0,
+            extra_flag: 0,
+            client_version: 0x4001,
+            ext_info: FeiQExtInfo {
+                msg_sub_type: 0x62, // RELEASEFILES (using 0x62 as file release)
+                timestamp,
+                timestamp_local: timestamp_to_local(timestamp),
+                unique_id: packet_id,
+                hostname: hostname.clone(),
+                nickname,
+                remark,
+            },
+        }
     }
 
     /// 序列化为 FeiQ 协议字符串

@@ -60,6 +60,54 @@ fn publish_event_from_packet(
             let msg_no = packet.ext_info.unique_id.clone();
             AppEvent::Network(NetworkEvent::MessageRead { msg_no })
         }
+        0x60 => {
+            // File data request: "packet_no:file_id:offset"
+            let remark = &packet.ext_info.remark;
+            let parts: Vec<&str> = remark.split(':').collect();
+            if parts.len() >= 3 {
+                let packet_no = parts[0].to_string();
+                let file_id = parts[1].parse::<u32>().unwrap_or(0) as u64;
+                let offset = parts[2].parse::<u64>().unwrap_or(0);
+                AppEvent::Network(NetworkEvent::FileDataRequest {
+                    from_ip: sender_ip,
+                    packet_no,
+                    file_id,
+                    offset,
+                })
+            } else {
+                warn!("Invalid file data request format: {}", remark);
+                return Ok(());
+            }
+        }
+        0x61 => {
+            // File data received: "packet_no:file_id:offset:base64data"
+            let remark = &packet.ext_info.remark;
+            let parts: Vec<&str> = remark.split(':').collect();
+            if parts.len() >= 4 {
+                let packet_no = parts[0].to_string();
+                let file_id = parts[1].parse::<u32>().unwrap_or(0) as u64;
+                let offset = parts[2].parse::<u64>().unwrap_or(0);
+                let data = parts[3].to_string();
+                AppEvent::Network(NetworkEvent::FileDataReceived {
+                    from_ip: sender_ip,
+                    packet_no,
+                    file_id,
+                    offset,
+                    data,
+                })
+            } else {
+                warn!("Invalid file data format: {}", remark);
+                return Ok(());
+            }
+        }
+        0x62 => {
+            // File release: "packet_no"
+            let packet_no = packet.ext_info.remark.clone();
+            AppEvent::Network(NetworkEvent::FileRelease {
+                from_ip: sender_ip,
+                packet_no,
+            })
+        }
         _ => {
             warn!("Unknown FeiQ msg_sub_type received: {}", msg_sub_type);
             return Ok(());

@@ -76,6 +76,26 @@ pub enum NetworkEvent {
         files: String, // Vec<FileInfo> JSON
     },
 
+    /// 文件数据请求（IPMSG_GETFILEDATA）
+    FileDataRequest {
+        from_ip: String,
+        packet_no: String,
+        file_id: u64,
+        offset: u64,
+    },
+
+    /// 文件数据接收（文件块数据）
+    FileDataReceived {
+        from_ip: String,
+        packet_no: String,
+        file_id: u64,
+        offset: u64,
+        data: String, // Base64 encoded file chunk
+    },
+
+    /// 文件释放（取消文件传输）
+    FileRelease { from_ip: String, packet_no: String },
+
     /// 用户更新信息
     UserUpdated {
         user: String, // UserInfo JSON
