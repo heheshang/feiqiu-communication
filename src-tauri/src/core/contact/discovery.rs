@@ -12,13 +12,14 @@ use crate::event::bus::EVENT_RECEIVER;
 use crate::event::model::{AppEvent, NetworkEvent};
 use crate::network::feiq::{
     constants::*,
-    model::{FeiQPacket, ProtocolPacket},
+    model::FeiQPacket,
 };
 use crate::network::udp::sender::send_packet_data;
+use crate::network::utils::subnet::detect_subnet_broadcast;
 use crate::types::UserInfo;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 /// 在线用户列表
 ///
@@ -125,20 +126,14 @@ pub async fn start_discovery() -> AppResult<()> {
 async fn broadcast_entry() -> AppResult<()> {
     info!("广播上线通知...");
 
-    // 发送 IPMsg 格式广播
-    let packet = ProtocolPacket::make_entry_packet();
-    let packet_str = packet.to_string();
+    let broadcast_addr = detect_subnet_broadcast().await?;
+    info!("检测到子网广播地址: {}", broadcast_addr);
 
-    // 广播到 255.255.255.255:2425
-    send_packet_data(&format!("{}:{}", FEIQ_BROADCAST_ADDR, FEIQ_DEFAULT_PORT), &packet_str).await?;
-    info!("IPMsg 上线通知已广播");
-
-    // 发送 FeiQ 格式广播
     let feiq_packet = FeiQPacket::make_feiq_entry_packet(None);
     let feiq_packet_str = feiq_packet.to_feiq_string();
 
     send_packet_data(
-        &format!("{}:{}", FEIQ_BROADCAST_ADDR, FEIQ_DEFAULT_PORT),
+        &format!("{}:{}", broadcast_addr, FEIQ_DEFAULT_PORT),
         &feiq_packet_str,
     )
     .await?;
@@ -147,22 +142,13 @@ async fn broadcast_entry() -> AppResult<()> {
     Ok(())
 }
 
-/// 发送在线响应（支持 IPMsg 和 FeiQ 格式）
-async fn send_ansentry(addr: &str, use_feiq_format: bool) -> AppResult<()> {
-    let format_name = if use_feiq_format { "FeiQ" } else { "IPMsg" };
-    info!("回复 ANSENTRY to {} (格式: {})", addr, format_name);
+/// 发送在线响应
+async fn send_ansentry(addr: &str) -> AppResult<()> {
+    info!("回复 ANSENTRY to {}", addr);
 
-    if use_feiq_format {
-        // 发送 FeiQ 格式响应
-        let packet = FeiQPacket::make_feiq_ansentry_packet(None);
-        let packet_str = packet.to_feiq_string();
-        send_packet_data(addr, &packet_str).await?;
-    } else {
-        // 发送 IPMsg 格式响应
-        let packet = ProtocolPacket::make_ansentry_packet();
-        let packet_str = packet.to_string();
-        send_packet_data(addr, &packet_str).await?;
-    }
+    let packet = FeiQPacket::make_feiq_ansentry_packet(None);
+    let packet_str = packet.to_feiq_string();
+    send_packet_data(addr, &packet_str).await?;
 
     info!("ANSENTRY 已发送到 {}", addr);
     Ok(())
@@ -176,7 +162,72 @@ async fn discovery_event_loop(receiver: crossbeam_channel::Receiver<AppEvent>) {
         match receiver.recv() {
             Ok(event) => {
                 if let AppEvent::Network(net_event) = event {
-                    handle_network_event(net_event).await;
+                    match net_event {
+                        // 用户上线（IPMSG_BR_ENTRY）
+                        NetworkEvent::UserOnline {
+                            ip,
+                            port,
+                            nickname,
+                            hostname: _,
+                            mac_addr,
+                        } => {
+                            info!("收到 BR_ENTRY from {} ({}:{})", nickname, ip, port);
+
+                            let machine_id = format!("{}:{}", ip, port);
+                            let user = UserInfo {
+                                uid: generate_user_id(&machine_id),
+                                nickname: nickname.clone(),
+                                feiq_ip: ip.clone(),
+                                feiq_port: port,
+                                feiq_machine_id: machine_id,
+                                avatar: None,
+                                status: 1,
+                            };
+
+                            add_online_user(user);
+
+                            let addr = format!("{}:{}", ip, port);
+                            if let Err(e) = send_ansentry(&addr).await {
+                                error!("发送 ANSENTRY 失败: {}", e);
+                            }
+
+                            if let Some(mac) = mac_addr {
+                                info!("  ├─ MAC: {}", mac);
+                            }
+                        }
+
+                        // 用户在线应答（IPMSG_ANSENTRY）
+                        NetworkEvent::UserPresenceResponse {
+                            ip,
+                            port,
+                            nickname,
+                            hostname: _,
+                        } => {
+                            info!("收到 ANSENTRY from {} ({}:{})", nickname, ip, port);
+
+                            let machine_id = format!("{}:{}", ip, port);
+                            let user = UserInfo {
+                                uid: generate_user_id(&machine_id),
+                                nickname: nickname.clone(),
+                                feiq_ip: ip.clone(),
+                                feiq_port: port,
+                                feiq_machine_id: machine_id,
+                                avatar: None,
+                                status: 1, // 在线
+                            };
+
+                            add_online_user(user);
+                        }
+
+                        // 用户下线（IPMSG_BR_EXIT）
+                        NetworkEvent::UserOffline { ip } => {
+                            info!("收到 BR_EXIT from {}", ip);
+                            remove_online_user(&ip);
+                        }
+
+                        // 其他网络事件忽略（消息处理在聊天模块）
+                        _ => {}
+                    }
                 }
             }
             Err(e) => {
@@ -184,145 +235,6 @@ async fn discovery_event_loop(receiver: crossbeam_channel::Receiver<AppEvent>) {
             }
         }
     }
-}
-
-/// 处理网络事件
-async fn handle_network_event(event: NetworkEvent) {
-    match event {
-        NetworkEvent::PacketReceived { packet, addr } => {
-            handle_packet_received(packet, addr).await;
-        }
-        _ => {}
-    }
-}
-
-/// 处理收到的数据包
-async fn handle_packet_received(packet_json: String, addr: String) {
-    // 反序列化数据包
-    let packet: ProtocolPacket = match serde_json::from_str(&packet_json) {
-        Ok(p) => p,
-        Err(e) => {
-            error!("数据包反序列化失败: {}", e);
-            return;
-        }
-    };
-
-    // 根据协议类型解析用户信息
-    let user_info = if packet.protocol_type == crate::network::feiq::model::ProtocolType::FeiQ {
-        // FeiQ 格式：使用详细解析结果
-        if let Some(ref detail) = packet.feiq_detail {
-            info!("收到 FeiQ 数据包: {}", detail.ext_info.nickname);
-            Some(parse_feiq_user_info(detail, &addr))
-        } else {
-            warn!("FeiQ 数据包缺少详细信息");
-            None
-        }
-    } else {
-        // IPMsg 格式：使用传统解析方式
-        match parse_sender_info(&packet.sender, &addr) {
-            Ok(info) => Some(info),
-            Err(e) => {
-                warn!("无法解析发送者信息: {} - {}", packet.sender, e);
-                None
-            }
-        }
-    };
-
-    let (nickname, ip, port, machine_id, mac_addr, timestamp_local) = match user_info {
-        Some(info) => info,
-        None => return,
-    };
-
-    // 根据命令字处理
-    let base_cmd = packet.base_command();
-
-    match base_cmd {
-        IPMSG_BR_ENTRY => {
-            info!("收到 BR_ENTRY from {} ({})", nickname, addr);
-
-            // 创建用户信息
-            let user = UserInfo {
-                uid: generate_user_id(&machine_id),
-                nickname: nickname.clone(),
-                feiq_ip: ip.clone(),
-                feiq_port: port,
-                feiq_machine_id: machine_id.clone(),
-                avatar: None,
-                status: 1, // 在线
-            };
-
-            // 添加到在线列表
-            add_online_user(user);
-
-            // 回复 ANSENTRY（根据收到的格式选择响应格式）
-            let use_feiq_format = packet.protocol_type == crate::network::feiq::model::ProtocolType::FeiQ;
-            if let Err(e) = send_ansentry(&addr, use_feiq_format).await {
-                error!("发送 ANSENTRY 失败: {}", e);
-            }
-        }
-
-        IPMSG_ANSENTRY => {
-            info!("收到 ANSENTRY from {} ({})", nickname, addr);
-
-            // 创建用户信息
-            let user = UserInfo {
-                uid: generate_user_id(&machine_id),
-                nickname: nickname.clone(),
-                feiq_ip: ip.clone(),
-                feiq_port: port,
-                feiq_machine_id: machine_id.clone(),
-                avatar: None,
-                status: 1, // 在线
-            };
-
-            // 添加到在线列表
-            add_online_user(user);
-        }
-
-        IPMSG_BR_EXIT => {
-            info!("收到 BR_EXIT from {}", addr);
-
-            // 从在线列表移除
-            remove_online_user(&ip);
-        }
-
-        IPMSG_SENDMSG => {
-            // 消息处理在聊天模块
-            info!("收到 SENDMSG from {}", addr);
-        }
-
-        _ => {
-            info!("收到未处理的命令字: {} from {}", base_cmd, addr);
-        }
-    }
-
-    // 打印详细信息
-    if let Some(mac) = mac_addr {
-        info!("  ├─ MAC: {}", mac);
-    }
-    if let Some(ts) = timestamp_local {
-        info!("  └─ 时间: {}", ts);
-    }
-}
-
-/// 从 FeiQ 详细数据包解析用户信息
-///
-/// 返回: (nickname, ip, port, machine_id, mac_addr, timestamp_local)
-fn parse_feiq_user_info(
-    detail: &FeiQPacket,
-    addr: &str,
-) -> (String, String, u16, String, Option<String>, Option<String>) {
-    // 从 addr 解析 IP 和端口
-    let addr_parts: Vec<&str> = addr.split(':').collect();
-    let ip = addr_parts.first().unwrap_or(&"").to_string();
-    let port: u16 = addr_parts.get(1).and_then(|p| p.parse().ok()).unwrap_or(2425);
-
-    let nickname = detail.ext_info.nickname.clone();
-    let machine_id = format!("{}:{}", ip, port);
-    let mac_addr = Some(detail.mac_addr_formatted.clone());
-    let timestamp_local = Some(detail.ext_info.timestamp_local.clone());
-
-    (nickname, ip, port, machine_id, mac_addr, timestamp_local)
 }
 
 /// 解析发送者信息

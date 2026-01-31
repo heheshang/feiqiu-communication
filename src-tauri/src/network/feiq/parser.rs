@@ -39,16 +39,9 @@ impl From<ParseError> for String {
     }
 }
 
-/// 解析飞秋数据包（自动检测协议类型）
+/// 解析飞秋数据包（仅支持 FeiQ 协议）
 ///
-/// # 支持的协议格式
-///
-/// ## IPMsg 格式
-/// ```text
-/// 版本号:命令字:发送者:接收者:消息编号:附加信息
-/// ```
-///
-/// ## FeiQ 格式
+/// # FeiQ 协议格式
 /// ```text
 /// 版本号#长度#MAC地址#端口#标志1#标志2#命令#类型:时间戳:包ID:主机名:用户ID:内容
 /// ```
@@ -58,21 +51,12 @@ impl From<ParseError> for String {
 /// ```rust
 /// use crate::network::feiq::parser::parse_feiq_packet;
 ///
-/// // IPMsg 格式
-/// let ipmsg = "1.0:32:sender:host:receiver:6291459:Hello World";
-/// let packet = parse_feiq_packet(ipmsg).unwrap();
-///
 /// // FeiQ 格式
 /// let feiq = "1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH:6291459:ssk";
 /// let packet = parse_feiq_packet(feiq).unwrap();
 /// ```
 pub fn parse_feiq_packet(s: &str) -> Result<ProtocolPacket, ParseError> {
-    let protocol_type = ProtocolPacket::detect_protocol(s);
-
-    match protocol_type {
-        ProtocolType::FeiQ => parse_feiq_packet_feiq(s),
-        ProtocolType::IPMsg => parse_feiq_packet_ipmsg(s),
-    }
+    parse_feiq_packet_feiq(s)
 }
 
 /// 解析 FeiQ 格式数据包（详细版本）
@@ -204,74 +188,6 @@ pub fn parse_feiq_packet_detail(packet_str: &str) -> Result<FeiQPacket, ParseErr
     })
 }
 
-/// 解析 IPMsg 格式数据包
-///
-/// 格式: `版本号:命令字:发送者:接收者:消息编号:附加信息`
-///
-/// 注意: 发送者字段可能包含 IP:port，如 "user@host/192.168.1.1:2425"
-/// 当接收者为空时，格式为: version:command:sender:receiver:msg_no:extension
-fn parse_feiq_packet_ipmsg(s: &str) -> Result<ProtocolPacket, ParseError> {
-    // 找到所有冒号的位置
-    let mut colon_positions: Vec<usize> = vec![];
-    for (i, c) in s.char_indices() {
-        if c == ':' {
-            colon_positions.push(i);
-        }
-    }
-
-    if colon_positions.len() < 5 {
-        return Err(ParseError::InvalidFormat(format!(
-            "IPMsg packet must have at least 5 colons separating fields, found {}",
-            colon_positions.len()
-        )));
-    }
-
-    // 提取前 5 个基本字段
-    let version = s[..colon_positions[0]].to_string();
-    let command = u32::from_str_radix(&s[colon_positions[0] + 1..colon_positions[1]], 10)
-        .or_else(|_| u32::from_str_radix(&s[colon_positions[0] + 1..colon_positions[1]], 16))
-        .unwrap_or(0);
-
-    // 发送者字段 (field 2)
-    let sender = s[colon_positions[1] + 1..colon_positions[2]].to_string();
-
-    // 接收者字段 (field 3)
-    let receiver = s[colon_positions[2] + 1..colon_positions[3]].to_string();
-
-    // 消息编号字段 (field 4)
-    let msg_no = s[colon_positions[3] + 1..colon_positions[4]].to_string();
-
-    // 扩展字段 (field 5+) - 第 5 个冒号之后的所有内容
-    let extension = if colon_positions[4] + 1 < s.len() {
-        let ext = &s[colon_positions[4] + 1..];
-        if ext.is_empty() {
-            None
-        } else {
-            Some(ext.to_string())
-        }
-    } else {
-        None
-    };
-
-    Ok(ProtocolPacket {
-        protocol_type: ProtocolType::IPMsg,
-        version,
-        command,
-        msg_type: None,
-        sender,
-        hostname: None,
-        mac_addr: None,
-        receiver,
-        msg_no,
-        timestamp: None,
-        user_id: None,
-        extension,
-        ip: String::new(),
-        port: None,
-        feiq_detail: None,
-    })
-}
-
 /// 从字节数组解析飞秋数据包
 ///
 /// 用于处理从 UDP socket 接收的原始字节数据
@@ -305,46 +221,6 @@ pub fn decode_gbk(bytes: &[u8]) -> Result<String, ParseError> {
 mod tests {
     use super::*;
     use crate::network::feiq::constants::*;
-
-    // ==================== IPMsg 格式测试 ====================
-
-    #[test]
-    fn test_parse_ipmsg_sendmsg() {
-        // Format: version:command:sender:receiver:msg_no:extension
-        let input = "1.0:32:sender:host:12345:Hello World";
-        let packet = parse_feiq_packet(input).unwrap();
-
-        assert_eq!(packet.protocol_type, ProtocolType::IPMsg);
-        assert_eq!(packet.command, IPMSG_SENDMSG);
-        assert_eq!(packet.sender, "sender");
-        assert_eq!(packet.receiver, "host");
-        assert_eq!(packet.msg_no, "12345");
-        assert_eq!(packet.extension, Some("Hello World".to_string()));
-    }
-
-    #[test]
-    fn test_parse_ipmsg_with_colons_in_extension() {
-        let input = "1.0:20:sender:host:12345:Message:with:colons";
-        let packet = parse_feiq_packet(input).unwrap();
-
-        assert_eq!(packet.extension, Some("Message:with:colons".to_string()));
-    }
-
-    #[test]
-    fn test_parse_ipmsg_empty_extension() {
-        let input = "1.0:1:sender:host:12345:";
-        let packet = parse_feiq_packet(input).unwrap();
-
-        assert_eq!(packet.extension, None);
-    }
-
-    #[test]
-    fn test_parse_ipmsg_too_short() {
-        let input = "1.0:1:sender";
-        let result = parse_feiq_packet(input);
-
-        assert!(result.is_err());
-    }
 
     // ==================== FeiQ 格式测试 ====================
 
@@ -408,14 +284,6 @@ mod tests {
     }
 
     #[test]
-    fn test_detect_protocol_ipmsg() {
-        assert_eq!(
-            ProtocolPacket::detect_protocol("1.0:32:sender:host:receiver:12345:Hello"),
-            ProtocolType::IPMsg
-        );
-    }
-
-    #[test]
     fn test_detect_protocol_feiq() {
         assert_eq!(
             ProtocolPacket::detect_protocol(
@@ -423,18 +291,6 @@ mod tests {
             ),
             ProtocolType::FeiQ
         );
-    }
-
-    #[test]
-    fn test_parse_ipmsg_br_entry() {
-        // IPMsg format: sender field includes port, receiver can be empty
-        let input = "1.0:1:user@PC-001.port2425::12345:";
-        let packet = parse_feiq_packet(input).unwrap();
-
-        assert_eq!(packet.protocol_type, ProtocolType::IPMsg);
-        assert_eq!(packet.command, IPMSG_BR_ENTRY);
-        assert_eq!(packet.sender, "user@PC-001.port2425");
-        assert_eq!(packet.receiver, "");
     }
 
     #[test]
