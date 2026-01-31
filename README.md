@@ -44,6 +44,34 @@ A LAN instant messaging application built with Tauri 2.0 + Rust + React, impleme
 - 🔧 **[故障排除 (Troubleshooting)](docs/TROUBLESHOOTING.md)** - Solutions to common issues and problems
 - ❓ **[常见问题 (FAQ)](docs/FAQ.md)** - Frequently asked questions and answers
 
+## Download / 下载
+
+[![Download macOS DMG](https://img.shields.io/badge/Download-macOS%20DMG-brightgreen)](https://github.com/heheshang/feiqiu-communication/releases/v1.0.0)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**Latest Version**: v1.0.0
+
+### macOS Installation / macOS 安装
+
+1. **Download** the DMG installer from [v1.0.0 Release](https://github.com/heheshang/feiqiu-communication/releases/v1.0.0)
+
+2. **Open** the downloaded `.dmg` file
+
+3. **Drag** the 飞秋通讯.app to your Applications folder
+
+4. **Launch** the application from Applications (not from the DMG)
+
+5. **First launch**: You may see an "unidentified developer" warning
+   - **Solution**: Right-click (or Ctrl-click) the app → select "Open"
+   - Or: System Preferences → Security & Privacy → "Open Anyway"
+
+### Other Platforms / 其他平台
+
+- **Windows**: Coming soon / 即将推出
+- **Linux**: Coming soon / 即将推出
+
+Want to build from source? See the [Installation](#installation) section below.
+
 ## Quick Start
 
 1. **Install dependencies** (see [Prerequisites](#prerequisites) below)
@@ -206,13 +234,14 @@ Example: 1_lbt6_0#128#5C60BA7361C6#1944#0#0#4001#9:1765442982:T0170006:SHIKUN-SH
 3. When receiving `IPMSG_ANSENTRY`: add to online user list
 4. On exit: broadcast `IPMSG_BR_EXIT`
 
-## Development Status
+## Development Status / 开发状态
 
-- Phase 1: Project foundation (complete)
-- Phase 2: FeiQ protocol implementation (complete)
-- Phase 3: Database layer (complete)
-- Phase 4: Basic UI (complete)
-- Phase 5-8: Advanced features (in progress)
+- ✅ Phase 1: Project foundation / 项目基础 (complete)
+- ✅ Phase 2: FeiQ protocol implementation / FeiQ协议实现 (complete)
+- ✅ Phase 3: Database layer / 数据库层 (complete)
+- ✅ Phase 4: Basic UI / 基础界面 (complete)
+- ✅ Phase 9: Release preparation / 发布准备 (complete)
+- ⏳ Phase 5-8: Advanced features / 高级功能 (in progress)
 
 See `docs/Phase*_完成报告.md` for detailed completion reports.
 
