@@ -120,7 +120,7 @@ pub struct FeiQPacket {
     pub pkg_type: String,
     /// 功能标识位（如128=客户端在线广播）
     #[serde(default)]
-    pub func_flag: u16,
+    pub func_flag: u32,
     /// 原始MAC地址（如5C60BA7361C6）
     #[serde(default)]
     pub mac_addr_raw: String,

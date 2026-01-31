@@ -83,7 +83,7 @@ pub fn parse_feiq_packet_detail(packet_str: &str) -> Result<FeiQPacket, ParseErr
     // 2. 解析主字段基础信息
     let pkg_type = main_fields[0].to_string();
     let func_flag = main_fields[1]
-        .parse::<u16>()
+        .parse::<u32>()
         .map_err(|e| ParseError::InvalidFormat(format!("功能标识位解析失败：{}", e)))?;
     let mac_addr_raw = main_fields[2].to_string();
     let mac_addr_formatted =

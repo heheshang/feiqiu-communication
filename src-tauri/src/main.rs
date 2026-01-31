@@ -92,9 +92,6 @@ async fn init_app(app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::erro
     // 启动后台服务
     start_background_services(app_handle.clone(), db).await;
 
-    // 广播上线通知
-    broadcast_online_presence().await;
-
     info!("飞秋通讯启动完成");
     Ok(())
 }
@@ -204,20 +201,6 @@ async fn start_background_services(app_handle: tauri::AppHandle, db: Arc<DbConn>
     tokio::spawn(async move {
         ReceiptHandler::new(db_clone).start();
     });
-}
-
-/// 广播上线通知
-async fn broadcast_online_presence() {
-    info!("广播上线通知...");
-
-    let packet = ProtocolPacket::make_entry_packet();
-
-    // 使用新的全局 UDP socket 广播
-    if let Err(e) = crate::network::udp::socket::broadcast_packet(&packet).await {
-        error!("广播上线失败: {}", e);
-    } else {
-        info!("上线通知已发送");
-    }
 }
 
 /// 获取本地网络信息
