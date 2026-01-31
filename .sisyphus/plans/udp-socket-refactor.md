@@ -233,7 +233,7 @@ Parallel Speedup: ~40% faster than sequential
 
 ### Phase 1: Test Infrastructure & Subnet Detection
 
-- [ ] 1. Create subnet broadcast detection utility
+- [x] 1. Create subnet broadcast detection utility
 
   **What to do**:
   - Create new file: `src-tauri/src/network/utils/subnet.rs`
@@ -316,117 +316,125 @@ Parallel Speedup: ~40% faster than sequential
   - [ ] Test output: `cargo test network::utils::subnet` (showing 2 passing tests)
   - [ ] Log output showing detected subnet address (e.g., "192.168.1.255")
 
-  **Commit**: YES
+    **Commit**: YES
+
   - Message: `feat(network): add subnet broadcast detection utility`
   - Files: `src-tauri/src/network/utils/subnet.rs`, `src-tauri/src/network/utils/mod.rs`
   - Pre-commit: `cargo test network::utils::subnet`
 
-- [ ] 2. Write TDD tests for FeiQ packet generation
+- [x] 2.  Write TDD tests for FeiQ packet generation
 
   **What to do**:
-  - Create test module in `src-tauri/src/network/feiq/packer_test.rs` (or add to `packer.rs`)
-  - Write tests for all FeiQ packet creation methods:
-    - `test_make_feiq_entry_packet_format()`
-    - `test_make_feiq_ansentry_packet_format()`
-    - `test_make_feiq_exit_packet_format()`
-    - `test_feiq_packet_serialization()`
-  - Each test should verify FeiQ format (contains `#` delimiter, no `:` delimiter in header)
 
-  **Must NOT do**:
-  - Don't test IPMsg format generation (we're removing it)
-  - Don't modify implementation code yet (this is RED phase only)
+- Create test module in `src-tauri/src/network/feiq/packer_test.rs` (or add to `packer.rs`)
+- Write tests for all FeiQ packet creation methods:
+  - `test_make_feiq_entry_packet_format()`
+  - `test_make_feiq_ansentry_packet_format()`
+  - `test_make_feiq_exit_packet_format()`
+  - `test_feiq_packet_serialization()`
+- Each test should verify FeiQ format (contains `#` delimiter, no `:` delimiter in header)
 
-  **Recommended Agent Profile**:
+**Must NOT do**:
 
-  > - **Category**: `unspecified-low`
-  - Reason: Test writing is straightforward, no complex logic
-    > - **Skills**: [`git-master`]
-  - `git-master`: For committing test file separately
+- Don't test IPMsg format generation (we're removing it)
+- Don't modify implementation code yet (this is RED phase only)
 
-  **Parallelization**:
-  - **Can Run In Parallel**: YES
-  - **Parallel Group**: Wave 1 (with Task 1)
-  - **Blocks**: Task 4 (Remove IPMsg generation logic)
-  - **Blocked By**: None (can start immediately)
+**Recommended Agent Profile**:
 
-  **References**:
+> - **Category**: `unspecified-low`
 
-  > **Pattern References**:
-  >
-  > - `src-tauri/src/network/feiq/packer.rs:186-216` - Current `FeiQPacket::make_feiq_entry_packet()` implementation
-  > - `src-tauri/src/network/feiq/packer.rs:236-259` - Current `FeiQPacket::to_feiq_string()` implementation
+- Reason: Test writing is straightforward, no complex logic
+  > - **Skills**: [`git-master`]
+- `git-master`: For committing test file separately
 
-  > **Test References**:
-  >
-  > - `src-tauri/src/network/feiq/packer.rs:267-302` - Existing test structure for packer
+**Parallelization**:
 
-  > **Protocol References**:
-  >
-  > - `src-tauri/src/network/feiq/constants.rs` - Protocol constants
-  > - FeiQ format: `1_lbt6_0#128#MAC#PORT#0#0#4001#9:timestamp:packet_id:hostname:nickname:remark`
+- **Can Run In Parallel**: YES
+- **Parallel Group**: Wave 1 (with Task 1)
+- **Blocks**: Task 4 (Remove IPMsg generation logic)
+- **Blocked By**: None (can start immediately)
 
-  **WHY Each Reference Matters**:
-  - Current implementation shows what needs to be tested
-  - Existing test structure shows patterns to follow
-  - Protocol constants needed to verify correct command values
+**References**:
 
-  **Acceptance Criteria**:
+> **Pattern References**:
+>
+> - `src-tauri/src/network/feiq/packer.rs:186-216` - Current `FeiQPacket::make_feiq_entry_packet()` implementation
+> - `src-tauri/src/network/feiq/packer.rs:236-259` - Current `FeiQPacket::to_feiq_string()` implementation
 
-  > **TDD - RED Phase**:
-  >
-  > ```rust
-  > // In src-tauri/src/network/feiq/packer.rs (add to tests module)
-  > #[tokio::test]
-  > async fn test_make_feiq_entry_packet_format() {
-  >     let packet = FeiQPacket::make_feiq_entry_packet(Some("testuser"));
-  >     let serialized = packet.to_feiq_string();
-  >
-  >     // Verify FeiQ format (contains # delimiter)
-  >     assert!(serialized.contains('#'), "FeiQ packet should contain # delimiter");
-  >     assert!(!serialized.contains(':'), "FeiQ packet should not contain : delimiter");
-  >
-  >     // Verify required fields
-  >     assert!(serialized.contains("1_lbt6_0"), "Should have correct version");
-  >     assert!(serialized.contains("4001"), "Should have correct command (0x4001)");
-  > }
-  >
-  > #[tokio::test]
-  > async fn test_feiq_packet_has_mac_address() {
-  >     let packet = FeiQPacket::make_feiq_entry_packet(None);
-  >     let serialized = packet.to_feiq_string();
-  >
-  >     // MAC address should be present
-  >     assert!(serialized.len() > 12, "Should contain MAC address");
-  > }
-  > ```
-  >
-  > - Run: `cd src-tauri && cargo test packer::test_make_feiq`
-  > - Expected: **PASS** (existing FeiQ implementation should already pass)
+> **Test References**:
+>
+> - `src-tauri/src/network/feiq/packer.rs:267-302` - Existing test structure for packer
 
-  > **TDD - GREEN Phase**:
-  >
-  > - No implementation changes needed (FeiQ already correct)
-  > - Run: `cargo test packer::test_make_feiq`
-  > - Expected: **PASS** (verify baseline)
+> **Protocol References**:
+>
+> - `src-tauri/src/network/feiq/constants.rs` - Protocol constants
+> - FeiQ format: `1_lbt6_0#128#MAC#PORT#0#0#4001#9:timestamp:packet_id:hostname:nickname:remark`
 
-  > **TDD - REFACTOR Phase**:
-  >
-  > - Refactor test code for clarity (extract helper functions)
-  > - Run: `cargo test packer`
-  > - Expected: **ALL TESTS PASS**
+**WHY Each Reference Matters**:
 
-  **Evidence to Capture**:
-  - [ ] Test output: `cargo test packer::test_make_feiq` (showing all tests passing)
-  - [ ] Sample FeiQ packet format from logs
+- Current implementation shows what needs to be tested
+- Existing test structure shows patterns to follow
+- Protocol constants needed to verify correct command values
 
-  **Commit**: YES
-  - Message: `test(network): add TDD tests for FeiQ packet generation`
-  - Files: `src-tauri/src/network/feiq/packer.rs` (tests only)
-  - Pre-commit: `cargo test packer`
+**Acceptance Criteria**:
+
+> **TDD - RED Phase**:
+>
+> ```rust
+> // In src-tauri/src/network/feiq/packer.rs (add to tests module)
+> #[tokio::test]
+> async fn test_make_feiq_entry_packet_format() {
+>     let packet = FeiQPacket::make_feiq_entry_packet(Some("testuser"));
+>     let serialized = packet.to_feiq_string();
+>
+>     // Verify FeiQ format (contains # delimiter)
+>     assert!(serialized.contains('#'), "FeiQ packet should contain # delimiter");
+>     assert!(!serialized.contains(':'), "FeiQ packet should not contain : delimiter");
+>
+>     // Verify required fields
+>     assert!(serialized.contains("1_lbt6_0"), "Should have correct version");
+>     assert!(serialized.contains("4001"), "Should have correct command (0x4001)");
+> }
+>
+> #[tokio::test]
+> async fn test_feiq_packet_has_mac_address() {
+>     let packet = FeiQPacket::make_feiq_entry_packet(None);
+>     let serialized = packet.to_feiq_string();
+>
+>     // MAC address should be present
+>     assert!(serialized.len() > 12, "Should contain MAC address");
+> }
+> ```
+>
+> - Run: `cd src-tauri && cargo test packer::test_make_feiq`
+> - Expected: **PASS** (existing FeiQ implementation should already pass)
+
+> **TDD - GREEN Phase**:
+>
+> - No implementation changes needed (FeiQ already correct)
+> - Run: `cargo test packer::test_make_feiq`
+> - Expected: **PASS** (verify baseline)
+
+> **TDD - REFACTOR Phase**:
+>
+> - Refactor test code for clarity (extract helper functions)
+> - Run: `cargo test packer`
+> - Expected: **ALL TESTS PASS**
+
+**Evidence to Capture**:
+
+- [ ] Test output: `cargo test packer::test_make_feiq` (showing all tests passing)
+- [ ] Sample FeiQ packet format from logs
+
+**Commit**: YES
+
+- Message: `test(network): add TDD tests for FeiQ packet generation`
+- Files: `src-tauri/src/network/feiq/packer.rs` (tests only)
+- Pre-commit: `cargo test packer`
 
 ### Phase 2: Remove IPMsg Support
 
-- [ ] 3. Remove IPMsg packet parsing logic
+- [x] 3. Remove IPMsg packet parsing logic
 
   **What to do**:
   - Delete `parse_feiq_packet_ipmsg()` function from `parser.rs` (lines 207-273)
@@ -509,93 +517,101 @@ Parallel Speedup: ~40% faster than sequential
   - [ ] Test output: `cargo test parser` (showing FeiQ-only tests pass)
   - [ ] `cargo clippy` output (no warnings)
 
-  **Commit**: YES
+    **Commit**: YES
+
   - Message: `refactor(network): remove IPMsg packet parsing logic`
   - Files: `src-tauri/src/network/feiq/parser.rs`
   - Pre-commit: `cargo test parser`
 
-- [ ] 4. Remove IPMsg packet generation logic
+- [x] 4.  Remove IPMsg packet generation logic
 
   **What to do**:
-  - Delete `ProtocolPacket::to_string()` method from `packer.rs` (lines 164-171)
-  - Delete `ProtocolPacket::make_packet()` helper (lines 142-161)
-  - Delete `ProtocolPacket::make_entry_packet()` (lines 52-54)
-  - Delete `ProtocolPacket::make_ansentry_packet()` (lines 57-60)
-  - Delete `ProtocolPacket::make_exit_packet()` (lines 63-66)
-  - Delete `ProtocolPacket::make_message_packet()` (lines 69-76)
-  - Delete `ProtocolPacket::make_recv_packet()` (lines 79-82)
-  - Delete `ProtocolPacket::make_read_packet()` (lines 85-88)
-  - Delete `ProtocolPacket::make_ansread_packet()` (lines 91-94)
-  - Delete IPMsg-related tests from `packer.rs` tests
-  - Update all callers to use FeiQ methods (Task 5)
 
-  **Must NOT do**:
-  - Don't delete `FeiQPacket` methods
-  - Don't modify `socket.rs` (that's Task 6)
-  - Don't modify constants (that's Task 7)
+- Delete `ProtocolPacket::to_string()` method from `packer.rs` (lines 164-171)
+- Delete `ProtocolPacket::make_packet()` helper (lines 142-161)
+- Delete `ProtocolPacket::make_entry_packet()` (lines 52-54)
+- Delete `ProtocolPacket::make_ansentry_packet()` (lines 57-60)
+- Delete `ProtocolPacket::make_exit_packet()` (lines 63-66)
+- Delete `ProtocolPacket::make_message_packet()` (lines 69-76)
+- Delete `ProtocolPacket::make_recv_packet()` (lines 79-82)
+- Delete `ProtocolPacket::make_read_packet()` (lines 85-88)
+- Delete `ProtocolPacket::make_ansread_packet()` (lines 91-94)
+- Delete IPMsg-related tests from `packer.rs` tests
+- Update all callers to use FeiQ methods (Task 5)
 
-  **Recommended Agent Profile**:
+**Must NOT do**:
 
-  > - **Category**: `quick`
-  - Reason: Straightforward deletion, clear scope
-    > - **Skills**: [`git-master`]
-  - `git-master`: For clean, atomic commit
+- Don't delete `FeiQPacket` methods
+- Don't modify `socket.rs` (that's Task 6)
+- Don't modify constants (that's Task 7)
 
-  **Parallelization**:
-  - **Can Run In Parallel**: NO (depends on Task 2 for tests)
-  - **Parallel Group**: Wave 2 (with Tasks 3, 5)
-  - **Blocks**: Task 5 (Update discovery module)
-  - **Blocked By**: Task 2 (Write TDD tests for FeiQ)
+**Recommended Agent Profile**:
 
-  **References**:
+> - **Category**: `quick`
 
-  > **Pattern References**:
-  >
-  > - `src-tauri/src/network/feiq/packer.rs:49-95` - IPMsg methods to delete
-  > - `src-tauri/src/network/feiq/packer.rs:140-172` - IPMsg helpers to delete
+- Reason: Straightforward deletion, clear scope
+  > - **Skills**: [`git-master`]
+- `git-master`: For clean, atomic commit
 
-  > **Caller References**:
-  >
-  > - `src-tauri/src/core/contact/discovery.rs:129-134` - Uses `make_entry_packet()`
-  > - `src-tauri/src/core/contact/discovery.rs:151-169` - Uses `make_ansentry_packet()`
-  > - `src-tauri/src/main.rs:213-221` - Uses `make_entry_packet()`
+**Parallelization**:
 
-  > **Test References**:
-  >
-  > - `src-tauri/src/network/feiq/packer.rs:270-302` - IPMsg tests to remove
+- **Can Run In Parallel**: NO (depends on Task 2 for tests)
+- **Parallel Group**: Wave 2 (with Tasks 3, 5)
+- **Blocks**: Task 5 (Update discovery module)
+- **Blocked By**: Task 2 (Write TDD tests for FeiQ)
 
-  **WHY Each Reference Matters**:
-  - Need to identify all IPMsg generation methods
-  - Need to find all callers to update in Task 5
-  - Test removal ensures no dead code
+**References**:
 
-  **Acceptance Criteria**:
+> **Pattern References**:
+>
+> - `src-tauri/src/network/feiq/packer.rs:49-95` - IPMsg methods to delete
+> - `src-tauri/src/network/feiq/packer.rs:140-172` - IPMsg helpers to delete
 
-  > **TDD - RED Phase**:
-  > (Already covered in Task 2 - tests verify FeiQ-only behavior)
+> **Caller References**:
+>
+> - `src-tauri/src/core/contact/discovery.rs:129-134` - Uses `make_entry_packet()`
+> - `src-tauri/src/core/contact/discovery.rs:151-169` - Uses `make_ansentry_packet()`
+> - `src-tauri/src/main.rs:213-221` - Uses `make_entry_packet()`
 
-  > **TDD - GREEN Phase**:
-  >
-  > - Delete all IPMsg methods listed above
-  > - Run: `cargo test packer`
-  > - Expected: **PASS** (FeiQ tests still pass)
+> **Test References**:
+>
+> - `src-tauri/src/network/feiq/packer.rs:270-302` - IPMsg tests to remove
 
-  > **TDD - REFACTOR Phase**:
-  >
-  > - Remove IPMsg test cases
-  > - Run: `cargo test packer`
-  > - Expected: **PASS** (only FeiQ tests remain)
+**WHY Each Reference Matters**:
 
-  **Evidence to Capture**:
-  - [ ] Test output: `cargo test packer` (showing only FeiQ tests)
-  - [ ] `cargo clippy` output (no dead_code warnings)
+- Need to identify all IPMsg generation methods
+- Need to find all callers to update in Task 5
+- Test removal ensures no dead code
 
-  **Commit**: YES
-  - Message: `refactor(network): remove IPMsg packet generation methods`
-  - Files: `src-tauri/src/network/feiq/packer.rs`
-  - Pre-commit: `cargo test packer`
+**Acceptance Criteria**:
 
-- [ ] 5. Update discovery module to use FeiQ only
+> **TDD - RED Phase**:
+> (Already covered in Task 2 - tests verify FeiQ-only behavior)
+
+> **TDD - GREEN Phase**:
+>
+> - Delete all IPMsg methods listed above
+> - Run: `cargo test packer`
+> - Expected: **PASS** (FeiQ tests still pass)
+
+> **TDD - REFACTOR Phase**:
+>
+> - Remove IPMsg test cases
+> - Run: `cargo test packer`
+> - Expected: **PASS** (only FeiQ tests remain)
+
+**Evidence to Capture**:
+
+- [ ] Test output: `cargo test packer` (showing only FeiQ tests)
+- [ ] `cargo clippy` output (no dead_code warnings)
+
+**Commit**: YES
+
+- Message: `refactor(network): remove IPMsg packet generation methods`
+- Files: `src-tauri/src/network/feiq/packer.rs`
+- Pre-commit: `cargo test packer`
+
+- [x] 5. Update discovery module to use FeiQ only
 
   **What to do**:
   - In `discovery.rs::broadcast_entry()`:
@@ -702,7 +718,7 @@ Parallel Speedup: ~40% faster than sequential
 
 ### Phase 3: Fix macOS Broadcast Error
 
-- [ ] 6. Update broadcast to use subnet address
+- [x] 6. Update broadcast to use subnet address
 
   **What to do**:
   - In `socket.rs::broadcast_packet()`:
