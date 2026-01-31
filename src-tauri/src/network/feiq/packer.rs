@@ -246,7 +246,7 @@ impl FeiQPacket {
         );
 
         format!(
-            "1_lbt6_0#{}#{}#{}#{}#{}#{}#{}:{}",
+            "1_lbt6_0#{}#{}#{}#{}#{}#{:x}#{}:{}",
             self.func_flag,
             self.mac_addr_raw,
             self.udp_port,
@@ -298,5 +298,123 @@ mod tests {
 
         let s = packet.to_string();
         assert_eq!(s, "1.0:32:sender:receiver:12345:Hello");
+    }
+
+    #[test]
+    fn test_make_feiq_entry_packet_format() {
+        let packet = FeiQPacket::make_feiq_entry_packet(Some("testuser"));
+        let serialized = packet.to_feiq_string();
+
+        assert!(
+            serialized.contains('#'),
+            "FeiQ packet should contain # delimiter (not : like IPMsg)"
+        );
+        assert!(serialized.contains("1_lbt6_0"), "Should have correct version string");
+        assert!(
+            serialized.contains("4001"),
+            "Should have correct client version command (0x4001)"
+        );
+        assert!(serialized.contains("#2425#"), "Should have port 2425");
+        assert!(serialized.contains("#128#"), "Should have func_flag 128 for online");
+        assert!(serialized.contains(":9:"), "Should have msg_sub_type 9 for BR_ENTRY");
+    }
+
+    #[test]
+    fn test_make_feiq_ansentry_packet_format() {
+        let packet = FeiQPacket::make_feiq_ansentry_packet(Some("testuser"));
+        let serialized = packet.to_feiq_string();
+
+        assert!(
+            serialized.contains('#'),
+            "FeiQ ANSENTRY packet should contain # delimiter"
+        );
+        assert!(serialized.contains(":10:"), "ANSENTRY should have msg_sub_type 10");
+        assert!(
+            serialized.contains("#128#"),
+            "ANSENTRY should have func_flag 128 (online)"
+        );
+        assert!(serialized.contains("1_lbt6_0"), "Should have correct version string");
+    }
+
+    #[test]
+    fn test_make_feiq_exit_packet_format() {
+        let packet = FeiQPacket::make_feiq_exit_packet(Some("testuser"));
+        let serialized = packet.to_feiq_string();
+
+        assert!(serialized.contains('#'), "FeiQ EXIT packet should contain # delimiter");
+        assert!(serialized.contains(":11:"), "EXIT should have msg_sub_type 11");
+        assert!(serialized.contains("#0#"), "EXIT should have func_flag 0 (offline)");
+        assert!(serialized.contains("1_lbt6_0"), "Should have correct version string");
+    }
+
+    #[test]
+    fn test_feiq_packet_serialization() {
+        let packet = FeiQPacket::make_feiq_entry_packet(Some("testuser"));
+        let serialized = packet.to_feiq_string();
+
+        let header_parts: Vec<&str> = serialized.split('#').collect();
+
+        assert_eq!(header_parts[0], "1_lbt6_0", "Version should be 1_lbt6_0");
+        assert_eq!(header_parts[3], "2425", "Port should be 2425");
+        assert_eq!(header_parts[6], "4001", "Client version should be 0x4001");
+
+        let data_section = header_parts.get(7).expect("Should have data section");
+        let data_parts: Vec<&str> = data_section.split(':').collect();
+
+        assert_eq!(data_parts[0], "9", "msg_sub_type should be 9 for BR_ENTRY");
+        assert!(data_parts.len() >= 6, "Should have all 6 required data fields");
+        assert!(!data_parts[1].is_empty(), "Timestamp should not be empty");
+        assert!(!data_parts[2].is_empty(), "Packet ID should not be empty");
+        assert!(!data_parts[3].is_empty(), "Hostname should not be empty");
+        assert!(!data_parts[4].is_empty(), "Nickname should not be empty");
+    }
+
+    #[test]
+    fn test_feiq_packet_has_mac_address() {
+        let packet = FeiQPacket::make_feiq_entry_packet(Some("testuser"));
+        let serialized = packet.to_feiq_string();
+
+        let header_parts: Vec<&str> = serialized.split('#').collect();
+        assert!(header_parts.len() > 2, "Should have multiple # separated parts");
+
+        let mac_part = header_parts[2];
+        assert!(!mac_part.is_empty(), "MAC address should not be empty");
+        assert_eq!(mac_part.len(), 12, "Raw MAC should be 12 hex characters");
+        assert!(
+            mac_part.chars().all(|c| c.is_ascii_hexdigit()),
+            "MAC should contain only hex characters"
+        );
+    }
+
+    #[test]
+    fn test_feiq_packet_fields_match() {
+        let nickname = "testuser";
+        let packet = FeiQPacket::make_feiq_entry_packet(Some(nickname));
+        let serialized = packet.to_feiq_string();
+
+        assert!(serialized.contains(nickname), "Packet should contain the nickname");
+        assert_eq!(packet.func_flag, 128, "Entry packet should have func_flag 128");
+        assert_eq!(packet.client_version, 0x4001, "Client version should be 0x4001");
+        assert_eq!(packet.udp_port, 2425, "UDP port should be 2425");
+        assert_eq!(packet.ext_info.msg_sub_type, 9, "Entry should have msg_sub_type 9");
+    }
+
+    #[test]
+    fn test_feiq_exit_has_zero_func_flag() {
+        let packet = FeiQPacket::make_feiq_exit_packet(Some("testuser"));
+
+        assert_eq!(packet.func_flag, 0, "Exit packet should have func_flag 0 (offline)");
+        assert_eq!(packet.ext_info.msg_sub_type, 11, "Exit should have msg_sub_type 11");
+    }
+
+    #[test]
+    fn test_feiq_ansentry_has_correct_fields() {
+        let nickname = "testuser";
+        let packet = FeiQPacket::make_feiq_ansentry_packet(Some(nickname));
+
+        assert_eq!(packet.ext_info.msg_sub_type, 10, "ANSENTRY should have msg_sub_type 10");
+        assert_eq!(packet.func_flag, 128, "ANSENTRY should have func_flag 128 (online)");
+        assert!(packet.ext_info.nickname.contains(nickname), "Should preserve nickname");
+        assert_eq!(packet.client_version, 0x4001, "Should have correct client version");
     }
 }
