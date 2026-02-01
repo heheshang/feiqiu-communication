@@ -33,15 +33,8 @@ use tracing::{error, info};
 // Tauri 命令：基础功能
 // ============================================================
 
-/// 获取应用版本
-#[tauri::command]
-async fn get_version() -> String {
-    env!("CARGO_PKG_VERSION").to_string()
-}
-
-/// 初始化应用
-async fn init_app(app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    // 初始化日志系统
+/// 内部初始化函数（异步）
+async fn init_app_internal(app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     init_logging();
 
     info!("飞秋通讯启动中...");
@@ -64,7 +57,6 @@ async fn init_app(app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::erro
     info!("数据库文件路径: {:?}", db_path);
 
     // 预先创建数据库文件（如果不存在）
-    // 这有助于诊断权限问题
     if !db_path.exists() {
         info!("创建数据库文件: {}", db_path.display());
         if let Err(e) = std::fs::File::create(&db_path) {
@@ -76,7 +68,6 @@ async fn init_app(app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::erro
     }
 
     // 初始化数据库（使用完整路径）
-    // SQLite 会自动创建数据库文件，但我们需要确保父目录存在且可写
     let db_str = db_path.to_str().ok_or_else(|| "数据库路径包含无效字符")?;
     let db = init_database(Some(db_str)).await?;
 
@@ -96,6 +87,17 @@ async fn init_app(app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::erro
     Ok(())
 }
 
+// ============================================================
+// Tauri 命令：基础功能
+// ============================================================
+
+/// 获取应用版本
+#[tauri::command]
+async fn get_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+/// 初始化应用
 /// 初始化日志系统
 fn init_logging() {
     use tracing_subscriber::fmt;
@@ -165,24 +167,12 @@ async fn start_background_services(app_handle: tauri::AppHandle, db: Arc<DbConn>
     // 初始化全局 UDP 套接字（必须在其他 UDP 操作之前）
     if let Err(e) = init_udp_socket().await {
         error!("初始化 UDP socket 失败: {}", e);
+        return;
     }
 
-    // 启动用户发现服务
-    let _app_handle_clone = app_handle.clone();
-    tokio::spawn(async move {
-        if let Err(e) = start_discovery().await {
-            error!("用户发现服务启动失败: {}", e);
-        }
-    });
-
-    // 启动 UDP 接收器（后台任务）
-    // 注意：UDP 接收器现在使用全局共享的 UDP 套接字
-    let _app_handle_clone = app_handle.clone();
-    tokio::spawn(async move {
-        if let Err(e) = start_udp_receiver().await {
-            error!("UDP 接收器启动失败: {}", e);
-        }
-    });
+    // 确保套接字初始化完成后再启动服务
+    // 使用 tokio::task::yield_now 让出控制权，确保 OnceCell.set() 完成
+    tokio::task::yield_now().await;
 
     // 启动事件处理器
     let db_clone = db.clone();
@@ -201,6 +191,22 @@ async fn start_background_services(app_handle: tauri::AppHandle, db: Arc<DbConn>
     let db_clone = db.clone();
     tokio::spawn(async move {
         ReceiptHandler::new(db_clone).start();
+    });
+
+    // 启动 UDP 接收器（后台任务）
+    let _app_handle_clone = app_handle.clone();
+    tokio::spawn(async move {
+        if let Err(e) = start_udp_receiver().await {
+            error!("UDP 接收器启动失败: {}", e);
+        }
+    });
+
+    // 启动用户发现服务
+    let _app_handle_clone = app_handle.clone();
+    tokio::spawn(async move {
+        if let Err(e) = start_discovery().await {
+            error!("用户发现服务启动失败: {}", e);
+        }
     });
 }
 
@@ -382,13 +388,33 @@ async fn main() {
         ])
         // 应用启动事件
         .setup(|app| {
-            // 初始化应用
             let handle = app.handle().clone();
+
+            // 使用 channel 等待异步初始化完成
+            // 修复：必须等待初始化完成，确保 db.manage() 被调用后再返回
+            // 否则前端调用 IPC 命令时会因为 State 未注册而失败
+            // 使用 String 而不是 Box<dyn Error> 以确保 Send 约束
+            let (tx, rx) = std::sync::mpsc::channel::<Result<(), String>>();
+
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = init_app(&handle).await {
-                    eprintln!("初始化应用失败: {}", e);
-                }
+                let result = init_app_internal(&handle).await;
+                let _ = tx.send(result.map_err(|e| e.to_string()));
             });
+
+            // 等待初始化完成（阻塞当前线程，确保在 setup 返回前完成）
+            match rx.recv() {
+                Ok(Ok(())) => {
+                    info!("应用初始化成功");
+                }
+                Ok(Err(e)) => {
+                    eprintln!("初始化应用失败: {}", e);
+                    return Err(format!("初始化失败: {}", e).into());
+                }
+                Err(e) => {
+                    eprintln!("等待初始化完成时出错: {}", e);
+                    return Err(format!("等待初始化失败: {}", e).into());
+                }
+            }
 
             // 确保在开发时可以打开 DevTools
             #[cfg(debug_assertions)]
