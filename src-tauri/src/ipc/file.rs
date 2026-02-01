@@ -2,7 +2,7 @@
 //
 /// 文件相关 IPC 接口（薄层 - 只做参数转换和错误映射）
 use crate::core::file::service::FileService;
-use crate::core::file::transfer::{FileReceiver, FileSender};
+use crate::core::file::transfer::FileSender;
 use crate::database::handler::{FileStorageHandler, TransferStateHandler, UserHandler};
 use crate::types::{MapErrToFrontend, PendingTransfer};
 use sea_orm::DbConn;
@@ -112,9 +112,7 @@ pub async fn resume_transfer_handler(tid: i64, db: State<'_, DbConn>) -> Result<
         .await
         .map_err_to_frontend()?;
 
-    // 根据传输方向创建相应的处理器
     if transfer.direction == 1 {
-        // 上传方向: 创建 FileSender
         let sender = FileSender::new(
             file_storage.file_path.clone(),
             transfer.file_id as u64,
@@ -122,23 +120,26 @@ pub async fn resume_transfer_handler(tid: i64, db: State<'_, DbConn>) -> Result<
             transfer.packet_no,
         );
 
-        // 在后台任务中执行发送
         tokio::spawn(async move {
-            // TODO: 实现进度回调
-            if let Err(e) = sender.send().await {
+            let file_id = transfer.file_id as u64;
+            let result = sender
+                .send_with_callback(move |progress| {
+                    use crate::event::bus::EVENT_SENDER;
+                    use crate::event::model::{AppEvent, FileEvent};
+                    let _ = EVENT_SENDER.send(AppEvent::File(FileEvent::TransferProgress {
+                        file_id: file_id as i64,
+                        progress: progress.offset,
+                        total: progress.total,
+                    }));
+                })
+                .await;
+
+            if let Err(e) = result {
                 error!("文件发送失败: {}", e);
             }
         });
     } else {
-        // 接收方向: 创建 FileReceiver
-        let _receiver = FileReceiver::new(
-            file_storage.file_path.clone(),
-            transfer.file_id as u64,
-            transfer.file_size as u64,
-        );
-
-        // TODO: 实现接收逻辑（需要从网络获取数据块）
-        tracing::info!("File receiver created for: {}", file_storage.file_path);
+        tracing::info!("文件接收通过事件系统处理: {}", file_storage.file_path);
     }
 
     Ok(())

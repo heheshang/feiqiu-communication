@@ -8,13 +8,14 @@ import ContactItem from './ContactItem';
 import ContactSearch from './ContactSearch';
 import './ContactList.less';
 import type { UserInfo } from '../../types';
+import { OnlineStatus } from '../../types/user';
 
 interface ContactListProps {
   users?: UserInfo[];
   onUserClick?: (user: UserInfo) => void;
 }
 
-const ContactList: React.FC<ContactListProps> = ({ users = [], onUserClick }) => {
+const ContactList: React.FC<ContactListProps> = React.memo(({ users = [], onUserClick }) => {
   const [filteredUsers, setFilteredUsers] = useState<UserInfo[]>(users);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -37,7 +38,7 @@ const ContactList: React.FC<ContactListProps> = ({ users = [], onUserClick }) =>
     setSearchQuery(query);
   };
 
-  const onlineCount = users.filter((u) => u.status === 1).length;
+  const onlineCount = users.filter((u) => u.status === OnlineStatus.Online).length;
 
   return (
     <div className="contact-list">
@@ -64,6 +65,8 @@ const ContactList: React.FC<ContactListProps> = ({ users = [], onUserClick }) =>
       </div>
     </div>
   );
-};
+});
+
+ContactList.displayName = 'ContactList';
 
 export default ContactList;

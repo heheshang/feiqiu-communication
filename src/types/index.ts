@@ -60,13 +60,20 @@ export interface GroupInfo {
   create_time: string;
 }
 
+/** 群组成员角色 */
+export enum GroupRole {
+  Member = 0,
+  Admin = 1,
+  Owner = 2,
+}
+
 /** 群组成员 */
 export interface GroupMember {
   id: number;
   gid: number;
   member_uid: number;
   nickname: string;
-  role: number; // 0=Member, 1=Admin, 2=Owner
+  role: GroupRole;
   join_time: string;
 }
 

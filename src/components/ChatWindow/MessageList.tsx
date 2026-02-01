@@ -22,7 +22,7 @@ const MessageList: React.FC<MessageListProps> = React.memo(
   ({
     targetUser,
     messages = [],
-    currentUserId = 0, // TODO: 从用户状态获取
+    currentUserId,
     hasMore = true,
     isLoading = false,
     onLoadMore,
@@ -32,6 +32,11 @@ const MessageList: React.FC<MessageListProps> = React.memo(
     const endRef = useRef<HTMLDivElement>(null);
     const scrollHeightRef = useRef(0);
     const [initialLoadDone, setInitialLoadDone] = useState(false);
+    const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 });
+
+    // 虚拟列表配置
+    const ITEM_HEIGHT = 80;
+    const BUFFER_SIZE = 5;
 
     // 自动滚动到底部（仅在初始加载或新消息时）
     useEffect(() => {
@@ -47,20 +52,23 @@ const MessageList: React.FC<MessageListProps> = React.memo(
       }
     }, [messages.length, initialLoadDone]);
 
-    // 处理滚动到顶部加载更多
+    // 处理滚动：虚拟列表 + 加载更多
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
       const currentTarget = e.currentTarget;
-      const { scrollTop } = currentTarget;
+      const { scrollTop, clientHeight } = currentTarget;
 
-      // 当滚动到顶部附近时触发加载
+      // 更新可见范围（虚拟列表）
+      const start = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - BUFFER_SIZE);
+      const end = Math.min(
+        messages.length,
+        Math.ceil((scrollTop + clientHeight) / ITEM_HEIGHT) + BUFFER_SIZE
+      );
+      setVisibleRange({ start, end });
+
+      // 当滚动到顶部附近时触发加载更多
       if (scrollTop < 50 && hasMore && !isLoading && onLoadMore) {
-        // 保存当前滚动高度
         scrollHeightRef.current = currentTarget.scrollHeight;
-
-        // 触发加载更多
         onLoadMore();
-
-        // 加载完成后恢复滚动位置
         requestAnimationFrame(() => {
           if (listRef.current) {
             const newScrollHeight = listRef.current.scrollHeight;
@@ -107,23 +115,28 @@ const MessageList: React.FC<MessageListProps> = React.memo(
           </div>
         )}
 
-        {messages.map((message, index) => {
+        <div style={{ height: visibleRange.start * ITEM_HEIGHT }} />
+
+        {messages.slice(visibleRange.start, visibleRange.end).map((message, index) => {
+          const actualIndex = visibleRange.start + index;
           const isSelf = message.sender_uid === currentUserId;
           return (
             <MessageItem
-              key={message.mid || index}
+              key={message.mid || actualIndex}
               message={message}
               isSelf={isSelf}
               showAvatar={!isSelf}
               showTime={
-                index === 0 ||
-                new Date(messages[index - 1].send_time).getDate() !==
+                actualIndex === 0 ||
+                new Date(messages[actualIndex - 1].send_time).getDate() !==
                   new Date(message.send_time).getDate()
               }
               onRetry={onRetryMessage}
             />
           );
         })}
+
+        <div style={{ height: (messages.length - visibleRange.end) * ITEM_HEIGHT }} />
         {/* 底部锚点，用于自动滚动 */}
         <div ref={endRef} className="message-list-end" />
       </div>

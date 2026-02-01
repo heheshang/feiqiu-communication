@@ -14,9 +14,9 @@ pub async fn get_chat_history_handler(
     target_id: i64,
     page: i32,
     page_size: i32,
-    state: State<'_, DbConn>,
+    db: State<'_, DbConn>,
 ) -> Result<Vec<ChatMessage>, String> {
-    let db = state.inner();
+    let db = db.inner();
     ChatService::get_messages(db, session_type, target_id, page, page_size)
         .await
         .map_err_to_frontend()
@@ -29,9 +29,9 @@ pub async fn send_text_message_handler(
     target_id: i64,
     content: String,
     owner_uid: i64,
-    state: State<'_, DbConn>,
+    db: State<'_, DbConn>,
 ) -> Result<i64, String> {
-    let db = state.inner();
+    let db = db.inner();
     ChatService::send_message(db, session_type, target_id, owner_uid, content, 0)
         .await
         .map_err_to_frontend()
@@ -39,8 +39,8 @@ pub async fn send_text_message_handler(
 
 /// 获取会话列表
 #[tauri::command]
-pub async fn get_session_list_handler(owner_uid: i64, state: State<'_, DbConn>) -> Result<Vec<ChatSession>, String> {
-    let db = state.inner();
+pub async fn get_session_list_handler(owner_uid: i64, db: State<'_, DbConn>) -> Result<Vec<ChatSession>, String> {
+    let db = db.inner();
     ChatService::get_sessions(db, owner_uid).await.map_err_to_frontend()
 }
 
@@ -50,9 +50,9 @@ pub async fn mark_messages_read_handler(
     session_type: i8,
     target_id: i64,
     owner_uid: i64,
-    state: State<'_, DbConn>,
+    db: State<'_, DbConn>,
 ) -> Result<(), String> {
-    let db = state.inner();
+    let db = db.inner();
     ChatService::mark_as_read(db, session_type, target_id, owner_uid)
         .await
         .map_err_to_frontend()
@@ -64,9 +64,9 @@ pub async fn mark_message_read_and_send_receipt(
     mid: i64,
     msg_no: String,
     target_ip: String,
-    state: State<'_, DbConn>,
+    db: State<'_, DbConn>,
 ) -> Result<(), String> {
-    let db = state.inner();
+    let db = db.inner();
 
     // Update message status to read
     ChatMessageHandler::update_status(db, mid, 2).await.map_err_to_frontend()?;
@@ -109,9 +109,9 @@ pub async fn retry_send_message(
     _session_type: i8,
     target_id: i64,
     _owner_uid: i64,
-    state: State<'_, DbConn>,
+    db: State<'_, DbConn>,
 ) -> Result<(), String> {
-    let db = state.inner();
+    let db = db.inner();
 
     // 获取消息详情
     let message = ChatMessageHandler::find_by_id(db, mid).await.map_err_to_frontend()?;

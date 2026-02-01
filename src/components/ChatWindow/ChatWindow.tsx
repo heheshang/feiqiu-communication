@@ -8,6 +8,7 @@ import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import './ChatWindow.less';
 import type { UserInfo, SessionType, ChatMessage } from '../../types';
+import { OnlineStatus } from '../../types/user';
 
 interface ChatWindowProps {
   targetUser?: UserInfo;
@@ -53,9 +54,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         <div className="chat-header-info">
           <div className="chat-header-name">{targetUser.nickname}</div>
           <div className="chat-header-status">
-            {targetUser.status === 1 && <span className="status-text online">在线</span>}
-            {targetUser.status === 2 && <span className="status-text busy">忙碌</span>}
-            {targetUser.status === 0 && <span className="status-text offline">离线</span>}
+            {targetUser.status === OnlineStatus.Online && (
+              <span className="status-text online">在线</span>
+            )}
+            {targetUser.status === OnlineStatus.Busy && (
+              <span className="status-text busy">忙碌</span>
+            )}
+            {targetUser.status === OnlineStatus.Offline && (
+              <span className="status-text offline">离线</span>
+            )}
           </div>
         </div>
         <div className="chat-header-actions">

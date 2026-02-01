@@ -58,12 +58,28 @@ export const useUserStore = create<UserState>()(
 
         // 获取当前用户信息
         fetchCurrentUser: async () => {
-          try {
-            const user = await invoke<UserInfo>('get_current_user_handler');
-            set({ currentUser: user });
-          } catch (error) {
-            console.error('Failed to fetch current user:', error);
-            throw error;
+          const maxRetries = 5;
+          const baseDelay = 500;
+
+          for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+              const user = await invoke<UserInfo>('get_current_user_handler');
+              set({ currentUser: user });
+              return;
+            } catch (error) {
+              const isLastAttempt = attempt === maxRetries - 1;
+
+              if (isLastAttempt) {
+                console.error('Failed to fetch current user after retries:', error);
+                throw error;
+              }
+
+              const delay = baseDelay * Math.pow(2, attempt);
+              console.warn(
+                `Fetch current user attempt ${attempt + 1} failed, retrying in ${delay}ms...`
+              );
+              await new Promise((resolve) => setTimeout(resolve, delay));
+            }
           }
         },
 

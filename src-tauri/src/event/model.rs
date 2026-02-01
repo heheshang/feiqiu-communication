@@ -206,6 +206,9 @@ pub enum FileEvent {
 
     /// 取消文件传输
     TransferCancelled { file_id: i64 },
+
+    /// 文件传输进度更新
+    TransferProgress { file_id: i64, progress: u64, total: u64 },
 }
 
 // ============================================================

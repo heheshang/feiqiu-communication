@@ -8,14 +8,14 @@ use tauri::State;
 
 /// 获取通讯录列表
 #[tauri::command]
-pub async fn get_contact_list_handler(owner_uid: i64, state: State<'_, DbConn>) -> Result<Vec<Contact>, String> {
-    let db = state.inner();
+pub async fn get_contact_list_handler(owner_uid: i64, db: State<'_, DbConn>) -> Result<Vec<Contact>, String> {
+    let db = db.inner();
     ContactService::get_contacts(db, owner_uid).await.map_err_to_frontend()
 }
 
 /// 获取在线用户列表
 #[tauri::command]
-pub async fn get_online_users_handler(state: State<'_, DbConn>) -> Result<Vec<UserInfo>, String> {
-    let db = state.inner();
+pub async fn get_online_users_handler(db: State<'_, DbConn>) -> Result<Vec<UserInfo>, String> {
+    let db = db.inner();
     ContactService::get_online_users(db).await.map_err_to_frontend()
 }

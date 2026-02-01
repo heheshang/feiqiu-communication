@@ -63,8 +63,11 @@ impl FileSender {
         }
     }
 
-    /// 发送文件（分块传输）
-    pub async fn send(&self) -> AppResult<FileTransferProgress> {
+    /// 发送文件（分块传输），带进度回调
+    pub async fn send_with_callback<F>(&self, mut on_progress: F) -> AppResult<FileTransferProgress>
+    where
+        F: FnMut(FileTransferProgress),
+    {
         let path = Path::new(&self.file_path);
         let file_size = path.metadata().map_err(AppError::Io)?.len();
 
@@ -85,12 +88,12 @@ impl FileSender {
 
             chunk.truncate(n);
 
-            // 发送数据块，带重试
             let mut retries = 0;
             loop {
                 match self.send_chunk(&chunk, progress.offset).await {
                     Ok(_) => {
                         progress.update(n);
+                        on_progress(progress.clone());
                         break;
                     }
                     Err(e) if retries < MAX_RETRIES => {
@@ -109,6 +112,11 @@ impl FileSender {
         }
 
         Ok(progress)
+    }
+
+    /// 发送文件（分块传输）
+    pub async fn send(&self) -> AppResult<FileTransferProgress> {
+        self.send_with_callback(|_| {}).await
     }
 
     /// 发送单个数据块

@@ -1,8 +1,4 @@
-/**
- * 前端错误处理工具
- *
- * 用于解析和处理后端返回的结构化错误
- */
+import { useToastStore } from '../store/toastStore';
 
 /**
  * 错误代码枚举（与后端 ErrorCode 完全对应）
@@ -112,8 +108,12 @@ function createFallbackError(message: string): FrontendError {
  * ```
  */
 export function showError(error: FrontendError): void {
-  // TODO: 集成到 UI 的 toast/notification 系统
-  // 目前先使用 console.error，后续可以替换为 UI 提示
+  const { addToast } = useToastStore.getState();
+  addToast({
+    message: error.message,
+    type: 'error',
+    duration: 5000,
+  });
   console.error('[Error]', error.message);
   if (error.details) {
     console.error('[Details]', error.details);

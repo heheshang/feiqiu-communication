@@ -1,7 +1,7 @@
-// 状态管理 - 聊天状态
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { ChatMessage, ChatSession, MessageStatus, SessionType } from '../types';
+import type { ChatMessage, ChatSession } from '../types';
+import { MessageStatus, SessionType } from '../types/chat';
 
 interface ChatState {
   // 状态
@@ -183,10 +183,10 @@ export const useChatStore = create<ChatState>()(
 
       try {
         await retrySendFn();
-        get().updateMessageStatus(message.mid, 1); // 已发送
+        get().updateMessageStatus(message.mid, MessageStatus.Sent);
       } catch (error) {
         console.error('Failed to retry send message:', error);
-        get().updateMessageStatus(message.mid, -1); // 失败
+        get().updateMessageStatus(message.mid, MessageStatus.Failed);
         throw error;
       } finally {
         set((state) => ({

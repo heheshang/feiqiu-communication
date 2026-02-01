@@ -1,6 +1,3 @@
-// IPC 封装 - 联系人相关
-// TODO: Phase 4 时完善联系人 IPC 接口
-
 import { invoke } from '@tauri-apps/api/core';
 import type { UserInfo } from '../types';
 

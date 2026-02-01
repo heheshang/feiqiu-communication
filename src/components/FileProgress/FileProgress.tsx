@@ -2,7 +2,7 @@
 // Phase 6: 文件传输功能
 
 import React from 'react';
-import type { TransferStatus } from '../../types';
+import { TransferStatus } from '../../types';
 import { formatFileSize } from '../../utils/file';
 
 import './FileProgress.less';
@@ -31,15 +31,15 @@ export const FileProgress: React.FC<FileProgressProps> = React.memo(
 
     const getStatusText = (): string => {
       switch (status) {
-        case 0: // Pending
+        case TransferStatus.Pending:
           return '等待中...';
-        case 1: // Transferring
+        case TransferStatus.Transferring:
           return `传输中 ${formatTime(remainingSeconds)}`;
-        case 2: // Completed
+        case TransferStatus.Completed:
           return '传输完成';
-        case -2: // Cancelled
+        case TransferStatus.Cancelled:
           return '已取消';
-        case -1: // Failed
+        case TransferStatus.Failed:
           return '传输失败';
         default:
           return '';
@@ -47,7 +47,7 @@ export const FileProgress: React.FC<FileProgressProps> = React.memo(
     };
 
     const getSpeedText = (): string => {
-      if (status !== 1) return '';
+      if (status !== TransferStatus.Transferring) return '';
       return `${formatFileSize(speed)}/s`;
     };
 
@@ -55,7 +55,7 @@ export const FileProgress: React.FC<FileProgressProps> = React.memo(
       <div className={`file-progress file-progress--status-${status}`}>
         <div className="file-progress-header">
           <span className="file-progress-name">{fileName}</span>
-          {status === 1 && onCancel && (
+          {status === TransferStatus.Transferring && onCancel && (
             <button
               className="file-progress-cancel"
               onClick={() => onCancel(fileId)}

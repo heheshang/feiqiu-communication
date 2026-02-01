@@ -1,6 +1,3 @@
-// IPC 封装 - 统一导出
-// TODO: Phase 4 时根据需要完善更多 IPC 接口
-
 export { chatAPI } from './chat';
 export { contactAPI } from './contact';
 export { fileAPI } from './file';

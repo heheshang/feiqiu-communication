@@ -11,8 +11,8 @@ use tracing::{error, info};
 ///
 /// 从数据库中查找当前登录用户，如果不存在则创建默认用户
 #[tauri::command]
-pub async fn get_current_user_handler(state: State<'_, DbConn>) -> Result<UserInfo, String> {
-    let db = state.inner();
+pub async fn get_current_user_handler(db: State<'_, DbConn>) -> Result<UserInfo, String> {
+    let db = db.inner();
 
     // 获取本地 IP 和端口
     let (local_ip, local_port) = get_local_network_info().unwrap_or_else(|e| {
@@ -90,9 +90,9 @@ pub async fn update_current_user_handler(
     uid: i64,
     nickname: Option<String>,
     avatar: Option<String>,
-    state: State<'_, DbConn>,
+    db: State<'_, DbConn>,
 ) -> Result<UserInfo, String> {
-    let db = state.inner();
+    let db = db.inner();
 
     // 获取现有用户
     let mut user = UserHandler::find_by_id(db, uid).await.map_err_to_frontend()?;
