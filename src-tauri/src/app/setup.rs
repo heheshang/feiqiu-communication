@@ -3,12 +3,11 @@ use tauri::{AppHandle, Manager};
 pub fn setup_app(app_handle: AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     use std::sync::mpsc::channel;
     use sea_orm::DbConn;
-    use std::sync::Arc;
     use tracing::info;
 
     use crate::app::init::init_app;
 
-    let (tx, rx) = channel::<Result<Arc<DbConn>, String>>();
+    let (tx, rx) = channel::<Result<DbConn, String>>();
     let app_handle_clone = app_handle.clone();
 
     tauri::async_runtime::spawn(async move {

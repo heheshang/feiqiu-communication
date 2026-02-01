@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use sea_orm::DbConn;
 use tauri::{AppHandle, Manager};
 use tracing::{error, info};
@@ -15,7 +13,7 @@ use crate::event::handlers::{handle_network_event, handle_ui_event};
 use crate::event::model::AppEvent;
 use crate::network::udp::{init_udp_socket, start_udp_receiver};
 
-pub async fn init_app(app_handle: &AppHandle) -> Result<Arc<DbConn>, Box<dyn std::error::Error>> {
+pub async fn init_app(app_handle: &AppHandle) -> Result<DbConn, Box<dyn std::error::Error>> {
     init_logging();
 
     info!("飞秋通讯启动中...");
@@ -47,8 +45,6 @@ pub async fn init_app(app_handle: &AppHandle) -> Result<Arc<DbConn>, Box<dyn std
     let db = init_database(Some(db_str)).await?;
 
     ensure_current_user_exists(&db).await?;
-
-    let db = Arc::new(db);
 
     start_background_services(app_handle.clone(), db.clone()).await;
 
@@ -115,7 +111,7 @@ async fn ensure_current_user_exists(db: &DbConn) -> Result<(), String> {
     }
 }
 
-async fn start_background_services(app_handle: AppHandle, db: Arc<DbConn>) {
+async fn start_background_services(app_handle: AppHandle, db: DbConn) {
     if let Err(e) = init_udp_socket().await {
         error!("初始化 UDP socket 失败: {}", e);
         return;
@@ -129,12 +125,12 @@ async fn start_background_services(app_handle: AppHandle, db: Arc<DbConn>) {
         event_loop(app_handle_clone, db_clone).await;
     });
 
-    let db_clone = db.clone();
+    let db_clone = std::sync::Arc::new(db.clone());
     tokio::spawn(async move {
         MessageReceiver::new(db_clone).start();
     });
 
-    let db_clone = db.clone();
+    let db_clone = std::sync::Arc::new(db.clone());
     tokio::spawn(async move {
         ReceiptHandler::new(db_clone).start();
     });
@@ -152,7 +148,7 @@ async fn start_background_services(app_handle: AppHandle, db: Arc<DbConn>) {
     });
 }
 
-async fn event_loop(_app_handle: AppHandle, db: Arc<DbConn>) {
+async fn event_loop(_app_handle: AppHandle, db: DbConn) {
     loop {
         match EVENT_RECEIVER.recv() {
             Ok(event) => {

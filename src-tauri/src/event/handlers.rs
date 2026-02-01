@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
 use sea_orm::DbConn;
 use tracing::{error, info};
 
 use crate::core::file::FileTransferHandler;
 use crate::event::model::{NetworkEvent, UiEvent};
 
-pub async fn handle_network_event(event: NetworkEvent, db: &Arc<DbConn>) {
+pub async fn handle_network_event(event: NetworkEvent, db: &DbConn) {
     match event {
         NetworkEvent::UserOnline {
             ip,
@@ -139,7 +137,7 @@ async fn handle_user_updated(user: String) {
 }
 
 async fn handle_file_data_request(
-    db: &Arc<DbConn>,
+    db: &DbConn,
     from_ip: String,
     packet_no: String,
     file_id: u64,
@@ -154,7 +152,7 @@ async fn handle_file_data_request(
 }
 
 async fn handle_file_data_received(
-    db: &Arc<DbConn>,
+    db: &DbConn,
     from_ip: String,
     packet_no: String,
     file_id: u64,
@@ -170,7 +168,7 @@ async fn handle_file_data_received(
     }
 }
 
-async fn handle_file_release(db: &Arc<DbConn>, from_ip: String, packet_no: String) {
+async fn handle_file_release(db: &DbConn, from_ip: String, packet_no: String) {
     if let Err(e) = FileTransferHandler::handle_file_release(db, &from_ip, &packet_no).await {
         error!("处理文件释放失败: {}", e);
     }
