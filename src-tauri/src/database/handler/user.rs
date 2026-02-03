@@ -136,4 +136,63 @@ impl UserHandler {
 
         Ok(users)
     }
+
+    /// 根据 machine_id 查找用户
+    pub async fn find_by_machine_id(db: &DbConn, machine_id: &str) -> AppResult<Option<user::Model>> {
+        let user = User::find()
+            .filter(user::Column::FeiqMachineId.eq(machine_id))
+            .one(db)
+            .await
+            .map_err(AppError::Database)?;
+
+        Ok(user)
+    }
+
+    /// 根据 machine_id 创建或更新用户（upsert）
+    ///
+    /// 如果用户不存在则创建，如果存在则更新信息
+    pub async fn upsert_by_machine_id(
+        db: &DbConn,
+        machine_id: &str,
+        feiq_ip: &str,
+        feiq_port: u16,
+        nickname: &str,
+        status: i8,
+    ) -> AppResult<user::Model> {
+        match Self::find_by_machine_id(db, machine_id).await? {
+            Some(existing_user) => {
+                // 用户存在，更新信息
+                let user_update = user::ActiveModel {
+                    uid: ActiveValue::Set(existing_user.uid),
+                    feiq_ip: ActiveValue::Set(feiq_ip.to_string()),
+                    feiq_port: ActiveValue::Set(feiq_port),
+                    feiq_machine_id: ActiveValue::Set(machine_id.to_string()),
+                    nickname: ActiveValue::Set(nickname.to_string()),
+                    avatar: ActiveValue::Set(existing_user.avatar),
+                    status: ActiveValue::Set(status),
+                    create_time: ActiveValue::Set(existing_user.create_time),
+                    update_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
+                };
+
+                user_update.update(db).await.map_err(AppError::Database)
+            }
+            None => {
+                // 用户不存在，创建新用户
+                let new_user = user::ActiveModel {
+                    uid: ActiveValue::NotSet,
+                    feiq_ip: ActiveValue::Set(feiq_ip.to_string()),
+                    feiq_port: ActiveValue::Set(feiq_port),
+                    feiq_machine_id: ActiveValue::Set(machine_id.to_string()),
+                    nickname: ActiveValue::Set(nickname.to_string()),
+                    avatar: ActiveValue::Set(None),
+                    status: ActiveValue::Set(status),
+                    create_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
+                    update_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
+                };
+
+                let result = User::insert(new_user).exec(db).await.map_err(AppError::Database)?;
+                Self::find_by_id(db, result.last_insert_id).await
+            }
+        }
+    }
 }

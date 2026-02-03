@@ -2,6 +2,7 @@ use sea_orm::DbConn;
 use tracing::{error, info};
 
 use crate::core::file::FileTransferHandler;
+use crate::database::handler::{ContactHandler, UserHandler};
 use crate::event::model::{NetworkEvent, UiEvent};
 
 pub async fn handle_network_event(event: NetworkEvent, db: &DbConn) {
@@ -12,14 +13,14 @@ pub async fn handle_network_event(event: NetworkEvent, db: &DbConn) {
             nickname,
             hostname,
             mac_addr,
-        } => handle_user_online(ip, port, nickname, hostname, mac_addr).await,
+        } => handle_user_online_with_db(db, ip, port, nickname, hostname, mac_addr).await,
         NetworkEvent::UserOffline { ip } => handle_user_offline(ip).await,
         NetworkEvent::UserPresenceResponse {
             ip,
             port,
             nickname,
             hostname,
-        } => handle_user_presence(ip, port, nickname, hostname).await,
+        } => handle_user_presence_with_db(db, ip, port, nickname, hostname).await,
         NetworkEvent::MessageReceived {
             sender_ip,
             sender_port,
@@ -85,6 +86,56 @@ async fn handle_user_online(
     }
 }
 
+/// 处理用户上线事件（带数据库操作）
+///
+/// 收到 BR_ENTRY 消息后：
+/// 1. 更新或创建 user 表记录
+/// 2. 确保 contact 表中存在与当前用户的联系人关系
+async fn handle_user_online_with_db(
+    db: &DbConn,
+    ip: String,
+    port: u16,
+    nickname: String,
+    hostname: Option<String>,
+    mac_addr: Option<String>,
+) {
+    info!("用户上线事件: {} ({}:{})", nickname, ip, port);
+    if let Some(h) = hostname {
+        info!("  主机名: {}", h);
+    }
+    if let Some(m) = mac_addr {
+        info!("  MAC: {}", m);
+    }
+
+    let machine_id = format!("{}:{}", ip, port);
+
+    // 1. 更新或创建用户记录（状态：在线）
+    match UserHandler::upsert_by_machine_id(db, &machine_id, &ip, port, &nickname, 1).await {
+        Ok(user) => {
+            info!("✅ 用户已更新/创建: uid={}, nickname={}", user.uid, user.nickname);
+
+            // 2. 获取当前用户 ID
+            if let Ok(current_user) = UserHandler::get_current_user(db).await {
+                // 不为自己创建联系人关系
+                if user.uid != current_user.uid {
+                    // 3. 确保联系人关系存在
+                    match ContactHandler::ensure_contact(db, current_user.uid, user.uid).await {
+                        Ok(_) => {
+                            info!("✅ 联系人关系已确保: {} -> {}", current_user.nickname, user.nickname);
+                        }
+                        Err(e) => {
+                            error!("❌ 创建联系人关系失败: {}", e);
+                        }
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            error!("❌ 更新/创建用户失败: {}", e);
+        }
+    }
+}
+
 async fn handle_user_offline(ip: String) {
     info!("用户离线事件: {}", ip);
 }
@@ -98,6 +149,52 @@ async fn handle_user_presence(
     info!("用户在线应答: {} ({}:{})", nickname, ip, port);
     if let Some(h) = hostname {
         info!("  主机名: {}", h);
+    }
+}
+
+/// 处理用户在线应答（带数据库操作）
+///
+/// 收到 ANSENTRY 消息后：
+/// 1. 更新或创建 user 表记录
+/// 2. 确保 contact 表中存在与当前用户的联系人关系
+pub async fn handle_user_presence_with_db(
+    db: &DbConn,
+    ip: String,
+    port: u16,
+    nickname: String,
+    hostname: Option<String>,
+) {
+    info!("用户在线应答: {} ({}:{})", nickname, ip, port);
+    if let Some(h) = hostname {
+        info!("  主机名: {}", h);
+    }
+
+    let machine_id = format!("{}:{}", ip, port);
+
+    // 1. 更新或创建用户记录（状态：在线）
+    match UserHandler::upsert_by_machine_id(db, &machine_id, &ip, port, &nickname, 1).await {
+        Ok(user) => {
+            info!("✅ 用户已更新/创建: uid={}, nickname={}", user.uid, user.nickname);
+
+            // 2. 获取当前用户 ID
+            if let Ok(current_user) = UserHandler::get_current_user(db).await {
+                // 不为自己创建联系人关系
+                if user.uid != current_user.uid {
+                    // 3. 确保联系人关系存在
+                    match ContactHandler::ensure_contact(db, current_user.uid, user.uid).await {
+                        Ok(_) => {
+                            info!("✅ 联系人关系已确保: {} -> {}", current_user.nickname, user.nickname);
+                        }
+                        Err(e) => {
+                            error!("❌ 创建联系人关系失败: {}", e);
+                        }
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            error!("❌ 更新/创建用户失败: {}", e);
+        }
     }
 }
 

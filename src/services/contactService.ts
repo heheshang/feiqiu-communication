@@ -5,7 +5,7 @@ export const contactService = {
     return await contactAPI.getContactList(ownerUid);
   },
 
-  async getOnlineUsers(ownerUid: number) {
-    return await contactAPI.getOnlineUsers(ownerUid);
+  async getOnlineUsers() {
+    return await contactAPI.getOnlineUsers();
   },
 };

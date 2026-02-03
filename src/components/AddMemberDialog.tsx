@@ -43,7 +43,7 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
       // Try to get online users first, fall back to contact list
       let users: UserInfo[] = [];
       try {
-        users = await contactAPI.getOnlineUsers(currentUserId);
+        users = await contactAPI.getOnlineUsers();
       } catch {
         try {
           users = await contactAPI.getContactList(currentUserId);

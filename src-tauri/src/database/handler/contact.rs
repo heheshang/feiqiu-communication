@@ -119,4 +119,39 @@ impl ContactHandler {
             .map_err(AppError::Database)?;
         Ok(())
     }
+
+    /// 确保联系人关系存在（如果不存在则创建）
+    ///
+    /// # 参数
+    /// - `db`: 数据库连接
+    /// - `owner_uid`: 所有者用户 ID
+    /// - `contact_uid`: 联系人用户 ID
+    ///
+    /// # 返回
+    /// - `Ok(contact)`: 联系人记录（已存在或新创建）
+    /// - `Err`: 创建失败
+    pub async fn ensure_contact(
+        db: &DbConn,
+        owner_uid: i64,
+        contact_uid: i64,
+    ) -> AppResult<contact::Model> {
+        match Self::find_by_owner_and_contact(db, owner_uid, contact_uid).await? {
+            Some(contact) => Ok(contact),
+            None => {
+                // 联系人关系不存在，创建新的
+                let new_contact = contact::ActiveModel {
+                    id: ActiveValue::NotSet,
+                    owner_uid: ActiveValue::Set(owner_uid),
+                    contact_uid: ActiveValue::Set(contact_uid),
+                    remark: ActiveValue::Set(None),
+                    tag: ActiveValue::Set(None),
+                    create_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
+                    update_time: ActiveValue::Set(chrono::Utc::now().naive_utc()),
+                };
+
+                let result = Contact::insert(new_contact).exec(db).await.map_err(AppError::Database)?;
+                Self::find_by_id(db, result.last_insert_id).await
+            }
+        }
+    }
 }

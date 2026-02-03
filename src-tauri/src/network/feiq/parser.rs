@@ -102,9 +102,15 @@ pub fn parse_feiq_packet_detail(packet_str: &str) -> Result<FeiQPacket, ParseErr
     let extra_flag = main_fields[5]
         .parse::<u32>()
         .map_err(|e| ParseError::InvalidFormat(format!("附加标志位解析失败：{}", e)))?;
-    let client_version = main_fields[6]
-        .parse::<u32>()
-        .map_err(|e| ParseError::InvalidFormat(format!("客户端版本号解析失败：{}", e)))?;
+
+    // 命令字可能是十进制或十六进制（实际协议中使用十六进制，如 311c, 4001）
+    // 注意：字段名为 client_version 但实际是命令字（command），未来应重命名
+    let client_version = if let Ok(cmd) = main_fields[6].parse::<u32>() {
+        cmd
+    } else {
+        u32::from_str_radix(main_fields[6], 16)
+            .map_err(|_| ParseError::InvalidFormat("命令字解析失败（无法解析为十进制或十六进制）".to_string()))?
+    };
 
     // 3. 拆分扩展信息段（:分隔）
     let data_section = main_fields[7];
@@ -267,14 +273,14 @@ mod tests {
     fn test_parse_feiq_7_field_format() {
         // 实际的飞秋数据包（7字段格式）
         // 格式: msg_sub_type:counter:timestamp:packet_id:hostname:unique_id:remark
-        let input = "1_lbt6_0#128#5C60BA7361C6#2425#0#0#16385#9:9:1769669929:T1769669929:shikunsh-n:T0220165:";
+        let input = "1_lbt6_0#128#5C60BA7361C6#2425#0#0#4001#9:9:1769669929:T1769669929:shikunsh-n:T0220165:";
         let detail = parse_feiq_packet_detail(input).unwrap();
 
         assert_eq!(detail.pkg_type, "1_lbt6_0");
         assert_eq!(detail.func_flag, 128);
         assert_eq!(detail.mac_addr_formatted, "5C-60-BA-73-61-C6");
         assert_eq!(detail.udp_port, 2425); // decimal port
-        assert_eq!(detail.client_version, 16385); // 0x4001 in decimal
+        assert_eq!(detail.client_version, 0x4001); // 命令字（十六进制：4001）
         assert_eq!(detail.ext_info.msg_sub_type, 9);
         assert_eq!(detail.ext_info.timestamp, 1769669929);
         assert_eq!(detail.ext_info.unique_id, "T0220165");

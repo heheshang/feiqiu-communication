@@ -83,14 +83,8 @@ export function useContact() {
 
   /** 刷新在线用户列表 */
   const refreshOnlineUsers = useCallback(async () => {
-    const { currentUser } = useUserStore.getState();
-    if (!currentUser) {
-      console.error('No current user found');
-      return;
-    }
-
     try {
-      const users = await contactService.getOnlineUsers(currentUser.uid);
+      const users = await contactService.getOnlineUsers();
       setOnlineUsers(users);
     } catch (error) {
       console.error('Failed to refresh online users:', error);

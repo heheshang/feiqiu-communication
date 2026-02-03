@@ -163,9 +163,9 @@ describe('contactService', () => {
 
       (contactAPI.contactAPI.getOnlineUsers as any).mockResolvedValueOnce(mockOnlineUsers);
 
-      const result = await contactService.getOnlineUsers(456);
+      const result = await contactService.getOnlineUsers();
 
-      expect(contactAPI.contactAPI.getOnlineUsers).toHaveBeenCalledWith(456);
+      expect(contactAPI.contactAPI.getOnlineUsers).toHaveBeenCalledWith();
       expect(result).toEqual(mockOnlineUsers);
       expect(result).toHaveLength(2);
     });
@@ -174,17 +174,17 @@ describe('contactService', () => {
       const error = new Error('Network error');
       (contactAPI.contactAPI.getOnlineUsers as any).mockRejectedValueOnce(error);
 
-      await expect(contactService.getOnlineUsers(456)).rejects.toThrow('Network error');
-      expect(contactAPI.contactAPI.getOnlineUsers).toHaveBeenCalledWith(456);
+      await expect(contactService.getOnlineUsers()).rejects.toThrow('Network error');
+      expect(contactAPI.contactAPI.getOnlineUsers).toHaveBeenCalledWith();
     });
 
     it('should return empty array when no users are online', async () => {
       (contactAPI.contactAPI.getOnlineUsers as any).mockResolvedValueOnce([]);
 
-      const result = await contactService.getOnlineUsers(456);
+      const result = await contactService.getOnlineUsers();
 
       expect(result).toEqual([]);
-      expect(contactAPI.contactAPI.getOnlineUsers).toHaveBeenCalledWith(456);
+      expect(contactAPI.contactAPI.getOnlineUsers).toHaveBeenCalledWith();
     });
 
     it('should handle multiple online users', async () => {
@@ -201,7 +201,7 @@ describe('contactService', () => {
 
       (contactAPI.contactAPI.getOnlineUsers as any).mockResolvedValueOnce(mockOnlineUsers);
 
-      const result = await contactService.getOnlineUsers(456);
+      const result = await contactService.getOnlineUsers();
 
       expect(result).toHaveLength(10);
       expect(result[0].nickname).toBe('User 1');
@@ -244,7 +244,7 @@ describe('contactService', () => {
 
       (contactAPI.contactAPI.getOnlineUsers as any).mockResolvedValueOnce(mockUsers);
 
-      const result = await contactService.getOnlineUsers(456);
+      const result = await contactService.getOnlineUsers();
 
       expect(result).toHaveLength(3);
       expect(result[0].status).toBe(1);
@@ -269,7 +269,7 @@ describe('contactService', () => {
 
       (contactAPI.contactAPI.getOnlineUsers as any).mockResolvedValueOnce(mockUsers);
 
-      const result = await contactService.getOnlineUsers(456);
+      const result = await contactService.getOnlineUsers();
 
       expect(result[0].avatar).toBe('https://example.com/avatar.jpg');
     });
